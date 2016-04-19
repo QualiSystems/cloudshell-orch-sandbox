@@ -1,2 +1,2 @@
-# cloudshell-orchestration
-Provides tools for sandbox orchestration
+# cloudshell-orch-sandbox
+Package for sandbox orchestration script functions
