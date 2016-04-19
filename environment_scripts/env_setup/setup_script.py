@@ -12,6 +12,7 @@ from environment_scripts.profiler.env_profiler import profileit
 
 class EnvironmentSetup(object):
     NO_DRIVER_ERR = "129"
+    DRIVER_FUNCTION_ERROR = "151"
 
     def __init__(self):
         self.reservation_id = helpers.get_reservation_context_details().id
@@ -95,7 +96,8 @@ class EnvironmentSetup(object):
                 api.AutoLoad(deployed_app_name)
 
             except CloudShellAPIError as exc:
-                if exc.code != EnvironmentSetup.NO_DRIVER_ERR:
+                if exc.code != DeployAppOrchestrationDriver.NO_DRIVER_ERR or\
+                   exc.code != DeployAppOrchestrationDriver.DRIVER_FUNCTION_ERROR:
                     self.logger.error(
                         "Error executing Autoload command on deployed app {0}. Error: {1}".format(deployed_app_name,
                                                                                                   exc.rawxml))
