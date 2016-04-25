@@ -6,7 +6,7 @@ from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from cloudshell.core.logger import qs_logger
 
-from environment_scripts.helpers.vm_details_helper import get_vm_custom_param
+from environment_scripts.helpers.vm_details_helper import get_vm_custom_param, get_vm_details
 from environment_scripts.profiler.env_profiler import profileit
 
 
@@ -224,7 +224,8 @@ class EnvironmentSetup(object):
                 resource_details = api.GetResourceDetails(deployed_app_name)
 
             # check if deployed app
-            if not hasattr(resource_details.VmDetails, "UID"):
+            vm_details = get_vm_details(resource_details)
+            if not hasattr(vm_details, "UID"):
                 self.logger.debug("Resource {0} is not a deployed app, nothing to do with it".format(deployed_app_name))
                 return True, ""
 
