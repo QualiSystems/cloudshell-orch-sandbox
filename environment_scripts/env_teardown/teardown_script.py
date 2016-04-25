@@ -107,7 +107,7 @@ class EnvironmentTeardown:
         resource_name = resource_info.Name
         try:
             delete = "true"
-            auto_delete_param = get_vm_custom_param(resource_info.VmDetails.VmCustomParams, "auto_delete")
+            auto_delete_param = get_vm_custom_param(resource_info, "auto_delete")
             if auto_delete_param:
                 delete = auto_delete_param.Value
 
@@ -134,7 +134,7 @@ class EnvironmentTeardown:
                 return resource_name
             else:
                 power_off = "true"
-                auto_power_off_param = get_vm_custom_param(resource_info.VmDetails.VmCustomParams, "auto_power_off")
+                auto_power_off_param = get_vm_custom_param(resource_info, "auto_power_off")
                 if auto_power_off_param:
                     power_off = auto_power_off_param.Value
 

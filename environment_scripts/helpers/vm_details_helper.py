@@ -1,10 +1,16 @@
-def get_vm_custom_param(vm_custom_params, param_name):
+def get_vm_custom_param(resource_info, param_name):
     """
-    :param list[VmCustomParam] vm_custom_params:
+    :param ResourceInfo resource_info:
     :param param_name:
     :return:
     """
-    for param in vm_custom_params:
+    if isinstance(resource_info.VmDetails, list):
+        vm_detail = resource_info.VmDetails[0]
+    else:
+        vm_detail = resource_info.VmDetails
+
+    for param in vm_detail.VmCustomParams:
         if param.Name == param_name:
             return param
+
     return None

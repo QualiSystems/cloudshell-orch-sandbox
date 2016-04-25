@@ -79,7 +79,7 @@ class EnvironmentSetup(object):
             resource_details_cache[deployed_app_name] = resource_details
 
             autoload = "true"
-            autoload_param = get_vm_custom_param(resource_details.VmDetails.VmCustomParams, "autoload")
+            autoload_param = get_vm_custom_param(resource_details, "autoload")
             if autoload_param:
                 autoload = autoload_param.Value
             if autoload.lower() != "true":
@@ -96,8 +96,8 @@ class EnvironmentSetup(object):
                 api.AutoLoad(deployed_app_name)
 
             except CloudShellAPIError as exc:
-                if exc.code != DeployAppOrchestrationDriver.NO_DRIVER_ERR and\
-                   exc.code != DeployAppOrchestrationDriver.DRIVER_FUNCTION_ERROR:
+                if exc.code != EnvironmentSetup.NO_DRIVER_ERR and\
+                   exc.code != EnvironmentSetup.DRIVER_FUNCTION_ERROR:
                     self.logger.error(
                         "Error executing Autoload command on deployed app {0}. Error: {1}".format(deployed_app_name,
                                                                                                   exc.rawxml))
@@ -228,10 +228,10 @@ class EnvironmentSetup(object):
                 self.logger.debug("Resource {0} is not a deployed app, nothing to do with it".format(deployed_app_name))
                 return True, ""
 
-            auto_power_on_param = get_vm_custom_param(resource_details.VmDetails.VmCustomParams, "auto_power_on")
+            auto_power_on_param = get_vm_custom_param(resource_details, "auto_power_on")
             if auto_power_on_param:
                 power_on = auto_power_on_param.Value
-            wait_for_ip_param = get_vm_custom_param(resource_details.VmDetails.VmCustomParams, "wait_for_ip")
+            wait_for_ip_param = get_vm_custom_param(resource_details, "wait_for_ip")
             if wait_for_ip_param:
                 wait_for_ip = wait_for_ip_param.Value
 
