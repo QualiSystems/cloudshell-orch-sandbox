@@ -1,4 +1,4 @@
-from environment_scripts.env_teardown.teardown_script import EnvironmentTeardown
+from sandbox_scripts.environment.teardown.teardown_script import EnvironmentTeardown
 
 
 def main():
