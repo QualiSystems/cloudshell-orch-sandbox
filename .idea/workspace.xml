@@ -2,25 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="9491883e-008c-4a5a-a492-8b4329763c26" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/vcs.xml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/sandbox_scripts/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/sandbox_scripts/environment/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/sandbox_scripts/environment/setup/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/sandbox_scripts/environment/teardown/__init__.py" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Default Sandbox Setup.zip" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Default Sandbox Teardown.zip" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/environment_scripts/__init__.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/environment_scripts/env_setup/__init__.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/environment_scripts/env_setup/__main__.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/environment_scripts/env_setup/setup_script.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/environment_scripts/env_teardown/__init__.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/environment_scripts/env_teardown/__main__.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/environment_scripts/env_teardown/teardown_script.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/environment_scripts/helpers/__init__.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/environment_scripts/helpers/vm_details_helper.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/environment_scripts/profiler/__init__.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/environment_scripts/profiler/env_profiler.py" afterPath="" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SandboxOrchestration.zip" afterPath="$PROJECT_DIR$/SandboxOrchestration.zip" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SandboxOrchestrationPackage/Topology Scripts/Default Sandbox Setup.zip" afterPath="$PROJECT_DIR$/SandboxOrchestrationPackage/Topology Scripts/Default Sandbox Setup.zip" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SandboxOrchestrationPackage/Topology Scripts/Default Sandbox Teardown.zip" afterPath="$PROJECT_DIR$/SandboxOrchestrationPackage/Topology Scripts/Default Sandbox Teardown.zip" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="cloudshell-orch-sandbox.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -486,7 +471,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1296" height="1000" extended-state="7" />
-    <editor active="false" />
+    <editor active="true" />
     <layout>
       <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
