@@ -5,8 +5,8 @@ from threading import Lock
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from cloudshell.core.logger import qs_logger
-from environment_scripts.profiler.env_profiler import profileit
-from environment_scripts.helpers.vm_details_helper import get_vm_custom_param
+from sandbox_scripts.profiler.env_profiler import profileit
+from sandbox_scripts.helpers.vm_details_helper import get_vm_custom_param
 
 
 class EnvironmentTeardown:
