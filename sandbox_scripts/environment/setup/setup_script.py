@@ -6,8 +6,8 @@ from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from cloudshell.core.logger import qs_logger
 
-from environment_scripts.helpers.vm_details_helper import get_vm_custom_param, get_vm_details
-from environment_scripts.profiler.env_profiler import profileit
+from sandbox_scripts.helpers.vm_details_helper import get_vm_custom_param
+from sandbox_scripts.profiler.env_profiler import profileit
 
 
 class EnvironmentSetup(object):
