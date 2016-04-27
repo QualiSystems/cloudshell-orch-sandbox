@@ -96,7 +96,7 @@ class EnvironmentSetup(object):
                 api.AutoLoad(deployed_app_name)
 
             except CloudShellAPIError as exc:
-                if exc.code != EnvironmentSetup.NO_DRIVER_ERR and\
+                if exc.code != EnvironmentSetup.NO_DRIVER_ERR or\
                    exc.code != EnvironmentSetup.DRIVER_FUNCTION_ERROR:
                     self.logger.error(
                         "Error executing Autoload command on deployed app {0}. Error: {1}".format(deployed_app_name,
