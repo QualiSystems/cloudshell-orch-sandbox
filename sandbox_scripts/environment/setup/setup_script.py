@@ -96,14 +96,14 @@ class EnvironmentSetup(object):
                 api.AutoLoad(deployed_app_name)
 
             except CloudShellAPIError as exc:
-                if exc.code != EnvironmentSetup.NO_DRIVER_ERR or\
-                   exc.code != EnvironmentSetup.DRIVER_FUNCTION_ERROR:
+                if exc.code not in (EnvironmentSetup.NO_DRIVER_ERR, EnvironmentSetup.DRIVER_FUNCTION_ERROR):
                     self.logger.error(
                         "Error executing Autoload command on deployed app {0}. Error: {1}".format(deployed_app_name,
                                                                                                   exc.rawxml))
                     api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                                         message='Discovery failed on "{0}": {1}'
                                                         .format(deployed_app_name, exc.message))
+
             except Exception as exc:
                 self.logger.error("Error executing Autoload command on deployed app {0}. Error: {1}"
                                   .format(deployed_app_name, str(exc)))
