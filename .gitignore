@@ -60,3 +60,12 @@ target/
 
 #Ipython Notebook
 .ipynb_checkpoints
+.idea/.name
+.idea/cloudshell-orch-sandbox.iml
+.idea/encodings.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/vcs.xml
+.idea/workspace.xml
+SandboxOrchestrationPackage/Topology Scripts/Default Sandbox Setup.zip
+SandboxOrchestrationPackage/Topology Scripts/Default Sandbox Teardown.zip
