@@ -69,3 +69,7 @@ target/
 .idea/workspace.xml
 SandboxOrchestrationPackage/Topology Scripts/Default Sandbox Setup.zip
 SandboxOrchestrationPackage/Topology Scripts/Default Sandbox Teardown.zip
+qpm.ini
+
+# zip files
+*.zip
