@@ -1,6 +1,3 @@
-from cloudshell.api.cloudshell_api import VmDetail, ResourceInfo
-
-
 def get_vm_custom_param(resource_info, param_name):
     """
     :param ResourceInfo resource_info:
