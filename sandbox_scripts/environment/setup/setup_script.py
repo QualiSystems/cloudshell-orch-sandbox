@@ -6,7 +6,7 @@ from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from cloudshell.core.logger import qs_logger
 
-from sandbox_scripts.helpers.vm_details_helper import get_vm_custom_param
+from sandbox_scripts.helpers.vm_details_helper import get_vm_custom_param, get_vm_details
 from sandbox_scripts.profiler.env_profiler import profileit
 
 
@@ -232,6 +232,7 @@ class EnvironmentSetup(object):
             auto_power_on_param = get_vm_custom_param(resource_details, "auto_power_on")
             if auto_power_on_param:
                 power_on = auto_power_on_param.Value
+
             wait_for_ip_param = get_vm_custom_param(resource_details, "wait_for_ip")
             if wait_for_ip_param:
                 wait_for_ip = wait_for_ip_param.Value
