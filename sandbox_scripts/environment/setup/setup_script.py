@@ -28,8 +28,6 @@ class EnvironmentSetup(object):
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                             message='Beginning reservation setup')
 
-        self._prepare_connectivity(api, self.reservation_id)
-
         reservation_details = api.GetReservationDetails(self.reservation_id)
 
         deploy_result = self._deploy_apps_in_reservation(api=api,
@@ -55,16 +53,6 @@ class EnvironmentSetup(object):
         self.logger.info("Setup for reservation {0} completed".format(self.reservation_id))
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                             message='Reservation setup finished successfully')
-
-    def _prepare_connectivity(self, api, reservation_id):
-        """
-        :param CloudShellAPISession api:
-        :param str reservation_id:
-        """
-        self.logger.info("Preparing connectivity for reservation {0}".format(self.reservation_id))
-        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                            message='Preparing connectivity')
-        api.PrepareSandboxConnectivity(reservation_id)
 
     def _try_exeucte_autoload(self, api, reservation_details, deploy_result, resource_details_cache):
         """
