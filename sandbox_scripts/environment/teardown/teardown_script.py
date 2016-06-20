@@ -28,6 +28,8 @@ class EnvironmentTeardown:
 
         self._power_off_and_delete_all_vm_resources(api, reservation_details)
 
+        self._cleanup_connectivity(api, self.reservation_id)
+
         self.logger.info("Teardown for reservation {0} completed".format(self.reservation_id))
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                             message='Reservation teardown finished successfully')
@@ -158,3 +160,14 @@ class EnvironmentTeardown:
             self.logger.error("Error deleting or powering off deployed app {0} in reservation {1}. Error: {2}"
                               .format(resource_name, self.reservation_id, str(exc)))
             return None
+
+    def _cleanup_connectivity(self, api, reservation_id):
+        """
+        :param CloudShellAPISession api:
+        :param str reservation_id:
+        :return:
+        """
+        self.logger.info("Cleaning-up connectivity for reservation {0}".format(self.reservation_id))
+        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                            message='Cleaning-up connectivity')
+        api.CleanupSandboxConnectivity(reservation_id)
