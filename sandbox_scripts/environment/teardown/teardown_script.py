@@ -96,7 +96,7 @@ class EnvironmentTeardown:
 
         # delete resource - bulk
         if resource_to_delete:
-            api.DeleteResources(resource_to_delete)
+            api.RemoveResourcesFromReservation(self.reservation_id, resource_to_delete)
 
     def _power_off_or_delete_deployed_app(self, api, resource_info, lock, message_status):
         """
