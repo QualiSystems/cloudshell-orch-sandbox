@@ -129,10 +129,9 @@ class EnvironmentTeardown:
                                 api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                                                     message='Apps are being deleted...')
 
-                api.ExecuteResourceConnectedCommand(self.reservation_id,
-                                                    resource_name,
-                                                    "destroy_vm_only",
-                                                    "remote_app_management")
+                # removed call to destroy_vm_only from this place because it will be called from
+                # the server in RemoveResourcesFromReservation
+
                 return resource_name
             else:
                 power_off = "true"
