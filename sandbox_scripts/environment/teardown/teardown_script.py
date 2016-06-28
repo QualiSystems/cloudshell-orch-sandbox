@@ -10,6 +10,8 @@ from sandbox_scripts.helpers.vm_details_helper import get_vm_custom_param
 
 
 class EnvironmentTeardown:
+    REMOVE_DEPLOYED_RESOURCE_ERROR = 153
+
     def __init__(self):
         self.reservation_id = helpers.get_reservation_context_details().id
         self.logger = qs_logger.get_qs_logger(log_file_prefix="CloudShell Sandbox Teardown",
@@ -96,7 +98,14 @@ class EnvironmentTeardown:
 
         # delete resource - bulk
         if resource_to_delete:
-            api.RemoveResourcesFromReservation(self.reservation_id, resource_to_delete)
+            try:
+                api.RemoveResourcesFromReservation(self.reservation_id, resource_to_delete)
+            except CloudShellAPIError as exc:
+                if exc.code == EnvironmentTeardown.REMOVE_DEPLOYED_RESOURCE_ERROR:
+                    self.logger.error(
+                            "Error executing RemoveResourcesFromReservation command. Error: {0}".format(exc.message))
+                    api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                                        message=exc.message)
 
     def _power_off_or_delete_deployed_app(self, api, resource_info, lock, message_status):
         """
