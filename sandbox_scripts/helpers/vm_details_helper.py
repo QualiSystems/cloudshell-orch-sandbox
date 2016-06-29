@@ -17,7 +17,7 @@ def get_vm_details(resource_info):
     """
     :param ResourceInfo resource_info:
     :return:
-    :rtype: VmDetail
+    :rtype:
     """
     if isinstance(resource_info.VmDetails, list):
         vm_detail = resource_info.VmDetails[0]

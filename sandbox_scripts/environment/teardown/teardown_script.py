@@ -10,6 +10,8 @@ from sandbox_scripts.helpers.vm_details_helper import get_vm_custom_param
 
 
 class EnvironmentTeardown:
+    REMOVE_DEPLOYED_RESOURCE_ERROR = 153
+
     def __init__(self):
         self.reservation_id = helpers.get_reservation_context_details().id
         self.logger = qs_logger.get_qs_logger(log_file_prefix="CloudShell Sandbox Teardown",
@@ -27,6 +29,8 @@ class EnvironmentTeardown:
         self._disconnect_all_routes_in_reservation(api, reservation_details)
 
         self._power_off_and_delete_all_vm_resources(api, reservation_details)
+
+        self._cleanup_connectivity(api, self.reservation_id)
 
         self.logger.info("Teardown for reservation {0} completed".format(self.reservation_id))
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
@@ -94,7 +98,14 @@ class EnvironmentTeardown:
 
         # delete resource - bulk
         if resource_to_delete:
-            api.DeleteResources(resource_to_delete)
+            try:
+                api.RemoveResourcesFromReservation(self.reservation_id, resource_to_delete)
+            except CloudShellAPIError as exc:
+                if exc.code == EnvironmentTeardown.REMOVE_DEPLOYED_RESOURCE_ERROR:
+                    self.logger.error(
+                            "Error executing RemoveResourcesFromReservation command. Error: {0}".format(exc.message))
+                    api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                                        message=exc.message)
 
     def _power_off_or_delete_deployed_app(self, api, resource_info, lock, message_status):
         """
@@ -127,10 +138,9 @@ class EnvironmentTeardown:
                                 api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                                                     message='Apps are being deleted...')
 
-                api.ExecuteResourceConnectedCommand(self.reservation_id,
-                                                    resource_name,
-                                                    "destroy_vm_only",
-                                                    "remote_app_management")
+                # removed call to destroy_vm_only from this place because it will be called from
+                # the server in RemoveResourcesFromReservation
+
                 return resource_name
             else:
                 power_off = "true"
@@ -158,3 +168,14 @@ class EnvironmentTeardown:
             self.logger.error("Error deleting or powering off deployed app {0} in reservation {1}. Error: {2}"
                               .format(resource_name, self.reservation_id, str(exc)))
             return None
+
+    def _cleanup_connectivity(self, api, reservation_id):
+        """
+        :param CloudShellAPISession api:
+        :param str reservation_id:
+        :return:
+        """
+        self.logger.info("Cleaning-up connectivity for reservation {0}".format(self.reservation_id))
+        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                            message='Cleaning-up connectivity')
+        api.CleanupSandboxConnectivity(reservation_id)
