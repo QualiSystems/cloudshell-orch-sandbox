@@ -315,7 +315,7 @@ pws: "123456"
 
 ##### Output - Custom Params
 This object represents custom data for the snapshot.
-The save method can send back any custom data that is needed in order to restore the shell later. i.e: saving a script name that that the res
+The save method can send back any custom data that is needed in order to restore the shell later.  
 In most cases, this object will remain empty.
 
 ```javascript
