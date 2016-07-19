@@ -1,5 +1,5 @@
 # Save & Restore
-CloudShell offers users to save the state of a Sandbox and Than later, restore the sandbox to one of it's previous states, freeing up expensive resources in between.
+CloudShell allows users to save the state of a Sandbox and restore the sandbox to one of its previous states, freeing up expensive resources in between.
 
 The sandbox supports 3 commands:
 - Save Snapshot - saves the state of all the shells and stores the information in a local repository
@@ -19,7 +19,7 @@ Version | Date | Notes
 # Saving a sandbox snapshot
 Saving a snapshot is done by calling the 'Save Snapshot' orchestration command and providing an identifier for that snapshot.
 
-The command creates a new snapshot record for the sandbox which  includes all the details that enable going back to that same configuration when a restore will later be called: metadata, sandbox connectivity details, resources configuration and rules and restrictions.
+The command creates a new snapshot record for the sandbox which includes all the details that enables CloudShell to go back to the same configuration when a restore is called in the future: metadata, sandbox connectivity details, resources configuration and rules and restrictions.
 
 Each shell is responsible for saving its own state and restoring back to that state, the orchestration command is responsible for collecting all the different configurations, add the general information and store it in a predefined repository.
 
@@ -34,17 +34,16 @@ snapshot_ID | string | No | A unique identifier for the snapshot, if the ID is n
 override | bool | No | specify whether the snapshot should be overriden in case it already exists
 
 #### Command Output
-None, In case of error print the error message to the output console.
-
+None. In case of error, the error message will be printed to the output console.
 
 #### Repository:
-Any repository can be used to save the snapshot details, the specifications below present a simple file server repository. However, an ftp server or any other key-value repository can be used.
+Any repository can be used to save the snapshot details.  The specifications below present a simple file server repository as an example. However, an ftp server or any other key-value repository can be used.
 
-Note that the repository does not store the resource snapshots and backups, each resource saves its own data separately, the repository  only stores the results that the resources return so that later when feeding them back with that same result they will be able to restore their state.
+Note that the repository does not store the resource snapshots and backups.   Each resource saves its own data separately. The repository only stores the results that the resources returns.  The repository will feed the data back upon restore.
 
 Hierarchy | Content
 --- | ---
-[blueprint name] + [sand box start date] + [owner] | Root folder for all the snapshots of a sandbox f.e: blueprint 2016-07-12 14:35:00 meni.b
+[blueprint name] + [sand box start date] + [owner] | Root folder for all the snapshots of a sandbox i.e: blueprint 2016-07-12 14:35:00 meni.b
 / snapshots | list of snapshots
 / snapshots / [snapshot ID] | the location of a specific snapshot, the snapshot ID will be the unique identifier of the snapshot
 / snapshots / [snapshot ID] / metadata.json | a configuration file that includes general information about that snapshot
@@ -150,7 +149,7 @@ connectivity: {
 
 
 # Restoring the sandbox
-The restore command takes searches for the snapshot in the snapshot repository, and restores the state of the sandbox.
+The restore command searches for the snapshot in the snapshot repository, and restores the state of the sandbox.
 The command can be called manually during the sandbox lifetime or automatically on setup in case a new sandbox is created from the blueprint that was saved during save_sandbox command.
 
 ```javascript
@@ -164,15 +163,15 @@ snapshot_ID | string | No | The unique identifier of the snapshot that needs to 
 
 
 #### Command Output
-None, In case of error print the error message to the output console.
+None. In case of error,   an error message is printed to the output console.
 
 
 #### Command Description
-1. Search for the snapshot_ID in the repository, if it does not exist - return an error message.
+1. 1.	Search for the snapshot_ID in the repository. If the named snapshot does not exist - return an error message.
 
 2. Identify the shells in the sandbox and call the 'restore' command for each one of the shells, passing the same resource_name.json / abstract.json files that were saved as input to the shell restore command.
 
-3. Modify the connections according to the connectivity.json file that was saved, the sandbox setup should take care of the default connectivity, the command should compare the state with the snapshot and apply the modifications: disconnect routes, add new connections, change network specifications etc.
+3. 3.	Modify the connections according to the connectivity.json file that was saved. The sandbox setup should take care of the default connectivity, the command should compare the state with the snapshot and apply the modifications including disconnect routes, add new connections, change network specifications etc.
 
 
 
@@ -208,32 +207,29 @@ sandbox_snapshots{
 
 
 #### Command Description
-1. Search for the sandbox in the repository
+1. Search the sandbox snapshot repository
 
-2. Return the list of snapshots for that sandbox
+2. Return the list of available snapshots for the sandbox
 
 
 
 
 # Shell Snapshots
-Each shell must implement the save and restore commands and is responsible on saving and restoring own state.
+Each shell must implement the save and restore commands and is responsible on saving and restoring its own state.
 
 
 ## Saving the state of a shell
-The interface supports two modes:
- - Shallow (Default) - saves a snapshot that can later be restored
- - Deep - saves a back up of the resource that can later be restored, this option consumes more disk space as a full backup of the resource is expected to be made.
-
-An example of the difference between these two modes may be saving when saving a snapshot of a virtual machine (f.e in vCenter), a shallow copy will create a vCenter Snapshot where a deep copy will save an ovf image and store it on the disk.
-
-CloudShell does not require shells to implement both modes, a shell may implement one way of saving the shell and use that for both shallow or deep modes. However, this parameter lets the end user request one of the modes.
-
-
-#### Command Input
 
 ```javascript
 save (mode="shallow", custom_params = null)
 ```
+#### Command Input
+The 'save' command interface supports two modes:
+ - Shallow (Default) - saves a snapshot that can later be restored
+ - Deep - saves the backup of the resource that can later be restored, this option consumes more disk space as a full backup of the resource is expected to be made.
+
+An example of the difference between these two modes is when saving a snapshot of a virtual machine (i.e in vCenter), a shallow copy will create a vCenter Snapshot whereas a deep copy will save an ovf image and store it on the disk.
+
 Both parameters have default values so that the save can be called without providing any inputs.
 
 Parameter | Data Type | Required | Description
@@ -283,7 +279,7 @@ out:
 ```
 
 ##### Output - Saved Location
-This object represents the snapshot details, it will be different according to the storing technology - ftp server, vCenter snapshot etc.
+This object represents the snapshot details, it will be different according to the storing technology - e.g. ftp server, vCenter snapshot etc.
 
 Example - a simple 'key - value' type of object that saves a snapshot identifier and location
 ```javascript
@@ -330,7 +326,7 @@ In most cases, this object will remain empty.
 
 
 ## Restoring a shell to its previous state
-The restore function is responsible of restoring a resource to its previous saved state.
+The restore function is responsible of restoring a shell to its previous saved state.
 
 
 #### Command Input
