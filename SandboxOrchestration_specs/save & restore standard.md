@@ -281,11 +281,12 @@ out:
 ##### Output - Saved Location
 This object represents the snapshot details, it will be different according to the storing technology - e.g. ftp server, vCenter snapshot etc.
 
-Example - a simple 'key - value' type of object that saves a snapshot identifier and location
+Example - a cloud-provider snapshot i.e: the details of an amazon AMI or a vCenter snapshot identifier
 ```javascript
   saved_location :{
+    type: "cloud-snapshot"
     identifier: "snapshot01"
-    type: "vcenter_snapshot"
+    cloud-provider: "vCenter1"
   }
 ```
 
@@ -314,7 +315,7 @@ pws: "123456"
 
 ##### Output - Custom Params
 This object represents custom data for the snapshot.
-The save method can send back any custom data that is needed in order to restore the resource later.
+The save method can send back any custom data that is needed in order to restore the shell later. i.e: saving a script name that that the res
 In most cases, this object will remain empty.
 
 ```javascript
