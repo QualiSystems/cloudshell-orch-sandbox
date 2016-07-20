@@ -112,12 +112,12 @@ This file includes general information about the snapshot.
 
 ```javascript
 metadata: {
-  ID:"[the snapshot identifier]"
-  Blueprint Name: "[the name of the blueprint]"
-  Sandbox ID: "[the ID of the sandbox]"
-  Sandbox Name: "[the name of the sandbox]",
-  Owner: "[the owner of the sandbox]"
-  DateTime: "[Snapshot date and time, format: YYYY-MM-DD hh:mm:ss]"
+  "ID":"[the snapshot identifier]",
+  "Blueprint Name": "[the name of the blueprint]",
+  "Sandbox ID": "[the ID of the sandbox]",
+  "Sandbox Name": "[the name of the sandbox]",
+  "Owner": "[the owner of the sandbox]",
+  "DateTime": "[Snapshot date and time, format: YYYY-MM-DD hh:mm:ss]"
 }
 ```
 
@@ -129,17 +129,17 @@ This file stores the connectivity state when the snapshot was saved.
 connectivity: {
   connections: {
     connection: {
-      type: "[the type of conncetion: route / connector]",
-      source: "[the name of the source resource]",
-      target: "[the name of the target resource]",
-      state: "[the state of the connection: connected / disconnected]",
-      network: "the name of the network (as defined in the networks node below)"
+      "type": "[the type of conncetion: route / connector]",
+      "source": "[the name of the source resource]",
+      "target": "[the name of the target resource]",
+      "state": "[the state of the connection: connected / disconnected]",
+      "network": "the name of the network (as defined in the networks node below)"
     }
   }
   networks: {
     network: {
-      type: "the type of network - service model: vlan auto, vlan manual",
-      attributes: "attributes of the networking service: allocation range, qnq",
+      "type": "the type of network - service model: vlan auto, vlan manual",
+      "attributes": "attributes of the networking service: allocation range, qnq",
     }
   }
 }
@@ -194,13 +194,13 @@ result | string | No | json that represents the list of snapshots for the sandbo
 ```javascript
 sandbox_snapshots{
   snapshot: {
-    ID:"[the snapshot identifier]"
-    Blueprint Name: "[the name of the blueprint]"
-    Sandbox ID: "[the ID of the sandbox]"
-    Sandbox Name: "[the name of the sandbox]",
-    Sandbox Description: "[the description of the sandbox]"
-    Owner: "[the owner of the sandbox]"
-    DateTime: "[Snapshot date and time, format: YYYY-MM-DD hh:mm:ss]"
+    "ID":"[the snapshot identifier]"
+    "Blueprint Name": "[the name of the blueprint]"
+    "Sandbox ID": "[the ID of the sandbox]"
+    "Sandbox Name": "[the name of the sandbox]",
+    "Sandbox Description": "[the description of the sandbox]"
+    "Owner": "[the owner of the sandbox]"
+    "DateTime": "[Snapshot date and time, format: YYYY-MM-DD hh:mm:ss]"
   }
 }
 ```
@@ -215,16 +215,18 @@ sandbox_snapshots{
 
 
 # Shell Snapshots
-Each shell must implement the save and restore commands and is responsible on saving and restoring its own state.
+Each shell must implement the orcestration_save and orcestration_restore commands and is responsible on saving and restoring its own state.
+These commands will be called from the sandbox orchestration,  they need to be hidden from the end user. To enable the end user to save & restore from the user interface, specific commands can be developed with a user-friendly input parameters.
+
 
 
 ## Saving the state of a shell
 
 ```javascript
-save (mode="shallow", custom_params = null)
+orcestration_save (mode="shallow", custom_params = null)
 ```
 #### Command Input
-The 'save' command interface supports two modes:
+The 'orcestration_save' command interface supports two modes:
  - Shallow (Default) - saves a snapshot that can later be restored
  - Deep - saves the backup of the resource that can later be restored, this option consumes more disk space as a full backup of the resource is expected to be made.
 
@@ -240,7 +242,7 @@ custom_params | string | No | a json data structure with specific attributes tha
 
 ```javascript
 custom_params{
-  vrf-management-name: "network-1" // an example of a custom parameter
+  "vrf-management-name": "network-1" // an example of a custom parameter
 }
 ```
 
@@ -256,8 +258,8 @@ saved_details{
   restore_rules: {
   }
   saved_location : {
-    identifier: "snapshot01"
-    type: "vcenter_snapshot"
+    "identifier": "snapshot01"
+    "type": "vcenter_snapshot"
   }
   custom_params: {
   }
@@ -274,7 +276,7 @@ For example:
 out:
 {
   restore_rules: {
-    requires_sames_resource: "true"
+    "requires_sames_resource": "true"
   }
 ```
 
@@ -284,17 +286,17 @@ This object represents the snapshot details, it will be different according to t
 Example - a cloud-provider snapshot i.e: the details of an amazon AMI or a vCenter snapshot identifier
 ```javascript
   saved_location :{
-    type: "cloud-snapshot"
-    identifier: "snapshot01"
-    cloud-provider: "vCenter1"
+    "type": "vm-snapshot"
+    "identifier": "snapshot01"
+    "cloud-provider": "vCenter1"
   }
 ```
 
 Example - a shared storage that stores the backup image
 ```javascript
 saved_location :{
-  type: "filesystem"
-  location: "//file_server/image.ova"
+  "type": "filesystem"
+  "location": "//file_server/image.ova"
 }
 ```
 
@@ -302,8 +304,8 @@ saved_location :{
 Example - image file that is stored in a ftp server
 ```javascript
 saved_location :{
-    type: "ftp"
-    ftp_resource: "ftp_srv1"
+    "type": "ftp"
+    "ftp_resource": "ftp_srv1"
   }
 ```
 
@@ -327,12 +329,12 @@ In most cases, this object will remain empty.
 
 
 ## Restoring a shell to its previous state
-The restore function is responsible of restoring a shell to its previous saved state.
+The orcestration_restore function is responsible of restoring a shell to its previous saved state.
 
 
 #### Command Input
 ```javascript
-restore (saved_details)
+orcestration_restore (saved_details)
 ```
 Parameter | Data Type | Required | Description
 --- | --- | --- | ---
