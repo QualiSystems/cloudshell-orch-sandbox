@@ -215,8 +215,11 @@ sandbox_snapshots{
 
 
 # Shell Snapshots
-Each shell must implement the orcestration_save and orcestration_restore commands and is responsible on saving and restoring its own state.
-These commands will be called from the sandbox orchestration,  they need to be hidden from the end user. To enable the end user to save & restore from the user interface, specific commands can be developed with a user-friendly input parameters.
+Each shell must implement the save and restore commands and is responsible on saving and restoring its own state.
+
+The standard specifies the interface and functionality that shells expose to the sandbox orchestration: **orchestration_save** & **orchestration_restore**. These two commands are hidden from the end user, their interface uses .json protocol and they should only be used by the sandbox orchestration via API.
+
+ To enable users to save snapshots of a single shell via the user interface, additional save & restore commands may be developed with a user-friendly input parameters, these parameters may differ between shells,  hence they are not part of the standard.
 
 
 
