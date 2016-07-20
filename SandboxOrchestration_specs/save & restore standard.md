@@ -261,8 +261,9 @@ saved_details{
   restore_rules: {
   }
   saved_location : {
+    "type": "vm-snapshot"
     "identifier": "snapshot01"
-    "type": "vcenter_snapshot"
+    "cloud-provider": "vCenter1"
   }
   custom_params: {
   }
