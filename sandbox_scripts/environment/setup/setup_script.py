@@ -6,7 +6,7 @@ from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from cloudshell.core.logger import qs_logger
 
-from sandbox_scripts.helpers.vm_details_helper import get_vm_custom_param, get_vm_details
+from sandbox_scripts.helpers.resource_helpers import get_vm_custom_param, get_vm_details, get_resources_created_in_res
 from sandbox_scripts.profiler.env_profiler import profileit
 
 
@@ -141,7 +141,7 @@ class EnvironmentSetup(object):
         """
         # List of all resource names created in reservation
         resources_names = map(lambda x: x.Name.lower(),
-                              self._get_resources_created_in_res(reservation_details, reservation_id))
+                              get_resources_created_in_res(reservation_details, reservation_id))
 
         connectors = reservation_details.ReservationDescription.Connectors
         endpoints = []
@@ -182,7 +182,7 @@ class EnvironmentSetup(object):
             return
 
         # filter out resources not created in this reservation
-        resources = self._get_resources_created_in_res(reservation_details, reservation_id=reservation_id)
+        resources = get_resources_created_in_res(reservation_details, reservation_id=reservation_id)
 
         pool = ThreadPool(len(resources))
         lock = Lock()
@@ -205,17 +205,6 @@ class EnvironmentSetup(object):
                 raise Exception("Reservation is Active with Errors - " + res[1])
 
         self._validate_all_apps_deployed(deploy_results)
-
-    def _get_resources_created_in_res(self, reservation_details, reservation_id):
-        """
-        :param GetReservationDescriptionResponseInfo reservation_details:
-        :param str reservation_id:
-        :return:
-        """
-        resources = filter(
-                lambda x: x.CreatedInReservation and x.CreatedInReservation.lower() == reservation_id.lower(),
-                reservation_details.ReservationDescription.Resources)
-        return resources
 
     def _validate_all_apps_deployed(self, deploy_results):
         if deploy_results is not None:

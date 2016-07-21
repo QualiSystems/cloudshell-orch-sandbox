@@ -24,3 +24,15 @@ def get_vm_details(resource_info):
     else:
         vm_detail = resource_info.VmDetails
     return vm_detail
+
+
+def get_resources_created_in_res(reservation_details, reservation_id):
+    """
+    :param GetReservationDescriptionResponseInfo reservation_details:
+    :param str reservation_id:
+    :return:
+    """
+    resources = filter(
+            lambda x: x.CreatedInReservation and x.CreatedInReservation.lower() == reservation_id.lower(),
+            reservation_details.ReservationDescription.Resources)
+    return resources
