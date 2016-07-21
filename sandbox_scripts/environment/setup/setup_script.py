@@ -6,7 +6,7 @@ from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from cloudshell.core.logger import qs_logger
 
-from sandbox_scripts.helpers.vm_details_helper import get_vm_custom_param, get_vm_details
+from sandbox_scripts.helpers.resource_helpers import get_vm_custom_param, get_vm_details, get_resources_created_in_res
 from sandbox_scripts.profiler.env_profiler import profileit
 
 
@@ -38,23 +38,24 @@ class EnvironmentSetup(object):
             reservation_details = api.GetReservationDetails(self.reservation_id)
 
         self._try_exeucte_autoload(api=api,
-                                   reservation_details=reservation_details,
                                    deploy_result=deploy_result,
                                    resource_details_cache=resource_details_cache)
 
         self._connect_all_routes_in_reservation(api=api,
-                                                reservation_details=reservation_details)
+                                                reservation_details=reservation_details,
+                                                reservation_id=self.reservation_id)
 
         self._run_async_power_on_refresh_ip_install(api=api,
                                                     reservation_details=reservation_details,
                                                     deploy_results=deploy_result,
-                                                    resource_details_cache=resource_details_cache)
+                                                    resource_details_cache=resource_details_cache,
+                                                    reservation_id=self.reservation_id)
 
         self.logger.info("Setup for reservation {0} completed".format(self.reservation_id))
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                             message='Reservation setup finished successfully')
 
-    def _try_exeucte_autoload(self, api, reservation_details, deploy_result, resource_details_cache):
+    def _try_exeucte_autoload(self, api, deploy_result, resource_details_cache):
         """
         :param GetReservationDescriptionResponseInfo reservation_details:
         :param CloudShellAPISession api:
@@ -98,8 +99,8 @@ class EnvironmentSetup(object):
             except CloudShellAPIError as exc:
                 if exc.code not in (EnvironmentSetup.NO_DRIVER_ERR, EnvironmentSetup.DRIVER_FUNCTION_ERROR):
                     self.logger.error(
-                        "Error executing Autoload command on deployed app {0}. Error: {1}".format(deployed_app_name,
-                                                                                                  exc.rawxml))
+                            "Error executing Autoload command on deployed app {0}. Error: {1}".format(deployed_app_name,
+                                                                                                      exc.rawxml))
                     api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                                         message='Discovery failed on "{0}": {1}'
                                                         .format(deployed_app_name, exc.message))
@@ -125,25 +126,34 @@ class EnvironmentSetup(object):
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                             message='Apps deployment started')
         self.logger.info(
-            "Deploying apps for reservation {0}. App names: {1}".format(reservation_details, ", ".join(app_names)))
+                "Deploying apps for reservation {0}. App names: {1}".format(reservation_details, ", ".join(app_names)))
 
         res = api.DeployAppToCloudProviderBulk(self.reservation_id, app_names, app_inputs)
 
         return res
 
-    def _connect_all_routes_in_reservation(self, api, reservation_details):
+    def _connect_all_routes_in_reservation(self, api, reservation_details, reservation_id):
+        """
+        :param CloudShellAPISession api:
+        :param GetReservationDescriptionResponseInfo reservation_details:
+        :param str reservation_id:
+        :return:
+        """
+        # List of all resource names created in reservation
+        resources_names = map(lambda x: x.Name.lower(),
+                              get_resources_created_in_res(reservation_details, reservation_id))
+
         connectors = reservation_details.ReservationDescription.Connectors
         endpoints = []
         for endpoint in connectors:
             if endpoint.State in ['Disconnected', 'PartiallyConnected', 'ConnectionFailed'] \
-                    and endpoint.Target and endpoint.Source:
+                    and endpoint.Target and endpoint.Source\
+                    and endpoint.Target.lower() in resources_names and endpoint.Source.lower() in resources_names:
                 endpoints.append(endpoint.Target)
                 endpoints.append(endpoint.Source)
 
         if not endpoints:
             self.logger.info("No routes to connect for reservation {0}".format(self.reservation_id))
-            api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                message='Nothing to connect')
             return
 
         self.logger.info("Executing connect routes for reservation {0}".format(self.reservation_id))
@@ -153,21 +163,26 @@ class EnvironmentSetup(object):
         res = api.ConnectRoutesInReservation(self.reservation_id, endpoints, 'bi')
         return res
 
-    def _run_async_power_on_refresh_ip_install(self, api, reservation_details, deploy_results, resource_details_cache):
+    def _run_async_power_on_refresh_ip_install(self, api, reservation_details, deploy_results, resource_details_cache,
+                                               reservation_id):
         """
         :param CloudShellAPISession api:
         :param GetReservationDescriptionResponseInfo reservation_details:
         :param BulkAppDeploymentyInfo deploy_results:
         :param (dict of str: ResourceInfo) resource_details_cache:
+        :param str reservation_id:
         :return:
         """
         resources = reservation_details.ReservationDescription.Resources
         if len(resources) == 0:
             api.WriteMessageToReservationOutput(
-                reservationId=self.reservation_id,
-                message='No resources to power on or install')
+                    reservationId=self.reservation_id,
+                    message='No resources to power on or install')
             self._validate_all_apps_deployed(deploy_results)
             return
+
+        # filter out resources not created in this reservation
+        resources = get_resources_created_in_res(reservation_details, reservation_id=reservation_id)
 
         pool = ThreadPool(len(resources))
         lock = Lock()
@@ -294,7 +309,7 @@ class EnvironmentSetup(object):
             script_inputs = []
             for installation_script_input in installation_info.ScriptInputs:
                 script_inputs.append(
-                    InputNameValue(installation_script_input.Name, installation_script_input.Value))
+                        InputNameValue(installation_script_input.Name, installation_script_input.Value))
 
             installation_result = api.InstallApp(self.reservation_id, deployed_app_name,
                                                  installation_info.ScriptCommandName, script_inputs)
@@ -309,8 +324,8 @@ class EnvironmentSetup(object):
                     if not message_status['wait_for_ip']:
                         message_status['wait_for_ip'] = True
                         api.WriteMessageToReservationOutput(
-                            reservationId=self.reservation_id,
-                            message='Waiting for apps IP addresses, this may take a while...')
+                                reservationId=self.reservation_id,
+                                message='Waiting for apps IP addresses, this may take a while...')
 
             self.logger.info("Executing 'Refresh IP' on deployed app {0} in reservation {1}"
                              .format(deployed_app_name, self.reservation_id))
