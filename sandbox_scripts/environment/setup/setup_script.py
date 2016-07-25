@@ -4,7 +4,7 @@ from threading import Lock
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
-from cloudshell.core.logger import qs_logger
+from cloudshell.core.logger.qs_logger import get_qs_logger
 
 from sandbox_scripts.helpers.resource_helpers import get_vm_custom_param, get_vm_details, get_resources_created_in_res
 from sandbox_scripts.profiler.env_profiler import profileit
@@ -16,9 +16,9 @@ class EnvironmentSetup(object):
 
     def __init__(self):
         self.reservation_id = helpers.get_reservation_context_details().id
-        self.logger = qs_logger.get_qs_logger(log_file_prefix="CloudShell Sandbox Setup",
-                                              log_group=self.reservation_id,
-                                              log_category='Setup')
+        self.logger = get_qs_logger(log_file_prefix="CloudShell Sandbox Setup",
+                                    log_group=self.reservation_id,
+                                    log_category='Setup')
 
     @profileit(scriptName='Setup')
     def execute(self):
@@ -111,8 +111,8 @@ class EnvironmentSetup(object):
             except CloudShellAPIError as exc:
                 if exc.code not in (EnvironmentSetup.NO_DRIVER_ERR, EnvironmentSetup.DRIVER_FUNCTION_ERROR):
                     self.logger.error(
-                            "Error executing Autoload command on deployed app {0}. Error: {1}".format(deployed_app_name,
-                                                                                                      exc.rawxml))
+                        "Error executing Autoload command on deployed app {0}. Error: {1}".format(deployed_app_name,
+                                                                                                  exc.rawxml))
                     api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                                         message='Discovery failed on "{0}": {1}'
                                                         .format(deployed_app_name, exc.message))
@@ -138,7 +138,7 @@ class EnvironmentSetup(object):
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                             message='Apps deployment started')
         self.logger.info(
-                "Deploying apps for reservation {0}. App names: {1}".format(reservation_details, ", ".join(app_names)))
+            "Deploying apps for reservation {0}. App names: {1}".format(reservation_details, ", ".join(app_names)))
 
         res = api.DeployAppToCloudProviderBulk(self.reservation_id, app_names, app_inputs)
 
@@ -159,7 +159,7 @@ class EnvironmentSetup(object):
         endpoints = []
         for endpoint in connectors:
             if endpoint.State in ['Disconnected', 'PartiallyConnected', 'ConnectionFailed'] \
-                    and endpoint.Target and endpoint.Source\
+                    and endpoint.Target and endpoint.Source \
                     and endpoint.Target.lower() in resources_names and endpoint.Source.lower() in resources_names:
                 endpoints.append(endpoint.Target)
                 endpoints.append(endpoint.Source)
@@ -188,8 +188,8 @@ class EnvironmentSetup(object):
         resources = reservation_details.ReservationDescription.Resources
         if len(resources) == 0:
             api.WriteMessageToReservationOutput(
-                    reservationId=self.reservation_id,
-                    message='No resources to power on or install')
+                reservationId=self.reservation_id,
+                message='No resources to power on or install')
             self._validate_all_apps_deployed(deploy_results)
             return
 
@@ -321,7 +321,7 @@ class EnvironmentSetup(object):
             script_inputs = []
             for installation_script_input in installation_info.ScriptInputs:
                 script_inputs.append(
-                        InputNameValue(installation_script_input.Name, installation_script_input.Value))
+                    InputNameValue(installation_script_input.Name, installation_script_input.Value))
 
             installation_result = api.InstallApp(self.reservation_id, deployed_app_name,
                                                  installation_info.ScriptCommandName, script_inputs)
@@ -336,8 +336,8 @@ class EnvironmentSetup(object):
                     if not message_status['wait_for_ip']:
                         message_status['wait_for_ip'] = True
                         api.WriteMessageToReservationOutput(
-                                reservationId=self.reservation_id,
-                                message='Waiting for apps IP addresses, this may take a while...')
+                            reservationId=self.reservation_id,
+                            message='Waiting for apps IP addresses, this may take a while...')
 
             self.logger.info("Executing 'Refresh IP' on deployed app {0} in reservation {1}"
                              .format(deployed_app_name, self.reservation_id))
