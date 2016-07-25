@@ -197,7 +197,8 @@ class EnvironmentSetup(object):
         :param str reservation_id:
         :return:
         """
-        resources = reservation_details.ReservationDescription.Resources
+        # filter out resources not created in this reservation
+        resources = get_resources_created_in_res(reservation_details=reservation_details, reservation_id=reservation_id)
         if len(resources) == 0:
             api.WriteMessageToReservationOutput(
                 reservationId=self.reservation_id,
@@ -205,8 +206,7 @@ class EnvironmentSetup(object):
             self._validate_all_apps_deployed(deploy_results)
             return
 
-        # filter out resources not created in this reservation
-        resources = get_resources_created_in_res(reservation_details, reservation_id=reservation_id)
+
 
         pool = ThreadPool(len(resources))
         lock = Lock()
