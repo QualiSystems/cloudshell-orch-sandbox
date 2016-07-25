@@ -46,8 +46,6 @@ class EnvironmentTeardown:
 
         if not endpoints:
             self.logger.info("No routes to disconnect for reservation {0}".format(self.reservation_id))
-            api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                message="Nothing to disconnecting")
             return
 
         try:

@@ -6,7 +6,7 @@ from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from cloudshell.core.logger import qs_logger
 
-from sandbox_scripts.helpers.resource_helpers import get_vm_custom_param, get_vm_details, get_resources_created_in_res
+from sandbox_scripts.helpers.resource_helpers import *
 from sandbox_scripts.profiler.env_profiler import profileit
 
 
@@ -152,17 +152,29 @@ class EnvironmentSetup(object):
         :return:
         """
         # List of all resource names created in reservation
-        resources_names = map(lambda x: x.Name.lower(),
-                              get_resources_created_in_res(reservation_details, reservation_id))
+        resources_created_in_res = map(lambda x: x.Name.lower(),
+                                       get_resources_created_in_res(reservation_details, reservation_id))
 
         connectors = reservation_details.ReservationDescription.Connectors
         endpoints = []
         for endpoint in connectors:
             if endpoint.State in ['Disconnected', 'PartiallyConnected', 'ConnectionFailed'] \
-                    and endpoint.Target and endpoint.Source\
-                    and endpoint.Target.lower() in resources_names and endpoint.Source.lower() in resources_names:
-                endpoints.append(endpoint.Target)
-                endpoints.append(endpoint.Source)
+                    and endpoint.Target and endpoint.Source:
+                target_ok = True
+                target_resource = find_resource_by_name(reservation_details, endpoint.Target)
+                if target_resource and is_deployed_app(
+                        target_resource) and endpoint.Target.lower() not in resources_created_in_res:
+                    target_ok = False
+
+                source_ok = True
+                source_resource = find_resource_by_name(reservation_details, endpoint.Source)
+                if source_resource and is_deployed_app(
+                        source_resource) and endpoint.Source.lower() not in resources_created_in_res:
+                    source_ok = False
+
+                if target_ok and source_ok:
+                    endpoints.append(endpoint.Target)
+                    endpoints.append(endpoint.Source)
 
         if not endpoints:
             self.logger.info("No routes to connect for reservation {0}".format(self.reservation_id))
