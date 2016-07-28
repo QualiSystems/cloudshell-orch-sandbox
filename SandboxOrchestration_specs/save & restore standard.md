@@ -226,7 +226,7 @@ The standard specifies the interface and functionality that shells expose to the
 ## Saving the state of a shell
 
 ```javascript
-orcestration_save (mode="shallow", custom_params = null)
+orchestration_save (mode="shallow", custom_params = null)
 ```
 #### Command Input
 The 'orcestration_save' command interface supports two modes:
