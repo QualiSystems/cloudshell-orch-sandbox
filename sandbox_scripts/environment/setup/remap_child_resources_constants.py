@@ -1,0 +1,3 @@
+TARGET_TYPE_RESOURCE = 'Resource'
+REMAP_CHILD_RESOURCES = 'connect_child_resources'
+MISSING_COMMAND_ERROR = '101'

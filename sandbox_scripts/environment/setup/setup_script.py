@@ -5,6 +5,7 @@ from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from cloudshell.core.logger.qs_logger import get_qs_logger
+import remap_child_resources_constants as c
 
 from sandbox_scripts.helpers.resource_helpers import *
 from sandbox_scripts.profiler.env_profiler import profileit
@@ -35,17 +36,24 @@ class EnvironmentSetup(object):
         deploy_result = self._deploy_apps_in_reservation(api=api,
                                                          reservation_details=reservation_details)
 
-        # refresh reservation_details after app deployment if any deployed apps
-        if deploy_result and deploy_result.ResultItems:
-            reservation_details = api.GetReservationDetails(self.reservation_id)
-
         self._try_exeucte_autoload(api=api,
                                    deploy_result=deploy_result,
                                    resource_details_cache=resource_details_cache)
 
+        # for devices that are autoloaded and have child resources attempt to call "Connect child resources"
+        # which copies CVCs from app to deployed app ports.
+        self._try_remap_connections_to_child_resources(api=api,
+                                                       deploy_result=deploy_result,
+                                                       resource_details_cache=resource_details_cache)
+
+        # refresh reservation_details after app deployment if any deployed apps
+        if deploy_result and deploy_result.ResultItems:
+            reservation_details = api.GetReservationDetails(self.reservation_id)
+
         self._connect_all_routes_in_reservation(api=api,
                                                 reservation_details=reservation_details,
-                                                reservation_id=self.reservation_id)
+                                                reservation_id=self.reservation_id,
+                                                resource_details_cache=resource_details_cache)
 
         self._run_async_power_on_refresh_ip_install(api=api,
                                                     reservation_details=reservation_details,
@@ -63,9 +71,64 @@ class EnvironmentSetup(object):
         :param str reservation_id:
         """
         self.logger.info("Preparing connectivity for reservation {0}".format(self.reservation_id))
-        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                            message='Preparing connectivity')
+        api.WriteMessageToReservationOutput(reservationId=self.reservation_id, message='Preparing connectivity')
         api.PrepareSandboxConnectivity(reservation_id)
+
+    def _try_remap_connections_to_child_resources(self, api, deploy_result, resource_details_cache):
+        """
+        :param GetReservationDescriptionResponseInfo reservation_details:
+        :param CloudShellAPISession api:
+        :param BulkAppDeploymentyInfo deploy_result:
+        :param (dict of str: ResourceInfo) resource_details_cache:
+        :return:
+        """
+
+        if deploy_result is None:
+            self.logger.info("No apps to remap")
+            api.WriteMessageToReservationOutput(reservationId=self.reservation_id, message='No apps to remap')
+            return
+
+        message_written = False
+
+        for deployed_app in deploy_result.ResultItems:
+            if not deployed_app.Success:
+                continue
+            deployed_app_name = deployed_app.AppDeploymentyInfo.LogicalResourceName
+            resource_details = resource_details_cache[deployed_app_name]
+
+            autoload = "true"
+            autoload_param = get_vm_custom_param(resource_details, "autoload")
+            if autoload_param:
+                autoload = autoload_param.Value
+            if autoload.lower() != "true":
+                self.logger.info("Apps discovery is disabled on deployed app {0}".format(deployed_app_name))
+                continue
+
+            try:
+                self.logger.info("Remap connections to child resources if necessary on {0}".format(deployed_app_name))
+                if not message_written:
+                    api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                                        message='Checking if remapping connections to app children needed...')
+                    message_written = True
+
+                api.ExecuteCommand(self.reservation_id, deployed_app_name, c.TARGET_TYPE_RESOURCE,
+                                   c.REMAP_CHILD_RESOURCES, [])
+
+            except CloudShellAPIError as exc:
+                if exc.code not in (EnvironmentSetup.NO_DRIVER_ERR, EnvironmentSetup.DRIVER_FUNCTION_ERROR,
+                                    c.MISSING_COMMAND_ERROR):
+                    self.logger.error("Error executing Connect Child Resources command on deployed app {0}. Error: {1}".\
+                    format(deployed_app_name, exc.rawxml))
+                    api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                                        message='Remapping failed on "{0}": {1}'
+                                                        .format(deployed_app_name, exc.message))
+
+            except Exception as exc:
+                self.logger.error("Error executing Autoload command on deployed app {0}. Error: {1}"
+                                  .format(deployed_app_name, str(exc)))
+                api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                                    message='Remapping failed on "{0}": {1}'
+                                                    .format(deployed_app_name, exc.message))
 
     def _try_exeucte_autoload(self, api, deploy_result, resource_details_cache):
         """
@@ -144,7 +207,7 @@ class EnvironmentSetup(object):
 
         return res
 
-    def _connect_all_routes_in_reservation(self, api, reservation_details, reservation_id):
+    def _connect_all_routes_in_reservation(self, api, reservation_details, reservation_id, resource_details_cache):
         """
         :param CloudShellAPISession api:
         :param GetReservationDescriptionResponseInfo reservation_details:
@@ -162,14 +225,14 @@ class EnvironmentSetup(object):
                     and endpoint.Target and endpoint.Source:
                 target_ok = True
                 target_resource = find_resource_by_name(reservation_details, endpoint.Target)
-                if target_resource and is_deployed_app(
-                        target_resource) and endpoint.Target.lower() not in resources_created_in_res:
+                if target_resource and is_deployed_app_or_descendant_of_deployed_app(target_resource, resource_details_cache)\
+                        and get_root(endpoint.Target) not in resources_created_in_res:
                     target_ok = False
 
                 source_ok = True
                 source_resource = find_resource_by_name(reservation_details, endpoint.Source)
-                if source_resource and is_deployed_app(
-                        source_resource) and endpoint.Source.lower() not in resources_created_in_res:
+                if source_resource and is_deployed_app_or_descendant_of_deployed_app(source_resource, resource_details_cache)\
+                        and get_root(endpoint.Source) not in resources_created_in_res:
                     source_ok = False
 
                 if target_ok and source_ok:
