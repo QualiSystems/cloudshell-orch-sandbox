@@ -40,12 +40,6 @@ class EnvironmentSetup(object):
                                    deploy_result=deploy_result,
                                    resource_details_cache=resource_details_cache)
 
-        # for devices that are autoloaded and have child resources attempt to call "Connect child resources"
-        # which copies CVCs from app to deployed app ports.
-        self._try_remap_connections_to_child_resources(api=api,
-                                                       deploy_result=deploy_result,
-                                                       resource_details_cache=resource_details_cache)
-
         # refresh reservation_details after app deployment if any deployed apps
         if deploy_result and deploy_result.ResultItems:
             reservation_details = api.GetReservationDetails(self.reservation_id)
@@ -73,62 +67,6 @@ class EnvironmentSetup(object):
         self.logger.info("Preparing connectivity for reservation {0}".format(self.reservation_id))
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id, message='Preparing connectivity')
         api.PrepareSandboxConnectivity(reservation_id)
-
-    def _try_remap_connections_to_child_resources(self, api, deploy_result, resource_details_cache):
-        """
-        :param GetReservationDescriptionResponseInfo reservation_details:
-        :param CloudShellAPISession api:
-        :param BulkAppDeploymentyInfo deploy_result:
-        :param (dict of str: ResourceInfo) resource_details_cache:
-        :return:
-        """
-
-        if deploy_result is None:
-            self.logger.info("No apps to remap")
-            api.WriteMessageToReservationOutput(reservationId=self.reservation_id, message='No apps to remap')
-            return
-
-        message_written = False
-
-        for deployed_app in deploy_result.ResultItems:
-            if not deployed_app.Success:
-                continue
-            deployed_app_name = deployed_app.AppDeploymentyInfo.LogicalResourceName
-            resource_details = resource_details_cache[deployed_app_name]
-
-            autoload = "true"
-            autoload_param = get_vm_custom_param(resource_details, "autoload")
-            if autoload_param:
-                autoload = autoload_param.Value
-            if autoload.lower() != "true":
-                self.logger.info("Apps discovery is disabled on deployed app {0}".format(deployed_app_name))
-                continue
-
-            try:
-                self.logger.info("Remap connections to child resources if necessary on {0}".format(deployed_app_name))
-                if not message_written:
-                    api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                        message='Checking if remapping connections to app children needed...')
-                    message_written = True
-
-                api.ExecuteCommand(self.reservation_id, deployed_app_name, c.TARGET_TYPE_RESOURCE,
-                                   c.REMAP_CHILD_RESOURCES, [])
-
-            except CloudShellAPIError as exc:
-                if exc.code not in (EnvironmentSetup.NO_DRIVER_ERR, EnvironmentSetup.DRIVER_FUNCTION_ERROR,
-                                    c.MISSING_COMMAND_ERROR):
-                    self.logger.error("Error executing Connect Child Resources command on deployed app {0}. Error: {1}".\
-                    format(deployed_app_name, exc.rawxml))
-                    api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                        message='Remapping failed on "{0}": {1}'
-                                                        .format(deployed_app_name, exc.message))
-
-            except Exception as exc:
-                self.logger.error("Error executing Autoload command on deployed app {0}. Error: {1}"
-                                  .format(deployed_app_name, str(exc)))
-                api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                    message='Remapping failed on "{0}": {1}'
-                                                    .format(deployed_app_name, exc.message))
 
     def _try_exeucte_autoload(self, api, deploy_result, resource_details_cache):
         """
@@ -171,8 +109,14 @@ class EnvironmentSetup(object):
 
                 api.AutoLoad(deployed_app_name)
 
+                # for devices that are autoloaded and have child resources attempt to call "Connect child resources"
+                # which copies CVCs from app to deployed app ports.
+                api.ExecuteCommand(self.reservation_id, deployed_app_name, c.TARGET_TYPE_RESOURCE,
+                                   c.REMAP_CHILD_RESOURCES, [])
+
             except CloudShellAPIError as exc:
-                if exc.code not in (EnvironmentSetup.NO_DRIVER_ERR, EnvironmentSetup.DRIVER_FUNCTION_ERROR):
+                if exc.code not in (EnvironmentSetup.NO_DRIVER_ERR, EnvironmentSetup.DRIVER_FUNCTION_ERROR,
+                                    c.MISSING_COMMAND_ERROR):
                     self.logger.error(
                         "Error executing Autoload command on deployed app {0}. Error: {1}".format(deployed_app_name,
                                                                                                   exc.rawxml))
@@ -212,6 +156,7 @@ class EnvironmentSetup(object):
         :param CloudShellAPISession api:
         :param GetReservationDescriptionResponseInfo reservation_details:
         :param str reservation_id:
+        :param (dict of str: ResourceInfo) resource_details_cache:
         :return:
         """
         # List of all resource names created in reservation
