@@ -69,7 +69,6 @@ class EnvironmentSetup(object):
 
     def _try_exeucte_autoload(self, api, deploy_result, resource_details_cache):
         """
-        :param GetReservationDescriptionResponseInfo reservation_details:
         :param CloudShellAPISession api:
         :param BulkAppDeploymentyInfo deploy_result:
         :param (dict of str: ResourceInfo) resource_details_cache:
