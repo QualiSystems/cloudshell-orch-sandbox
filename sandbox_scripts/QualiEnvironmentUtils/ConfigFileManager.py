@@ -26,15 +26,19 @@ class ConfigFileManager:
         try:
             concrete_config_data = template_config_data
             # Replace {ConfigPool.PARAM} with PARAM's value from the pool
-            it = re.finditer(r"\{ConfigPool\.[^}]*\}", concrete_config_data)
+            it = re.finditer(r"\{ConfigPool\.[^}]*\}", concrete_config_data, flags=re.IGNORECASE)
             for match in it:
                 param = match.group()
-                concrete_config_data = concrete_config_data.replace(param, config_set_pool_data[param])
+                concrete_config_data = concrete_config_data.replace(param, config_set_pool_data[param.lower()])
 
             # Replace {Device.Self.Address} with the resource's management ip
-            concrete_config_data = concrete_config_data.replace('{Device.Self.Address}', resource.address)
+            it = re.finditer(r"\{Device.Self.Address\}", concrete_config_data,flags=re.IGNORECASE)
+            for match in it:
+                param = match.group()
+                concrete_config_data = concrete_config_data.replace(param, resource.address)
+
             # Replace {Device.Self.ATTRIBUTE_NAME} with the resource's attribute value
-            it = re.finditer(r"\{Device.Self\.[^}]*\}", concrete_config_data)
+            it = re.finditer(r"\{Device.Self\.[^}]*\}", concrete_config_data,flags=re.IGNORECASE)
             for match in it:
                 param = match.group()
                 param_val = resource.get_attribute(param)

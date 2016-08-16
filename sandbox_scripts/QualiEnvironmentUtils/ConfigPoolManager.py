@@ -3,7 +3,7 @@ from sandbox_scripts.QualiEnvironmentUtils.Sandbox import *
 import re
 
 
-class PoolManager(object):
+class ConfigPoolManager(object):
     def __init__(self, sandbox, pool_resource):
         """
         Check if there is an ip pool
@@ -55,20 +55,17 @@ class PoolManager(object):
 
     # -----------------------------------------
     # Create a dictionary that will hold the data from the pool
-    # Key: Resource name.
-    # Value: A dictionary of the pool's values for the specific resource
-    # (Taken from the attributes on the sub-resource in the pool resource)
     # -----------------------------------------
     def pool_data_to_dict(self):
         pool_data_dict = dict()
         for attribute in self.pool_resource.attributes:
-            pool_data_dict['{ConfigPool.' + attribute.Name + '}'] = attribute.Value
+            pool_data_dict[str('{ConfigPool.' + attribute.Name + '}').lower()] = attribute.Value
         for resource_from_pool in self.pool_resource.details.ChildResources:
             split_name = resource_from_pool.Name.split('/')
             name_of_resource_from_pool = split_name[len(split_name)-1]
             #resource_attributes_dict = dict()
             for attribute in resource_from_pool.ResourceAttributes:
-                resource_dict_key = '{ConfigPool.' + name_of_resource_from_pool + '.' + attribute.Name + '}'
+                resource_dict_key = str('{ConfigPool.' + name_of_resource_from_pool + '.' + attribute.Name + '}').lower()
                 #resource_attributes_dict[resource_dict_key] = attribute.Value
                 pool_data_dict[resource_dict_key] = attribute.Value
         return pool_data_dict

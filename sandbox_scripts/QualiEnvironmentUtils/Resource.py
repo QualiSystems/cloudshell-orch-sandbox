@@ -67,6 +67,29 @@ class ResourceBase(object):
         except:
             raise QualiError(self.name, "Failed to update neighbors. Unexpected error:" + str(sys.exc_info()[0]))
 
+    # ----------------------------------
+    # ----------------------------------
+    def is_healthy(self):
+        """
+        Run the healthCheck command on all the devices and update the live status accordingly
+        :param bool write_to_output: Optional. should messages be sent to the command output.
+        """
+        if self.has_command('HealthCheck'):
+            try:
+                # TODO: Assuming the shell's health check will set the live status on the device,
+                # and return a detailed description in case of a failure
+                out = self.execute_command(self.sandbox.id, 'HealthCheck', printOutput=True).Output()
+                if out != '':
+                    err = "Health check did not pass for device " + self.name + ". " + out
+                    return err
+
+            except QualiError as qe:
+                err = "Health check did not pass for device " + self.name + ". " + str(qe)
+                return err
+        return ""
+
+
+
     # -----------------------------------------
     # -----------------------------------------
     def load_network_config(self, reservation_id, config_path, config_type, restore_method='Override'):
@@ -79,10 +102,17 @@ class ResourceBase(object):
         """
         # Run executeCommand with the restore command and its params (ConfigPath,RestoreMethod)
         try:
+            command_inputs = [InputNameValue('src_Path', str(config_path)),
+                                InputNameValue('restore_method', str(restore_method)),
+                                InputNameValue('config_type', str(config_type))]
+            try:
+                vrf_name = self.get_attribute('VRF Management Name')
+                command_inputs.append(InputNameValue('vrf_management_name', str(vrf_name)))
+            except QualiError:
+                pass
+
             self.execute_command(reservation_id, 'Restore',
-                                 commandInputs=[InputNameValue('src_Path', str(config_path)),
-                                                InputNameValue('restore_method', str(restore_method)),
-                                                InputNameValue('config_type', str(config_type))],
+                                 commandInputs=command_inputs,
                                  printOutput=True)
         except QualiError as qerror:
             raise QualiError(self.name, "Failed to load configuration: " + qerror.message)
@@ -145,3 +175,28 @@ class ResourceBase(object):
         self.api_session.UpdateResourceAddress(resourceFullPath=self.name, resourceAddress=address)
 
 
+    # -----------------------------------------
+    # -----------------------------------------
+    def load_firmware(self, reservation_id, image_path, vrf_management_name=''):
+        """
+        Load firmware from image file on the device
+        :param str reservation_id:  Reservation id.
+        :param str image_path:  The path to the firmware file
+        :param str vrf_management_name:  The name of Virtual Routing and Forwarding (Optional)
+        """
+        # Run executeCommand with the update_firmware command and its params (ConfigPath,RestoreMethod)
+        try:
+            command_inputs = [InputNameValue('path', str(image_path)),
+                                                InputNameValue('vrf_management_name', str(vrf_management_name))]
+            try:
+                vrf_name = self.get_attribute('VRF Management Name')
+                command_inputs.append(InputNameValue('vrf_management_name', str(vrf_management_name)))
+            except QualiError:
+                pass
+            self.execute_command(reservation_id, 'load_firmware',
+                                 commandInputs=command_inputs,
+                                 printOutput=True)
+        except QualiError as qerror:
+            raise QualiError(self.name, "Failed to load firmware: " + qerror.message)
+        except:
+            raise QualiError(self.name, "Failed to load firmware. Unexpected error:" + str(sys.exc_info()[0]))

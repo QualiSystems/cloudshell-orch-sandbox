@@ -15,16 +15,13 @@ class EnvironmentSetupResources(object):
     @profileit(scriptName='Setup')
     def execute(self):
         sandbox = SandboxBase(self.reservation_id, self.logger)
-
-        do_save_restore = True
         saveNRestoreTool = NetworkingSaveRestore(sandbox)
-        healthCheckTool = NetworkingHealthCheck(sandbox)
 
         try:
-            healthCheckTool.devices_health_check(write_to_output=True)
+            sandbox.clear_all_resources_live_status()
 
-            # TODO- Get the config set name from the orchestration's params
-            config_set_name = ''
+            # Get the config set name from the orchestration's params
+            config_set_name = os.environ['Set Name']
             if saveNRestoreTool.is_snapshot():
                 saveNRestoreTool.load_config(config_stage='Snapshots', config_type='Running',
                                              ignore_models=['Generic TFTP server'])
