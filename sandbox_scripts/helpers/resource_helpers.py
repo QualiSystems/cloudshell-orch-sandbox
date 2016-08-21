@@ -26,13 +26,15 @@ def get_vm_details(resource_info):
     return vm_detail
 
 
-def is_deployed_app(resource):
+def is_deployed_app_or_descendant_of_deployed_app(resource, cached_resources):
     """
     :param ResourceInfo resource:
+    :param cached_resources:
     :return:
     :rtype boolean:
     """
-    vm_details = get_vm_details(resource)
+    deployed_app_name = resource.Name.split('/')[0]
+    vm_details = get_vm_details(cached_resources[deployed_app_name])
     return hasattr(vm_details, "UID")
 
 
@@ -61,3 +63,7 @@ def find_resource_by_name(reservation_details, resource_name):
     if len(resources) > 0:
         return resources[0]
     return None
+
+
+def get_root(resource_name):
+    return resource_name.lower().split('/')[0]

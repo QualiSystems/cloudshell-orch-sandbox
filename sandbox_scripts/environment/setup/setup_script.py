@@ -5,6 +5,7 @@ from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from cloudshell.core.logger.qs_logger import get_qs_logger
+from remap_child_resources_constants import *
 
 from sandbox_scripts.helpers.resource_helpers import *
 from sandbox_scripts.profiler.env_profiler import profileit
@@ -35,17 +36,18 @@ class EnvironmentSetup(object):
         deploy_result = self._deploy_apps_in_reservation(api=api,
                                                          reservation_details=reservation_details)
 
-        # refresh reservation_details after app deployment if any deployed apps
-        if deploy_result and deploy_result.ResultItems:
-            reservation_details = api.GetReservationDetails(self.reservation_id)
-
         self._try_exeucte_autoload(api=api,
                                    deploy_result=deploy_result,
                                    resource_details_cache=resource_details_cache)
 
+        # refresh reservation_details after app deployment if any deployed apps
+        if deploy_result and deploy_result.ResultItems:
+            reservation_details = api.GetReservationDetails(self.reservation_id)
+
         self._connect_all_routes_in_reservation(api=api,
                                                 reservation_details=reservation_details,
-                                                reservation_id=self.reservation_id)
+                                                reservation_id=self.reservation_id,
+                                                resource_details_cache=resource_details_cache)
 
         self._run_async_power_on_refresh_ip_install(api=api,
                                                     reservation_details=reservation_details,
@@ -63,8 +65,7 @@ class EnvironmentSetup(object):
         :param str reservation_id:
         """
         self.logger.info("Preparing connectivity for reservation {0}".format(self.reservation_id))
-        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                            message='Preparing connectivity')
+        api.WriteMessageToReservationOutput(reservationId=self.reservation_id, message='Preparing connectivity')
         api.PrepareSandboxConnectivity(reservation_id)
 
     def _try_exeucte_autoload(self, api, deploy_result, resource_details_cache):
@@ -108,8 +109,16 @@ class EnvironmentSetup(object):
 
                 api.AutoLoad(deployed_app_name)
 
+                # for devices that are autoloaded and have child resources attempt to call "Connect child resources"
+                # which copies CVCs from app to deployed app ports.
+                api.ExecuteCommand(self.reservation_id, deployed_app_name,
+                                   TARGET_TYPE_RESOURCE,
+                                   REMAP_CHILD_RESOURCES, [])
+
             except CloudShellAPIError as exc:
-                if exc.code not in (EnvironmentSetup.NO_DRIVER_ERR, EnvironmentSetup.DRIVER_FUNCTION_ERROR):
+                if exc.code not in (EnvironmentSetup.NO_DRIVER_ERR,
+                                    EnvironmentSetup.DRIVER_FUNCTION_ERROR,
+                                    MISSING_COMMAND_ERROR):
                     self.logger.error(
                         "Error executing Autoload command on deployed app {0}. Error: {1}".format(deployed_app_name,
                                                                                                   exc.rawxml))
@@ -144,11 +153,12 @@ class EnvironmentSetup(object):
 
         return res
 
-    def _connect_all_routes_in_reservation(self, api, reservation_details, reservation_id):
+    def _connect_all_routes_in_reservation(self, api, reservation_details, reservation_id, resource_details_cache):
         """
         :param CloudShellAPISession api:
         :param GetReservationDescriptionResponseInfo reservation_details:
         :param str reservation_id:
+        :param (dict of str: ResourceInfo) resource_details_cache:
         :return:
         """
         # List of all resource names created in reservation
@@ -162,14 +172,14 @@ class EnvironmentSetup(object):
                     and endpoint.Target and endpoint.Source:
                 target_ok = True
                 target_resource = find_resource_by_name(reservation_details, endpoint.Target)
-                if target_resource and is_deployed_app(
-                        target_resource) and endpoint.Target.lower() not in resources_created_in_res:
+                if target_resource and is_deployed_app_or_descendant_of_deployed_app(target_resource, resource_details_cache)\
+                        and get_root(endpoint.Target) not in resources_created_in_res:
                     target_ok = False
 
                 source_ok = True
                 source_resource = find_resource_by_name(reservation_details, endpoint.Source)
-                if source_resource and is_deployed_app(
-                        source_resource) and endpoint.Source.lower() not in resources_created_in_res:
+                if source_resource and is_deployed_app_or_descendant_of_deployed_app(source_resource, resource_details_cache)\
+                        and get_root(endpoint.Source) not in resources_created_in_res:
                     source_ok = False
 
                 if target_ok and source_ok:
