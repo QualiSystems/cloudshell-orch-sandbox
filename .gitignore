@@ -67,6 +67,7 @@ target/
 .idea/modules.xml
 .idea/vcs.xml
 .idea/workspace.xml
+.idea/dictionaries/
 qpm.ini
 
 # zip files

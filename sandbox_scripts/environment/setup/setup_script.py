@@ -5,7 +5,7 @@ from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from cloudshell.core.logger.qs_logger import get_qs_logger
-import remap_child_resources_constants as c
+from remap_child_resources_constants import *
 
 from sandbox_scripts.helpers.resource_helpers import *
 from sandbox_scripts.profiler.env_profiler import profileit
@@ -111,12 +111,14 @@ class EnvironmentSetup(object):
 
                 # for devices that are autoloaded and have child resources attempt to call "Connect child resources"
                 # which copies CVCs from app to deployed app ports.
-                api.ExecuteCommand(self.reservation_id, deployed_app_name, c.TARGET_TYPE_RESOURCE,
-                                   c.REMAP_CHILD_RESOURCES, [])
+                api.ExecuteCommand(self.reservation_id, deployed_app_name,
+                                   TARGET_TYPE_RESOURCE,
+                                   REMAP_CHILD_RESOURCES, [])
 
             except CloudShellAPIError as exc:
-                if exc.code not in (EnvironmentSetup.NO_DRIVER_ERR, EnvironmentSetup.DRIVER_FUNCTION_ERROR,
-                                    c.MISSING_COMMAND_ERROR):
+                if exc.code not in (EnvironmentSetup.NO_DRIVER_ERR,
+                                    EnvironmentSetup.DRIVER_FUNCTION_ERROR,
+                                    MISSING_COMMAND_ERROR):
                     self.logger.error(
                         "Error executing Autoload command on deployed app {0}. Error: {1}".format(deployed_app_name,
                                                                                                   exc.rawxml))
