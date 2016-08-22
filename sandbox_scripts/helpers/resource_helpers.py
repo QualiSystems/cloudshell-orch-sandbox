@@ -26,15 +26,16 @@ def get_vm_details(resource_info):
     return vm_detail
 
 
-def is_deployed_app_or_descendant_of_deployed_app(resource, cached_resources):
+def is_deployed_app_or_descendant_of_deployed_app(api, resource, cached_resources):
     """
+    :param CloudShellAPISession api:
     :param ResourceInfo resource:
-    :param cached_resources:
+    :param (dict of str: ResourceInfo) cached_resources:
     :return:
     :rtype boolean:
     """
     deployed_app_name = resource.Name.split('/')[0]
-    vm_details = get_vm_details(cached_resources[deployed_app_name])
+    vm_details = get_vm_details(get_resource_details_from_cache_or_server(api, deployed_app_name, cached_resources))
     return hasattr(vm_details, "UID")
 
 
@@ -67,3 +68,17 @@ def find_resource_by_name(reservation_details, resource_name):
 
 def get_root(resource_name):
     return resource_name.lower().split('/')[0]
+
+
+def get_resource_details_from_cache_or_server(api, resource_name, resource_details_cache):
+    """
+    :param CloudShellAPISession api:
+    :param str resource_name:
+    :param dict(str:ResourceInfo) resource_details_cache:
+    :return: ResourceInfo resource_details
+    """
+    if resource_name in resource_details_cache:
+        resource_details = resource_details_cache[resource_name]
+    else:
+        resource_details = api.GetResourceDetails(resource_name)
+    return resource_details

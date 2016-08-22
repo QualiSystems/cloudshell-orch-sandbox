@@ -172,13 +172,15 @@ class EnvironmentSetup(object):
                     and endpoint.Target and endpoint.Source:
                 target_ok = True
                 target_resource = find_resource_by_name(reservation_details, endpoint.Target)
-                if target_resource and is_deployed_app_or_descendant_of_deployed_app(target_resource, resource_details_cache)\
+                if target_resource \
+                        and is_deployed_app_or_descendant_of_deployed_app(api, target_resource, resource_details_cache)\
                         and get_root(endpoint.Target) not in resources_created_in_res:
                     target_ok = False
 
                 source_ok = True
                 source_resource = find_resource_by_name(reservation_details, endpoint.Source)
-                if source_resource and is_deployed_app_or_descendant_of_deployed_app(source_resource, resource_details_cache)\
+                if source_resource \
+                        and is_deployed_app_or_descendant_of_deployed_app(api, source_resource, resource_details_cache)\
                         and get_root(endpoint.Source) not in resources_created_in_res:
                     source_ok = False
 
@@ -215,8 +217,6 @@ class EnvironmentSetup(object):
                 message='No resources to power on or install')
             self._validate_all_apps_deployed(deploy_results)
             return
-
-
 
         pool = ThreadPool(len(resources))
         lock = Lock()
@@ -267,11 +267,7 @@ class EnvironmentSetup(object):
             self.logger.debug("Getting resource details for resource {0} in reservation {1}"
                               .format(deployed_app_name, self.reservation_id))
 
-            if deployed_app_name in resource_details_cache:
-                resource_details = resource_details_cache[deployed_app_name]
-            else:
-                resource_details = api.GetResourceDetails(deployed_app_name)
-
+            resource_details = get_resource_details_from_cache_or_server(api, deployed_app_name, resource_details_cache)
             # check if deployed app
             vm_details = get_vm_details(resource_details)
             if not hasattr(vm_details, "UID"):
