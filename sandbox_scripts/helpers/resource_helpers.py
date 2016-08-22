@@ -77,8 +77,6 @@ def get_resource_details_from_cache_or_server(api, resource_name, resource_detai
     :param dict(str:ResourceInfo) resource_details_cache:
     :return: ResourceInfo resource_details
     """
-    if resource_name in resource_details_cache:
-        resource_details = resource_details_cache[resource_name]
-    else:
-        resource_details = api.GetResourceDetails(resource_name)
-    return resource_details
+    if resource_name not in resource_details_cache:
+        resource_details_cache[resource_name] = api.GetResourceDetails(resource_name)
+    return resource_details_cache[resource_name]
