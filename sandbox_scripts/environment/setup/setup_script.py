@@ -161,32 +161,13 @@ class EnvironmentSetup(object):
         :param (dict of str: ResourceInfo) resource_details_cache:
         :return:
         """
-        # List of all resource names created in reservation
-        resources_created_in_res = map(lambda x: x.Name.lower(),
-                                       get_resources_created_in_res(reservation_details, reservation_id))
-
         connectors = reservation_details.ReservationDescription.Connectors
         endpoints = []
         for endpoint in connectors:
             if endpoint.State in ['Disconnected', 'PartiallyConnected', 'ConnectionFailed'] \
                     and endpoint.Target and endpoint.Source:
-                target_ok = True
-                target_resource = find_resource_by_name(reservation_details, endpoint.Target)
-                if target_resource \
-                        and is_deployed_app_or_descendant_of_deployed_app(api, target_resource, resource_details_cache)\
-                        and get_root(endpoint.Target) not in resources_created_in_res:
-                    target_ok = False
-
-                source_ok = True
-                source_resource = find_resource_by_name(reservation_details, endpoint.Source)
-                if source_resource \
-                        and is_deployed_app_or_descendant_of_deployed_app(api, source_resource, resource_details_cache)\
-                        and get_root(endpoint.Source) not in resources_created_in_res:
-                    source_ok = False
-
-                if target_ok and source_ok:
-                    endpoints.append(endpoint.Target)
-                    endpoints.append(endpoint.Source)
+                endpoints.append(endpoint.Target)
+                endpoints.append(endpoint.Source)
 
         if not endpoints:
             self.logger.info("No routes to connect for reservation {0}".format(self.reservation_id))
