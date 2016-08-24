@@ -69,17 +69,16 @@ class ResourceBase(object):
 
     # ----------------------------------
     # ----------------------------------
-    def is_healthy(self):
+    def health_check(self,reservation_id):
         """
-        Run the healthCheck command on all the devices and update the live status accordingly
+        Run the healthCheck command on all the devices
         :param bool write_to_output: Optional. should messages be sent to the command output.
         """
-        if self.has_command('HealthCheck'):
+        if self.has_command('health_check'):
             try:
-                # TODO: Assuming the shell's health check will set the live status on the device,
-                # and return a detailed description in case of a failure
-                out = self.execute_command(self.sandbox.id, 'HealthCheck', printOutput=True).Output()
-                if out != '':
+                # Return a detailed description in case of a failure
+                out = self.execute_command(reservation_id, 'health_check', printOutput=False)#.Output()
+                if str(out).find(' passed') == -1:
                     err = "Health check did not pass for device " + self.name + ". " + out
                     return err
 
@@ -165,7 +164,6 @@ class ResourceBase(object):
                                                        commandInputs, printOutput)
             except CloudShellAPIError as error:
                 raise QualiError(self.name, error.message)
-
         else:
             raise QualiError(self.name, 'No commands were found')
 
@@ -177,20 +175,18 @@ class ResourceBase(object):
 
     # -----------------------------------------
     # -----------------------------------------
-    def load_firmware(self, reservation_id, image_path, vrf_management_name=''):
+    def load_firmware(self, reservation_id, image_path):
         """
         Load firmware from image file on the device
         :param str reservation_id:  Reservation id.
         :param str image_path:  The path to the firmware file
-        :param str vrf_management_name:  The name of Virtual Routing and Forwarding (Optional)
         """
         # Run executeCommand with the update_firmware command and its params (ConfigPath,RestoreMethod)
         try:
-            command_inputs = [InputNameValue('path', str(image_path)),
-                                                InputNameValue('vrf_management_name', str(vrf_management_name))]
+            command_inputs = [InputNameValue('path', str(image_path))]
             try:
                 vrf_name = self.get_attribute('VRF Management Name')
-                command_inputs.append(InputNameValue('vrf_management_name', str(vrf_management_name)))
+                command_inputs.append(InputNameValue('vrf_management_name', str(vrf_name)))
             except QualiError:
                 pass
             self.execute_command(reservation_id, 'load_firmware',
@@ -200,3 +196,13 @@ class ResourceBase(object):
             raise QualiError(self.name, "Failed to load firmware: " + qerror.message)
         except:
             raise QualiError(self.name, "Failed to load firmware. Unexpected error:" + str(sys.exc_info()[0]))
+
+    # -----------------------------------------
+    # -----------------------------------------
+    def set_live_status(self,live_status_name, additional_info=''):
+        self.api_session.SetResourceLiveStatus(self.name,live_status_name, additional_info)
+
+    # -----------------------------------------
+    # -----------------------------------------
+    def get_live_status(self):
+        self.api_session.GetResourceLiveStatus(self.name)

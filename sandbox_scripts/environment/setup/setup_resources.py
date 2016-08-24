@@ -12,7 +12,7 @@ class EnvironmentSetupResources(object):
                                     log_group=self.reservation_id,
                                     log_category='Setup')
 
-    @profileit(scriptName='Setup')
+    #@profileit(scriptName='Setup')
     def execute(self):
         sandbox = SandboxBase(self.reservation_id, self.logger)
         saveNRestoreTool = NetworkingSaveRestore(sandbox)
@@ -21,13 +21,18 @@ class EnvironmentSetupResources(object):
             sandbox.clear_all_resources_live_status()
 
             # Get the config set name from the orchestration's params
-            config_set_name = os.environ['Set Name']
+            config_set_name = ''
+            try:
+                config_set_name = os.environ['Set Name']
+            except:
+                pass
+            ignore_models=['Generic TFTP server', 'Config Set Pool','Generic FTP server']
             if saveNRestoreTool.is_snapshot():
                 saveNRestoreTool.load_config(config_stage='Snapshots', config_type='Running',
-                                             ignore_models=['Generic TFTP server'])
+                                             ignore_models=ignore_models)
             else:
                 saveNRestoreTool.load_config(config_stage='Gold', config_type='Running',
-                                             ignore_models=['Generic TFTP server', 'Config Set Pool'],
+                                             ignore_models=ignore_models,
                                              config_set_name=config_set_name)
 
             # call activate_all_routes_and_connectors
