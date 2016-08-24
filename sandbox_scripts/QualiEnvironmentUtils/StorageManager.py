@@ -53,7 +53,7 @@ class StorageClient(object):
 
     @abstractmethod
     def _remove_header(self, path):
-        raise NotImplementedError('subclasses must override dir_exist()!')
+        raise NotImplementedError('subclasses must override _remove_header()!')
 
 
 class TFTPClient(StorageClient):

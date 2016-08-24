@@ -17,9 +17,9 @@ class ResourceBase(object):
             self.commands = self.api_session.GetResourceCommands(resource_name).Commands
             self.attributes = self.details.ResourceAttributes
             # If there is an attribute named 'model' take its value (exist in shells), otherwise take the family's model
-            try:
+            if self.attribute_exist('Model'):
                 self.model = self.get_attribute('Model')
-            except QualiError:
+            else:
                 self.model = self.details.ResourceModelName
 
             self.alias = resource_alias
@@ -31,6 +31,16 @@ class ResourceBase(object):
             if command_name == command.Name:
                 return True
         return False
+
+    # -----------------------------------------
+    # -----------------------------------------
+    def attribute_exist(self, attribute_name):
+        attribute_name = attribute_name.lower()
+        for attribute in self.attributes:
+            if attribute.Name.lower() == attribute_name:
+                return True
+        return False
+
 
     # -----------------------------------------
     # -----------------------------------------
@@ -72,7 +82,7 @@ class ResourceBase(object):
     def health_check(self,reservation_id):
         """
         Run the healthCheck command on all the devices
-        :param bool write_to_output: Optional. should messages be sent to the command output.
+        :param str reservation_id:  Reservation id.
         """
         if self.has_command('health_check'):
             try:
@@ -104,11 +114,10 @@ class ResourceBase(object):
             command_inputs = [InputNameValue('src_Path', str(config_path)),
                                 InputNameValue('restore_method', str(restore_method)),
                                 InputNameValue('config_type', str(config_type))]
-            try:
+
+            if self.attribute_exist('VRF Management Name'):
                 vrf_name = self.get_attribute('VRF Management Name')
                 command_inputs.append(InputNameValue('vrf_management_name', str(vrf_name)))
-            except QualiError:
-                pass
 
             self.execute_command(reservation_id, 'Restore',
                                  commandInputs=command_inputs,
@@ -184,11 +193,9 @@ class ResourceBase(object):
         # Run executeCommand with the update_firmware command and its params (ConfigPath,RestoreMethod)
         try:
             command_inputs = [InputNameValue('path', str(image_path))]
-            try:
+            if self.attribute_exist('VRF Management Name'):
                 vrf_name = self.get_attribute('VRF Management Name')
                 command_inputs.append(InputNameValue('vrf_management_name', str(vrf_name)))
-            except QualiError:
-                pass
             self.execute_command(reservation_id, 'load_firmware',
                                  commandInputs=command_inputs,
                                  printOutput=True)

@@ -272,9 +272,8 @@ class SandboxBase(object):
     def get_storage_server_resource(self):
         root_resources = self.get_root_resources()
         for resource in root_resources:
-                # if resource.model.lower() == 'generic tftp server':
-                if resource.details.ResourceFamilyName.lower() == 'storage server':
-                    return resource
+            if resource.details.ResourceFamilyName.lower() == 'storage server':
+                return resource
         return None
 
     # -----------------------------------------

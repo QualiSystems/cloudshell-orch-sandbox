@@ -5,7 +5,8 @@ import tempfile
 
 from sandbox_scripts.QualiEnvironmentUtils.ConfigFileManager import *
 from sandbox_scripts.QualiEnvironmentUtils.ConfigPoolManager import *
-from sandbox_scripts.QualiEnvironmentUtils.StorageManager import *
+from sandbox_scripts.QualiEnvironmentUtils.StorageManager import StorageManager
+
 
 class NetworkingSaveRestore(object):
     def __init__(self, sandbox):
@@ -73,14 +74,15 @@ class NetworkingSaveRestore(object):
                 health_check_result = resource.health_check(self.sandbox.id)
                 if health_check_result == "":
                     try:
+                        #TBD: check what the FW version is and only load firmware if it's different from what
+                        # currently is there
                         if len(images_path_dict)>0:
                             image_key = (resource.alias + '_' + resource.model).replace(' ', '_')
                             resource_image_path = images_path_dict[image_key]
                             if resource_image_path != '':
                                 self.sandbox.report_info(
                                     'Loading firmware for device: ' + resource.name + ' from:' + resource_image_path, write_to_output)
-                                # TODO REMOVE THE COMMENT FROM LINE BELOW
-                                #resource.load_firmware(self.sandbox.id,resource_image_path)
+                                resource.load_firmware(self.sandbox.id,resource_image_path)
                         config_path = self._get_concrete_config_file_path(root_path, resource, write_to_output=True)
                         self.sandbox.report_info(
                             'Loading configuration for device: ' + resource.name + ' from:' + config_path, write_to_output)
@@ -250,12 +252,11 @@ class NetworkingSaveRestore(object):
     # ----------------------------------
     def _is_load_config_to_device(self, resource, ignore_models=None):
         # check if the device is marked for not loading config during
-        try:
+
+        if resource.attribute_exist("Disable Load Config"):
             disable_load_config = resource.get_attribute("Disable Load Config")
             if disable_load_config:
                 return False
-        except QualiError:  # if attribute not found then assume load config in enabled
-            pass
 
         if ignore_models:
             for ignore_model in ignore_models:
