@@ -118,7 +118,7 @@ class FTPClient(StorageClient):
 
     # ----------------------------------
     # ----------------------------------
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __del__(self):
         self.ftp.quit()
 
     # ----------------------------------
