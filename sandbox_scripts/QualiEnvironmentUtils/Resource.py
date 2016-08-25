@@ -17,9 +17,9 @@ class ResourceBase(object):
             self.commands = self.api_session.GetResourceCommands(resource_name).Commands
             self.attributes = self.details.ResourceAttributes
             # If there is an attribute named 'model' take its value (exist in shells), otherwise take the family's model
-            try:
+            if self.attribute_exist('Model'):
                 self.model = self.get_attribute('Model')
-            except QualiError:
+            else:
                 self.model = self.details.ResourceModelName
 
             self.alias = resource_alias
@@ -31,6 +31,16 @@ class ResourceBase(object):
             if command_name == command.Name:
                 return True
         return False
+
+    # -----------------------------------------
+    # -----------------------------------------
+    def attribute_exist(self, attribute_name):
+        attribute_name = attribute_name.lower()
+        for attribute in self.attributes:
+            if attribute.Name.lower() == attribute_name:
+                return True
+        return False
+
 
     # -----------------------------------------
     # -----------------------------------------
@@ -67,6 +77,28 @@ class ResourceBase(object):
         except:
             raise QualiError(self.name, "Failed to update neighbors. Unexpected error:" + str(sys.exc_info()[0]))
 
+    # ----------------------------------
+    # ----------------------------------
+    def health_check(self,reservation_id):
+        """
+        Run the healthCheck command on all the devices
+        :param str reservation_id:  Reservation id.
+        """
+        if self.has_command('health_check'):
+            try:
+                # Return a detailed description in case of a failure
+                out = self.execute_command(reservation_id, 'health_check', printOutput=False)#.Output()
+                if str(out).find(' passed') == -1:
+                    err = "Health check did not pass for device " + self.name + ". " + out
+                    return err
+
+            except QualiError as qe:
+                err = "Health check did not pass for device " + self.name + ". " + str(qe)
+                return err
+        return ""
+
+
+
     # -----------------------------------------
     # -----------------------------------------
     def load_network_config(self, reservation_id, config_path, config_type, restore_method='Override'):
@@ -79,10 +111,16 @@ class ResourceBase(object):
         """
         # Run executeCommand with the restore command and its params (ConfigPath,RestoreMethod)
         try:
+            command_inputs = [InputNameValue('src_Path', str(config_path)),
+                                InputNameValue('restore_method', str(restore_method)),
+                                InputNameValue('config_type', str(config_type))]
+
+            if self.attribute_exist('VRF Management Name'):
+                vrf_name = self.get_attribute('VRF Management Name')
+                command_inputs.append(InputNameValue('vrf_management_name', str(vrf_name)))
+
             self.execute_command(reservation_id, 'Restore',
-                                 commandInputs=[InputNameValue('src_Path', str(config_path)),
-                                                InputNameValue('restore_method', str(restore_method)),
-                                                InputNameValue('config_type', str(config_type))],
+                                 commandInputs=command_inputs,
                                  printOutput=True)
         except QualiError as qerror:
             raise QualiError(self.name, "Failed to load configuration: " + qerror.message)
@@ -135,7 +173,6 @@ class ResourceBase(object):
                                                        commandInputs, printOutput)
             except CloudShellAPIError as error:
                 raise QualiError(self.name, error.message)
-
         else:
             raise QualiError(self.name, 'No commands were found')
 
@@ -145,3 +182,34 @@ class ResourceBase(object):
         self.api_session.UpdateResourceAddress(resourceFullPath=self.name, resourceAddress=address)
 
 
+    # -----------------------------------------
+    # -----------------------------------------
+    def load_firmware(self, reservation_id, image_path):
+        """
+        Load firmware from image file on the device
+        :param str reservation_id:  Reservation id.
+        :param str image_path:  The path to the firmware file
+        """
+        # Run executeCommand with the update_firmware command and its params (ConfigPath,RestoreMethod)
+        try:
+            command_inputs = [InputNameValue('path', str(image_path))]
+            if self.attribute_exist('VRF Management Name'):
+                vrf_name = self.get_attribute('VRF Management Name')
+                command_inputs.append(InputNameValue('vrf_management_name', str(vrf_name)))
+            self.execute_command(reservation_id, 'load_firmware',
+                                 commandInputs=command_inputs,
+                                 printOutput=True)
+        except QualiError as qerror:
+            raise QualiError(self.name, "Failed to load firmware: " + qerror.message)
+        except:
+            raise QualiError(self.name, "Failed to load firmware. Unexpected error:" + str(sys.exc_info()[0]))
+
+    # -----------------------------------------
+    # -----------------------------------------
+    def set_live_status(self,live_status_name, additional_info=''):
+        self.api_session.SetResourceLiveStatus(self.name,live_status_name, additional_info)
+
+    # -----------------------------------------
+    # -----------------------------------------
+    def get_live_status(self):
+        self.api_session.GetResourceLiveStatus(self.name)

@@ -267,13 +267,13 @@ class SandboxBase(object):
         return False
 
     # -----------------------------------------
-    # Return the tftp resource of the sandbox, if found
+    # Return the storage resource of the sandbox (e.g. tftp, ftp), if found
     # -----------------------------------------
-    def get_tftp_resource(self):
+    def get_storage_server_resource(self):
         root_resources = self.get_root_resources()
         for resource in root_resources:
-                if resource.model.lower() == 'generic tftp server':
-                    return resource
+            if resource.details.ResourceFamilyName.lower() == 'storage server':
+                return resource
         return None
 
     # -----------------------------------------
