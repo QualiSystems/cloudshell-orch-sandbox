@@ -1,2 +1,4 @@
 # cloudshell-orch-sandbox
-Package for sandbox orchestration script functions
+Package for setup & teardown sandbox orchestration scripts
+
+#### Supported CloudShell version: 7.0
