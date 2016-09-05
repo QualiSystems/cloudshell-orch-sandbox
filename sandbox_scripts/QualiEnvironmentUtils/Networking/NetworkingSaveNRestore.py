@@ -1,6 +1,7 @@
 # coding=utf-8
 import csv
 import tempfile
+import subprocess
 
 
 from sandbox_scripts.QualiEnvironmentUtils.ConfigFileManager import *
@@ -186,6 +187,8 @@ class NetworkingSaveRestore(object):
                 tmp_template_config_file.close()
                 os.unlink(tmp_template_config_file.name)
 
+        config_path = config_path.replace(' ','_')
+
         return config_path
 
     # ----------------------------------
@@ -198,42 +201,9 @@ class NetworkingSaveRestore(object):
         :param list[str] ignore_models: Optional. Models that should be ignored and not load config on the device
         :param bool write_to_output: Optional. should messages be sent to the command output.
         """
-        root_resources = self.sandbox.get_root_resources()
+        env_dir = self.config_files_root + '/Snapshots/' + snapshot_name
+        self.storage_client.save_config(config_type,env_dir, ignore_models=None, write_to_output=True)
 
-     #   new_config_path = self.tftp_map_drive + '/Snapshots/' + snapshot_name
-
-     #   windows_server_path = self.storage_server_configs_root.replace("/","\\")
-     #   new_config_path =  "\\\\" + self.storage_server_address + "\\" + windows_server_path + "\Snapshots\\" + snapshot_name
-        #config_path = 'Z:/Configs/snapshots/Snap12'
-
-        #config_path = self.config_files_root + '/snapshots/' + self.sandbox.Blueprint_name
-
-        #if not os.path.exists(new_config_path):
-        #    os.makedirs(new_config_path)
-
-        config_path = self.config_files_root + '/Snapshots/' + snapshot_name
-
-        # TODO: check - do I need to create the snapshot folder on the tfp server if it doesn't exist?
-        for resource in root_resources:
-            save_config_from_device = True
-            if ignore_models:
-                for ignore_model in ignore_models:
-                    if resource.model.lower() == ignore_model.lower():
-                        save_config_from_device = False
-                        break
-            if save_config_from_device:
-                try:
-                    self.sandbox.report_info(
-                        'Saving configuration for device: ' + resource.name + ' to: ' + config_path, write_to_output)
-                    resource.save_network_config(self.sandbox.id, config_path, config_type)
-
-                except QualiError as qe:
-                    err = "Failed to save configuration for device " + resource.name + ". " + str(qe)
-                    self.sandbox.report_error(err, write_to_output_window=write_to_output)
-                except:
-                    err = "Failed to save configuration for device " + resource.name + \
-                          ". Unexpected error: " + str(sys.exc_info()[0])
-                    self.sandbox.report_error(err, write_to_output_window=write_to_output)
 
     # ----------------------------------
     # Is this Sandbox originates from a snapshot Blueprint?
