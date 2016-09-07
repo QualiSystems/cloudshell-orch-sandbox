@@ -57,6 +57,11 @@ class StorageClient(object):
         raise NotImplementedError('subclasses must override _remove_header()!')
 
 
+    @abstractmethod
+    def create_dir(self,env_dir, write_to_output=True):
+        raise NotImplementedError('subclasses must override create_dir()!')
+
+
 class TFTPClient(StorageClient):
     # ----------------------------------
     # ----------------------------------
@@ -106,7 +111,7 @@ class TFTPClient(StorageClient):
             dir_name = self._remove_header(dir_name)
 
             new_config_path = self.tftp_root_dir +'\\'+ dir_name
-            new_config_path = new_config_path.replace('/', '\\')
+            new_config_path = new_config_path.replace('/', "\\")
             #new_config_path = self.tftp_root_dir + "\\" + win_path + "\Snapshots\\"
 
             command_array = ['cmd', '/c', 'dir', new_config_path]
@@ -137,15 +142,18 @@ class TFTPClient(StorageClient):
                 if word == self.sandbox.Blueprint_name:
                     return True
 
+            return False
+
         except Exception as e:
-            if hasattr(e, 'output'):
-                err = 'psexec failed: ' + str(e).replace('\r\n', '\n')
-                self.sandbox.report_error(err, write_to_output_window=True)
+            #if hasattr(e, 'output'):
+            print 'psexec failed: ' + str(e).replace('\r\n', '\n')
+            return False
+            """
             else:
                 ou = 'no output'
                 err = 'psexec failed: ' + str(e).replace('\r\n', '\n') + ': ' + ou.replace('\r\n', '\n')
                 self.sandbox.report_error(err, write_to_output_window=True)
-
+            """
 
 
 
@@ -160,15 +168,13 @@ class TFTPClient(StorageClient):
 
     # ----------------------------------
     # ----------------------------------
-    def save_config(self, config_type,env_dir, ignore_models=None, write_to_output=True):
-        """
-        Load the configuration from the devices to the tftp
-        :param str snapshot_name:  The name of the snapshot
-        :param str config_type:  StartUp or Running
-        :param list[str] ignore_models: Optional. Models that should be ignored and not load config on the device
-        :param bool write_to_output: Optional. should messages be sent to the command output.
-        """
+    def create_dir(self,env_dir, write_to_output=True):
 
+        """
+        Create new directory on the tftp
+        :param env_dir:  The path directory to create
+
+        """
         '''Create directory'''
         try:
             win_path = self._remove_header(env_dir)
@@ -208,34 +214,6 @@ class TFTPClient(StorageClient):
                 ou = 'no output'
                 err = 'psexec failed: ' + str(e).replace('\r\n', '\n') + ': ' + ou.replace('\r\n', '\n')
                 self.sandbox.report_error(err, write_to_output_window=write_to_output)
-
-        '''Call To Save command in resource'''
-        config_path =  env_dir.replace('\\','/')
-
-        root_resources = self.sandbox.get_root_resources()
-        for resource in root_resources:
-            save_config_from_device = True
-            if ignore_models:
-                for ignore_model in ignore_models:
-                    if resource.model.lower() == ignore_model.lower():
-                        save_config_from_device = False
-                        break
-            if save_config_from_device:
-                try:
-                    self.sandbox.report_info(
-                        'Saving configuration for device: ' + resource.name + ' to: ' + config_path, write_to_output)
-                    resource.save_network_config(self.sandbox.id, config_path, config_type)
-
-                except QualiError as qe:
-                    err = "Failed to save configuration for device " + resource.name + ". " + str(qe)
-                    self.sandbox.report_error(err, write_to_output_window=write_to_output)
-                except:
-                    err = "Failed to save configuration for device " + resource.name + \
-                          ". Unexpected error: " + str(sys.exc_info()[0])
-                    self.sandbox.report_error(err, write_to_output_window=write_to_output)
-
-
-
 
 
 class FTPClient(StorageClient):
@@ -312,7 +290,7 @@ class FTPClient(StorageClient):
     # -----------------------------------
     # -----------------------------------
 
-    def save_config(self, config_type, env_dir, ignore_models=None, write_to_output=True):
+    def create_dir(self,env_dir, write_to_output=True):
 
         ''''Create dir'''
 
