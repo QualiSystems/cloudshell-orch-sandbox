@@ -52,6 +52,7 @@ class NetworkingSaveRestore(object):
         :param list[str] ignore_models: Optional. Models that should be ignored and not load config on the device
         :param bool write_to_output: Optional. should messages be sent to the command output.
         """
+
         root_path = ''
         if config_stage.lower() == 'gold' or config_stage.lower() == 'snapshot':
             root_path = self.config_files_root + '/' + config_stage + '/' + self.sandbox.Blueprint_name.strip() + '/'
@@ -88,6 +89,7 @@ class NetworkingSaveRestore(object):
                         self.sandbox.report_info(
                             'Loading configuration for device: ' + resource.name + ' from:' + config_path, write_to_output)
 
+                        print " call loading in resource"
                         resource.load_network_config(self.sandbox.id, config_path, config_type, restore_method)
                         self.sandbox.api_session.SetResourceLiveStatus(resource.name, 'Online')
                     except QualiError as qe:
@@ -145,6 +147,7 @@ class NetworkingSaveRestore(object):
         :param ResourceBase resource:  The resource the file will be created for
         :rtype: str
         """
+
         config_file_mgr = ConfigFileManager(self.sandbox)
         config_set_pool_data = dict()
         # If there is a pool resource, get the pool data
@@ -188,7 +191,6 @@ class NetworkingSaveRestore(object):
                 os.unlink(tmp_template_config_file.name)
 
         config_path = config_path.replace(' ','_')
-
         return config_path
 
     # ----------------------------------
@@ -201,8 +203,38 @@ class NetworkingSaveRestore(object):
         :param list[str] ignore_models: Optional. Models that should be ignored and not load config on the device
         :param bool write_to_output: Optional. should messages be sent to the command output.
         """
+
         env_dir = self.config_files_root + '/Snapshots/' + snapshot_name
-        self.storage_client.save_config(config_type,env_dir, ignore_models=None, write_to_output=True)
+        self.storage_client.create_dir(config_type,env_dir, ignore_models=None, write_to_output=True)
+
+
+
+        '''Call To Save command in resource'''
+        config_path =  env_dir.replace('\\','/')
+
+        root_resources = self.sandbox.get_root_resources()
+        for resource in root_resources:
+            save_config_from_device = True
+            if ignore_models:
+                for ignore_model in ignore_models:
+                    if resource.model.lower() == ignore_model.lower():
+                        save_config_from_device = False
+                        break
+            if save_config_from_device:
+                try:
+                    self.sandbox.report_info(
+                        'Saving configuration for device: ' + resource.name + ' to: ' + config_path, write_to_output)
+                    resource.save_network_config(self.sandbox.id, config_path, config_type)
+
+                except QualiError as qe:
+                    err = "Failed to save configuration for device " + resource.name + ". " + str(qe)
+                    self.sandbox.report_error(err, write_to_output_window=write_to_output)
+                except:
+                    err = "Failed to save configuration for device " + resource.name + \
+                          ". Unexpected error: " + str(sys.exc_info()[0])
+                    self.sandbox.report_error(err, write_to_output_window=write_to_output)
+
+
 
 
     # ----------------------------------
