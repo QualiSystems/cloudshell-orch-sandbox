@@ -145,15 +145,15 @@ class TFTPClient(StorageClient):
             return False
 
         except Exception as e:
-            #if hasattr(e, 'output'):
-            print 'psexec failed: ' + str(e).replace('\r\n', '\n')
-            return False
-            """
+            if hasattr(e, 'output'):
+                print 'psexec failed: ' + str(e).replace('\r\n', '\n')
+                return False
+
             else:
                 ou = 'no output'
                 err = 'psexec failed: ' + str(e).replace('\r\n', '\n') + ': ' + ou.replace('\r\n', '\n')
                 self.sandbox.report_error(err, write_to_output_window=True)
-            """
+
 
 
 
