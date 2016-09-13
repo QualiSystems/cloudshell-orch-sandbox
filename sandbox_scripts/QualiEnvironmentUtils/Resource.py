@@ -23,6 +23,9 @@ class ResourceBase(object):
                 self.model = self.details.ResourceModelName
 
             self.alias = resource_alias
+            #self.standard_version = self._get_standard_version()
+
+
 
     # -----------------------------------------
     # -----------------------------------------
@@ -79,6 +82,28 @@ class ResourceBase(object):
 
     # ----------------------------------
     # ----------------------------------
+    '''
+    def _get_standard_version(self,reservation_id):
+        """
+        Run the get standard details command on all the devices
+        :param str reservation_id:  Reservation id.
+        """
+        if self.has_command('get_standard_version'):
+            try:
+                return self.execute_command(reservation_id, 'get_standard_version', printOutput=False).Output()
+
+            except QualiError as qe:
+                err = "Failed to get the standard version for device: " + self.name + ". " + str(qe)
+                return err
+        else:
+            if self.model.lower().find('cisco ios-xr')>=0 or self.model.lower().find('cisco ios ')>=0 or self.model.lower().find('cisco nxos')>=0:
+                return '3'
+            elif self.model.lower().find('ericsson')>=0 or self.model.lower().find('gigavue-os')>=0:
+                return '4'
+        return -1
+    '''
+    # ----------------------------------
+    # ----------------------------------
     def health_check(self,reservation_id):
         """
         Run the healthCheck command on all the devices
@@ -88,8 +113,8 @@ class ResourceBase(object):
             try:
                 # Return a detailed description in case of a failure
                 out = self.execute_command(reservation_id, 'health_check', printOutput=False)#.Output()
-                if str(out).find(' passed') == -1:
-                    err = "Health check did not pass for device " + self.name + ". " + out
+                if out.Output.find(' passed') == -1:
+                    err = "Health check did not pass for device " + self.name + ". " + str(out)
                     return err
 
             except QualiError as qe:
@@ -138,18 +163,24 @@ class ResourceBase(object):
         """
         # Run executeCommand with the restore command and its params (ConfigPath,RestoreMethod)
         try:
+            command_inputs = [InputNameValue('source_filename', str(config_type)),
+                                InputNameValue('destination_host', str(config_path))]
+
+            if self.attribute_exist('VRF Management Name'):
+                vrf_name = self.get_attribute('VRF Management Name')
+                command_inputs.append(InputNameValue('vrf', str(vrf_name)))
 
             config_name = self.execute_command(reservation_id, 'Save',
-                                               commandInputs=[InputNameValue('source_filename', str(config_type)),
-                                                              InputNameValue('destination_host', str(config_path))],
-                                               printOutput=True)
+                                               commandInputs=command_inputs,
+                                               printOutput=True).Output
 
-            # check the output is the created file name
+            #TODO check the output is the created file name
+            return config_name
 
         except QualiError as qerror:
-            raise QualiError(self.name, "Failed to load configuration: " + qerror.message)
+            raise QualiError(self.name, "Failed to save configuration: " + qerror.message)
         except:
-            raise QualiError(self.name, "Failed to load configuration. Unexpected error:" + str(sys.exc_info()[0]))
+            raise QualiError(self.name, "Failed to save configuration. Unexpected error:" + str(sys.exc_info()[0]))
 
     # -----------------------------------------
     # -----------------------------------------
