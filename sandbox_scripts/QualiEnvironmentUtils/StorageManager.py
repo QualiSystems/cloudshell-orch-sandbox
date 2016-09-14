@@ -61,6 +61,9 @@ class StorageClient(object):
     def create_dir(self,env_dir, write_to_output=True):
         raise NotImplementedError('subclasses must override create_dir()!')
 
+    @abstractmethod
+    def rename_file(self, file_path, new_name):
+        raise NotImplementedError('subclasses must override rename_file()!')
 
 class TFTPClient(StorageClient):
     # ----------------------------------
@@ -71,6 +74,7 @@ class TFTPClient(StorageClient):
         self.password = storage_resource.get_attribute("Storage password")
         self.tftp_psexe = storage_resource.get_attribute('TFTP psexec')
         self.tftp_root_dir = storage_resource.get_attribute('TFTP Root')
+        #self.tftp_root_dir = self.configs_root
 
         self.tftp_client = tftpy.TftpClient(self.address, self.port)
 
@@ -283,7 +287,8 @@ class FTPClient(StorageClient):
     # ----------------------------------
     # ----------------------------------
     def _remove_header(self, path):
-        path = path.replace('ftp://' + self.username + ':' + self.password + '@' + self.address +"/",'')
+        #path = path.replace('ftp://' + self.username + ':' + self.password + '@' + self.address +"/",'')
+        path = path.replace('ftp://' + self.username + ':' + self.password + '@' + self.address ,'')
         path = path.replace(' ', '_')
         return path
 
@@ -291,6 +296,21 @@ class FTPClient(StorageClient):
     # -----------------------------------
 
     def create_dir(self,env_dir, write_to_output=True):
+        dir_name = self._remove_header(env_dir)
+        self.ftp.mkd(dir_name)
 
-        ''''Create dir'''
+    # -----------------------------------
+    # -----------------------------------
+    def rename_file(self, file_path, new_name):
+        file_path = self._remove_header(file_path)
+        new_name = self._remove_header(new_name)
+        #self.ftp.rename(from_name,new_name)
+        file_idx=file_path.rfind('/')
+        destination_dir = file_path[:(file_idx-len(file_path))]
+        destination_dir = self._remove_header(destination_dir)
 
+        pwd = self.ftp.pwd()
+        if pwd != destination_dir:
+            self.ftp.cwd(destination_dir)
+        from_name = file_path[file_idx+1:]
+        self.ftp.rename(from_name, new_name)

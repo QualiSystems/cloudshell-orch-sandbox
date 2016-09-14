@@ -54,7 +54,7 @@ class NetworkingSaveRestore(object):
         """
 
         root_path = ''
-        if config_stage.lower() == 'gold' or config_stage.lower() == 'snapshot':
+        if config_stage.lower() == 'gold' or config_stage.lower() == 'snapshots':
             root_path = self.config_files_root + '/' + config_stage + '/' + self.sandbox.Blueprint_name.strip() + '/'
         elif config_stage.lower() == 'base':
             root_path = self.config_files_root + '/' + config_stage + '/'
@@ -204,34 +204,29 @@ class NetworkingSaveRestore(object):
         :param bool write_to_output: Optional. should messages be sent to the command output.
         """
 
-        env_dir = self.config_files_root + '/Snapshots/' + snapshot_name
-        self.storage_client.create_dir(config_type,env_dir, ignore_models=None, write_to_output=True)
-
-
+        env_dir = self.config_files_root + '/Snapshots/' + snapshot_name.strip()
+        if not self.storage_client.dir_exist(env_dir):
+            self.storage_client.create_dir(env_dir, write_to_output=True)
 
         '''Call To Save command in resource'''
-        config_path =  env_dir.replace('\\','/')
-
         root_resources = self.sandbox.get_root_resources()
         for resource in root_resources:
-            save_config_from_device = True
-            if ignore_models:
-                for ignore_model in ignore_models:
-                    if resource.model.lower() == ignore_model.lower():
-                        save_config_from_device = False
-                        break
-            if save_config_from_device:
+            save_config_for_device = self._is_load_config_to_device(resource, ignore_models=ignore_models)
+            if save_config_for_device:
                 try:
                     self.sandbox.report_info(
-                        'Saving configuration for device: ' + resource.name + ' to: ' + config_path, write_to_output)
-                    resource.save_network_config(self.sandbox.id, config_path, config_type)
-
+                        'Saving configuration for device: ' + resource.name + ' to: ' + env_dir, write_to_output)
+                    file_name = resource.save_network_config(self.sandbox.id, env_dir, config_type)
+                    #rename file on the storage server
+                    file_path = env_dir + '/' + file_name
+                    to_name = resource.alias + '_' + resource.model + '.cfg'
+                    self.storage_client.rename_file(file_path, to_name)
                 except QualiError as qe:
                     err = "Failed to save configuration for device " + resource.name + ". " + str(qe)
                     self.sandbox.report_error(err, write_to_output_window=write_to_output)
-                except:
+                except Exception as e:
                     err = "Failed to save configuration for device " + resource.name + \
-                          ". Unexpected error: " + str(sys.exc_info()[0])
+                          ". Unexpected error: " + str(e)
                     self.sandbox.report_error(err, write_to_output_window=write_to_output)
 
 
