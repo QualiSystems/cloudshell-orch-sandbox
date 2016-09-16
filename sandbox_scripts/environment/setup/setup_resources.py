@@ -26,7 +26,7 @@ class EnvironmentSetupResources(object):
                 config_set_name = os.environ['Set Name']
             except:
                 pass
-            ignore_models=['Generic TFTP server', 'Config Set Pool','Generic FTP server']
+            ignore_models=['Generic TFTP server', 'Config Set Pool','Generic FTP server','netscout switch 3912']
             if saveNRestoreTool.is_snapshot():
                 saveNRestoreTool.load_config(config_stage='Snapshots', config_type='Running',
                                              ignore_models=ignore_models)

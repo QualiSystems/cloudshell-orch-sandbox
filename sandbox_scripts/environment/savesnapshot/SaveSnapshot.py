@@ -18,17 +18,23 @@ class EnvironmentSaveSnapshot:
         sandbox.clear_all_resources_live_status()
         try:
             snapshot_name = os.environ['name']
-            sandbox.save_sandbox_as_blueprint(snapshot_name)
+            sandbox.save_sandbox_as_blueprint(snapshot_name,folderFullPath='Snapshots')
+            try:
+                # replace spaces with _ in the snapshot's name
+                snapshot_name = snapshot_name.replace(' ', '_')
+                ignore_models=['Generic TFTP server', 'Config Set Pool','Generic FTP server','netscout switch 3912']
+                saveNRestoreTool.save_config(snapshot_name=snapshot_name, config_type='running',
+                                             ignore_models=ignore_models)
+            except QualiError as qe:
+                helpers.get_api_session().DeleteTopology('Snapshots/' + snapshot_name)
+                self.logger.error("Save snapshot failed. " + str(qe))
+                raise QualiError('Save snapshot','Save snapshot has failed. For more details please refer to the log file')
 
-            # replace spaces with _ in the snapshot's name
-            snapshot_name = snapshot_name.replace(' ', '_')
-
-            saveNRestoreTool.save_config(snapshot_name=snapshot_name, config_type='running',
-                                         ignore_models=['Generic TFTP server'])
 
         except QualiError as qe:
             self.logger.error("Save snapshot failed. " + str(qe))
+            raise QualiError('Save snapshot','Save snapshot has failed. For more details please refer to the log file')
 
-        except:
-            self.logger.error("Save snapshot. Unexpected error:" + str(sys.exc_info()))
-
+        except Exception as e:
+            self.logger.error("Save snapshot. Unexpected error:" + str(e))
+            raise QualiError('Save snapshot','Save snapshot has failed. For more details please refer to the log file')
