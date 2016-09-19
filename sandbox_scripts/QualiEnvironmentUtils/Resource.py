@@ -142,15 +142,30 @@ class ResourceBase(object):
 
             if self.attribute_exist('VRF Management Name'):
                 vrf_name = self.get_attribute('VRF Management Name')
-                command_inputs.append(InputNameValue('vrf_management_name', str(vrf_name)))
+                if vrf_name !='':
+                    command_inputs.append(InputNameValue('vrf_management_name', str(vrf_name)))
 
             self.execute_command(reservation_id, 'Restore',
                                  commandInputs=command_inputs,
                                  printOutput=True)
-        except QualiError as qerror:
-            raise QualiError(self.name, "Failed to load configuration: " + qerror.message)
         except:
-            raise QualiError(self.name, "Failed to load configuration. Unexpected error:" + str(sys.exc_info()[0]))
+            try:
+                command_inputs = [InputNameValue('path', str(config_path)),
+                                    InputNameValue('restore_method', str(restore_method)),
+                                    InputNameValue('config_type', str(config_type))]
+
+                if self.attribute_exist('VRF Management Name'):
+                    vrf_name = self.get_attribute('VRF Management Name')
+                    if vrf_name !='':
+                        command_inputs.append(InputNameValue('vrf', str(vrf_name)))
+
+                self.execute_command(reservation_id, 'restore',
+                                     commandInputs=command_inputs,
+                                     printOutput=True)
+            except QualiError as qerror:
+                raise QualiError(self.name, "Failed to load configuration: " + qerror.message)
+            except:
+                raise QualiError(self.name, "Failed to load configuration. Unexpected error:" + str(sys.exc_info()[0]))
 
     # -----------------------------------------
     # -----------------------------------------
@@ -168,7 +183,8 @@ class ResourceBase(object):
 
             if self.attribute_exist('VRF Management Name'):
                 vrf_name = self.get_attribute('VRF Management Name')
-                command_inputs.append(InputNameValue('vrf', str(vrf_name)))
+                if vrf_name !='':
+                    command_inputs.append(InputNameValue('vrf', str(vrf_name)))
 
             config_name = self.execute_command(reservation_id, 'Save',
                                                commandInputs=command_inputs,
@@ -176,11 +192,28 @@ class ResourceBase(object):
 
             #TODO check the output is the created file name
             return config_name
-
-        except QualiError as qerror:
-            raise QualiError(self.name, "Failed to save configuration: " + qerror.message)
         except:
-            raise QualiError(self.name, "Failed to save configuration. Unexpected error:" + str(sys.exc_info()[0]))
+            try:
+                command_inputs = [InputNameValue('source_filename', str(config_type)),
+                                    InputNameValue('destination_host', str(config_path))]
+
+                if self.attribute_exist('VRF Management Name'):
+                    vrf_name = self.get_attribute('VRF Management Name')
+                    if vrf_name !='':
+                        command_inputs.append(InputNameValue('vrf', str(vrf_name)))
+
+                config_name = self.execute_command(reservation_id, 'save',
+                                                   commandInputs=command_inputs,
+                                                   printOutput=True).Output
+
+                #TODO check the output is the created file name
+                config_name = config_name.rstrip(',')
+                return config_name
+
+            except QualiError as qerror:
+                raise QualiError(self.name, "Failed to save configuration: " + qerror.message)
+            except:
+                raise QualiError(self.name, "Failed to save configuration. Unexpected error:" + str(sys.exc_info()[0]))
 
     # -----------------------------------------
     # -----------------------------------------

@@ -225,12 +225,15 @@ class FTPClient(StorageClient):
     # ----------------------------------
     def __init__(self, sandbox, storage_resource):
         super(FTPClient,self).__init__(sandbox, storage_resource)
-        self.username = storage_resource.get_attribute("Storage username")
-        self.password = storage_resource.get_attribute("Storage password")
-        #self.ftp = ftplib.FTP(self.address, self.username, self.password)
-        self.ftp = ftplib.FTP()
-        self.ftp.connect(self.address,self.port)
-        self.ftp.login(self.username,self.password)
+        try:
+            self.username = storage_resource.get_attribute("Storage username")
+            self.password = storage_resource.get_attribute("Storage password")
+            #self.ftp = ftplib.FTP(self.address, self.username, self.password)
+            self.ftp = ftplib.FTP()
+            self.ftp.connect(self.address,self.port)
+            self.ftp.login(self.username,self.password)
+        except Exception as e:
+            self.sandbox.report_error("Failed to connect to the FTP server . Error is: " + str(e), raise_error=True)
 
     # ----------------------------------
     # ----------------------------------
@@ -252,8 +255,12 @@ class FTPClient(StorageClient):
         :param str source:  The path to the file on the ftp server
         :param str destination:  destination file name
         """
-        source = self._remove_header(source)
-        self.ftp.retrbinary("RETR " + source ,open(destination, 'wb').write)
+        try:
+            source = self._remove_header(source)
+            self.ftp.retrbinary("RETR " + source ,open(destination, 'wb').write)
+        except Exception as e:
+            self.sandbox.report_error("Failed to download file " + source + " to " + destination +
+                                      " from  the FTP server. Error is: " + str(e), raise_error=True)
 
 
     # ----------------------------------
@@ -264,14 +271,18 @@ class FTPClient(StorageClient):
         :param str source:  The path to the file on the ftp server
         :param str destination:  destination file name
         """
-        file_idx=destination.rfind('/')
-        destination_dir = destination[:(file_idx-len(destination))]
-        destination_dir = self._remove_header(destination_dir)
-        self.ftp.cwd(destination_dir)
-        destination_file =destination[file_idx+1:]
-        myfile = open(source, 'r')
-        self.ftp.storlines('STOR ' + destination_file, myfile)
-        myfile.close()
+        try:
+            file_idx=destination.rfind('/')
+            destination_dir = destination[:(file_idx-len(destination))]
+            destination_dir = self._remove_header(destination_dir)
+            self.ftp.cwd(destination_dir)
+            destination_file =destination[file_idx+1:]
+            myfile = open(source, 'r')
+            self.ftp.storlines('STOR ' + destination_file, myfile)
+            myfile.close()
+        except Exception as e:
+            self.sandbox.report_error("Failed to upload file " + myfile + " to " + destination_file +
+                                      " on  the FTP server. Error is: " + str(e), raise_error=True)
 
 
     # ----------------------------------
@@ -296,21 +307,28 @@ class FTPClient(StorageClient):
     # -----------------------------------
 
     def create_dir(self,env_dir, write_to_output=True):
-        dir_name = self._remove_header(env_dir)
-        self.ftp.mkd(dir_name)
-
+        try:
+            dir_name = self._remove_header(env_dir)
+            self.ftp.mkd(dir_name)
+        except Exception as e:
+            self.sandbox.report_error("Failed to create dir " + dir_name +
+                                      " on  the FTP server. Error is: " + str(e), write_to_output_window=False, raise_error=True)
     # -----------------------------------
     # -----------------------------------
     def rename_file(self, file_path, new_name):
-        file_path = self._remove_header(file_path)
-        new_name = self._remove_header(new_name)
-        #self.ftp.rename(from_name,new_name)
-        file_idx=file_path.rfind('/')
-        destination_dir = file_path[:(file_idx-len(file_path))]
-        destination_dir = self._remove_header(destination_dir)
+        try:
+            file_path = self._remove_header(file_path)
+            new_name = self._remove_header(new_name)
+            #self.ftp.rename(from_name,new_name)
+            file_idx=file_path.rfind('/')
+            destination_dir = file_path[:(file_idx-len(file_path))]
+            destination_dir = self._remove_header(destination_dir)
 
-        pwd = self.ftp.pwd()
-        if pwd != destination_dir:
-            self.ftp.cwd(destination_dir)
-        from_name = file_path[file_idx+1:]
-        self.ftp.rename(from_name, new_name)
+            pwd = self.ftp.pwd()
+            if pwd != destination_dir:
+                self.ftp.cwd(destination_dir)
+            from_name = file_path[file_idx+1:]
+            self.ftp.rename(from_name, new_name)
+        except Exception as e:
+            self.sandbox.report_error("Failed to rename file " + from_name + " to " + new_name +
+                                      ". Error is: " + str(e), write_to_output_window=False, raise_error=True)

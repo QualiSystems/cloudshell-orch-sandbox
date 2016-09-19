@@ -204,10 +204,13 @@ class NetworkingSaveRestore(object):
         :param bool write_to_output: Optional. should messages be sent to the command output.
         """
 
-        env_dir = self.config_files_root + '/Snapshots/' + snapshot_name.strip()
-        if not self.storage_client.dir_exist(env_dir):
-            self.storage_client.create_dir(env_dir, write_to_output=True)
-
+        try:
+            env_dir = self.config_files_root + '/Snapshots/' + snapshot_name.strip()
+            if not self.storage_client.dir_exist(env_dir):
+                self.storage_client.create_dir(env_dir, write_to_output=True)
+        except QualiError as e:
+            self.sandbox.report_error("Save snapshot failed. " + str(e),
+                                      write_to_output_window=write_to_output,raise_error=True)
         '''Call To Save command in resource'''
         root_resources = self.sandbox.get_root_resources()
         for resource in root_resources:
@@ -221,13 +224,16 @@ class NetworkingSaveRestore(object):
                     file_path = env_dir + '/' + file_name
                     to_name = resource.alias + '_' + resource.model + '.cfg'
                     self.storage_client.rename_file(file_path, to_name)
+                    self.sandbox.api_session.SetResourceLiveStatus(resource.name, 'Online')
                 except QualiError as qe:
                     err = "Failed to save configuration for device " + resource.name + ". " + str(qe)
-                    self.sandbox.report_error(err, write_to_output_window=write_to_output)
+                    self.sandbox.report_error(err, write_to_output_window=write_to_output, raise_error=False)
+                    self.sandbox.api_session.SetResourceLiveStatus(resource.name, 'Error')
                 except Exception as e:
                     err = "Failed to save configuration for device " + resource.name + \
                           ". Unexpected error: " + str(e)
-                    self.sandbox.report_error(err, write_to_output_window=write_to_output)
+                    self.sandbox.report_error(err, write_to_output_window=write_to_output,raise_error=False)
+                    self.sandbox.api_session.SetResourceLiveStatus(resource.name, 'Error')
 
 
 

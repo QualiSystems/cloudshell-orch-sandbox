@@ -232,30 +232,25 @@ class SandboxBase(object):
 
     # -----------------------------------------
     # -----------------------------------------
-    def save_sandbox_as_blueprint(self, blueprint_name, write_to_output=True):
-        snapshot_exist = True
-
+    def save_sandbox_as_blueprint(self, blueprint_name, write_to_output=True, folderFullPath=''):
         try:
-            full_path = None
-            tp = self.api_session.GetActiveTopologyNames()
-
-            for value in tp.Topologies:
-                filename = basename(value)
-                if filename == blueprint_name:
-                    full_path = value
-                    break
-
-            if full_path is None:
-                snapshot_exist = False
-
-        except CloudShellAPIError as error:
-            err = "Failed to save sandbox as blueprint. " + error.message
-            self.report_error(error_message=err, write_to_output_window=write_to_output)
+            snapshot_exist = True
+            details = self.api_session.GetTopologyDetails(blueprint_name)
+        except CloudShellAPIError:
+            snapshot_exist = False
         if snapshot_exist:
             err = "Blueprint " + blueprint_name + " already exist. Please select a different name."
             self.report_error(error_message=err, write_to_output_window=write_to_output)
-        # save the current Sandbox as a new Blueprint with the given snapshot name
-        self.api_session.SaveReservationAsTopology(self.id, topologyName=blueprint_name, includeInactiveRoutes=True)
+        else:
+            # save the current Sandbox as a new Blueprint with the given snapshot name
+            if folderFullPath !='':
+                #create a folder with the given name
+                try:
+                    self.api_session.GetFolderContent(fullPath=folderFullPath)
+                except:
+                    self.api_session.CreateFolder(folderFullPath)
+            self.api_session.SaveReservationAsTopology(self.id, topologyName=blueprint_name,
+                                                       folderFullPath=folderFullPath, includeInactiveRoutes=True)
 
     # -----------------------------------------
     # check if this resource originated from an abstract resource
