@@ -6,6 +6,9 @@ from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import *
 from QualiUtils import *
 
+import datetime
+import json
+
 
 class ResourceBase(object):
     def __init__(self, resource_name, resource_alias=''):
@@ -15,6 +18,9 @@ class ResourceBase(object):
             self.name = self.details.Name
             self.address = self.details.Address
             self.commands = self.api_session.GetResourceCommands(resource_name).Commands
+
+            self.connected_commands = self.api_session.GetResourceConnectedCommands(resource_name).Commands
+
             self.attributes = self.details.ResourceAttributes
             # If there is an attribute named 'model' take its value (exist in shells), otherwise take the family's model
             if self.attribute_exist('Model'):
@@ -114,7 +120,7 @@ class ResourceBase(object):
                 # Return a detailed description in case of a failure
                 out = self.execute_command(reservation_id, 'health_check', printOutput=False)#.Output()
                 if out.Output.find(' passed') == -1:
-                    err = "Health check did not pass for device " + self.name + ". " + str(out)
+                    err = "Health check did not pass for device " + self.name + ". " + out
                     return err
 
             except QualiError as qe:
@@ -126,7 +132,7 @@ class ResourceBase(object):
 
     # -----------------------------------------
     # -----------------------------------------
-    def load_network_config(self, reservation_id, config_path, config_type, restore_method='Override'):
+    def load_config(self, reservation_id,config_path,artifact_info = None):
         """
         Load config from a configuration file on the device
         :param str reservation_id:  Reservation id.
@@ -135,41 +141,49 @@ class ResourceBase(object):
         :param restore_method:  Optional. Restore method. Can be Append or Override.
         """
         # Run executeCommand with the restore command and its params (ConfigPath,RestoreMethod)
+
         try:
-            command_inputs = [InputNameValue('src_Path', str(config_path)),
-                                InputNameValue('restore_method', str(restore_method)),
-                                InputNameValue('config_type', str(config_type))]
+            is_snapshot = True
+            if(artifact_info == None):
+                artifact_info = self.create_artifact_info(config_path)
+                is_snapshot = False
+                json_str = json.dumps(artifact_info)
+            else:
+                json_str = artifact_info
 
-            if self.attribute_exist('VRF Management Name'):
-                vrf_name = self.get_attribute('VRF Management Name')
-                if vrf_name !='':
-                    command_inputs.append(InputNameValue('vrf_management_name', str(vrf_name)))
+            if self.is_app():
+                if is_snapshot:
 
-            self.execute_command(reservation_id, 'Restore',
-                                 commandInputs=command_inputs,
-                                 printOutput=True)
-        except:
-            try:
-                command_inputs = [InputNameValue('path', str(config_path)),
-                                    InputNameValue('restore_method', str(restore_method)),
-                                    InputNameValue('config_type', str(config_type))]
+                    for command in self.connected_commands:
+                        if 'orchestration_restore' == command.Name:
+                            tag = command.Tag
 
-                if self.attribute_exist('VRF Management Name'):
-                    vrf_name = self.get_attribute('VRF Management Name')
-                    if vrf_name !='':
-                        command_inputs.append(InputNameValue('vrf', str(vrf_name)))
+                            self.execute_connected_command(reservation_id, 'orchestration_restore',tag,
+                                commandInputs=[json_str],
+                                printOutput=True)
 
-                self.execute_command(reservation_id, 'restore',
+            else:
+
+                if self.has_command('orchestration_restore'):
+
+                    command_inputs = [InputNameValue('saved_details', json_str)]
+
+                    if self.attribute_exist('VRF Management Name'):
+                        vrf_name = self.get_attribute('VRF Management Name')
+                        command_inputs.append(InputNameValue('vrf_management_name', str(vrf_name)))
+
+                    self.execute_command(reservation_id, 'orchestration_restore',
                                      commandInputs=command_inputs,
                                      printOutput=True)
-            except QualiError as qerror:
-                raise QualiError(self.name, "Failed to load configuration: " + qerror.message)
-            except:
-                raise QualiError(self.name, "Failed to load configuration. Unexpected error:" + str(sys.exc_info()[0]))
+
+        except QualiError as qerror:
+            raise QualiError(self.name, "Failed to load configuration: " + qerror.message)
+        except:
+            raise QualiError(self.name, "Failed to load configuration. Unexpected error:" + str(sys.exc_info()[0]))
 
     # -----------------------------------------
     # -----------------------------------------
-    def save_network_config(self, reservation_id, config_path, config_type):
+    def save_config(self, reservation_id, config_path, config_type):
         """
         Save config from the device
         :param str reservation_id:  Reservation id.
@@ -178,42 +192,46 @@ class ResourceBase(object):
         """
         # Run executeCommand with the restore command and its params (ConfigPath,RestoreMethod)
         try:
-            command_inputs = [InputNameValue('source_filename', str(config_type)),
-                                InputNameValue('destination_host', str(config_path))]
 
-            if self.attribute_exist('VRF Management Name'):
-                vrf_name = self.get_attribute('VRF Management Name')
-                if vrf_name !='':
-                    command_inputs.append(InputNameValue('vrf', str(vrf_name)))
+            data = {
+                'folder_path': str(config_path)
+            }
+            json_str = json.dumps(data)
+            config_name = None
 
-            config_name = self.execute_command(reservation_id, 'Save',
-                                               commandInputs=command_inputs,
-                                               printOutput=True).Output
+            if self.is_app():
 
-            #TODO check the output is the created file name
-            return config_name
+                for command in self.connected_commands:
+                    if 'orchestration_save' == command.Name:
+                        tag = command.Tag
+
+                        config_name = self.execute_connected_command(reservation_id, 'orchestration_save',tag,
+                                               commandInputs=['shallow',''],
+                                               printOutput=False)
+
+
+
+            else:
+                if self.has_command('orchestration_save'):
+
+                    config_name = self.execute_command(reservation_id, 'orchestration_save',
+                                               commandInputs=[InputNameValue('custom_params',json_str),
+                                                              InputNameValue('mode','shallow')],
+                                               printOutput=False)
+
+
+
+            if config_name:
+                return config_name.Output
+            else:
+                return ""
+
+            # check the output is the created file name
+
+        except QualiError as qerror:
+            raise QualiError(self.name, "Failed to save configuration: " + qerror.message)
         except:
-            try:
-                command_inputs = [InputNameValue('source_filename', str(config_type)),
-                                    InputNameValue('destination_host', str(config_path))]
-
-                if self.attribute_exist('VRF Management Name'):
-                    vrf_name = self.get_attribute('VRF Management Name')
-                    if vrf_name !='':
-                        command_inputs.append(InputNameValue('vrf', str(vrf_name)))
-
-                config_name = self.execute_command(reservation_id, 'save',
-                                                   commandInputs=command_inputs,
-                                                   printOutput=True).Output
-
-                #TODO check the output is the created file name
-                config_name = config_name.rstrip(',')
-                return config_name
-
-            except QualiError as qerror:
-                raise QualiError(self.name, "Failed to save configuration: " + qerror.message)
-            except:
-                raise QualiError(self.name, "Failed to save configuration. Unexpected error:" + str(sys.exc_info()[0]))
+            raise QualiError(self.name, "Failed to save configuration. Unexpected error:" + str(sys.exc_info()[0]))
 
     # -----------------------------------------
     # -----------------------------------------
@@ -239,6 +257,32 @@ class ResourceBase(object):
                 raise QualiError(self.name, error.message)
         else:
             raise QualiError(self.name, 'No commands were found')
+
+    # -----------------------------------------
+    # -----------------------------------------
+    # noinspection PyPep8Naming,PyDefaultArgument
+    def execute_connected_command(self, reservation_id, commandName,tag,commandInputs=[], printOutput=False):
+        """
+        Executes a command
+        :param str reservation_id:  Reservation id.
+        :param str commandName:  Command Name - Specify the name of the command.
+        :param list[InputNameValue] commandInputs:  Command Inputs - Specify a matrix of input names and values
+        required for executing the command.
+        :param bool printOutput:  Print Output - Defines whether to print the command output
+         in the Sandbox command output window.
+        :rtype: CommandExecutionCompletedResultInfo
+        """
+        # check the command exists on the device
+        if self.connected_commands.__sizeof__() > 0:
+            # Run executeCommand with the restore command and its params (ConfigPath,RestoreMethod)
+            try:
+               return self.api_session.ExecuteResourceConnectedCommand(reservation_id,self.name,commandName=commandName,commandTag=tag,parameterValues = commandInputs)
+
+            except CloudShellAPIError as error:
+                raise QualiError(self.name, error.message)
+        else:
+            raise QualiError(self.name, 'No commands were found')
+
 
     # -----------------------------------------
     # -----------------------------------------
@@ -277,3 +321,45 @@ class ResourceBase(object):
     # -----------------------------------------
     def get_live_status(self):
         self.api_session.GetResourceLiveStatus(self.name)
+
+    # -----------------------------------------
+    # -----------------------------------------
+    def print_commands (self):
+
+        print "Resource commands:" + self.commands
+	# -----------------------------------------
+    # -----------------------------------------
+
+    def create_artifact_info(self,config_path):
+
+        created_date = str(datetime.datetime.utcnow())
+
+        saved_artifacts_info = {
+            "saved_artifacts_info": {
+                "saved_artifact": {
+                    "artifact_type": "tftp",
+                    "identifier": config_path
+                },
+                "resource_name": self.name,
+                "restore_rules": {
+                    "requires_same_resource": True,
+                },
+                "created_date": created_date
+            }
+        }
+
+        return saved_artifacts_info
+
+    # -----------------------------------------
+    # -----------------------------------------
+    def is_app(self):
+
+        if hasattr(self.details.VmDetails, "UID"):
+            return True
+        else:
+            return False
+
+
+
+
+

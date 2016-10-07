@@ -5,6 +5,9 @@ from abc import abstractmethod
 import tftpy
 import ftplib
 import subprocess
+import json
+import tempfile
+
 
 class StorageManager(object):
     def __init__(self, sandbox, storage_resource):
@@ -56,7 +59,6 @@ class StorageClient(object):
     def _remove_header(self, path):
         raise NotImplementedError('subclasses must override _remove_header()!')
 
-
     @abstractmethod
     def create_dir(self,env_dir, write_to_output=True):
         raise NotImplementedError('subclasses must override create_dir()!')
@@ -82,7 +84,8 @@ class TFTPClient(StorageClient):
     # ----------------------------------
     def get_configs_root(self):
         if self.configs_root != "":
-            return 'tftp://' + self.address + "/" + self.configs_root
+            path = 'tftp://' + self.address + "/" + self.configs_root
+            return path
 
     # ----------------------------------
     # ----------------------------------
@@ -112,11 +115,13 @@ class TFTPClient(StorageClient):
 
 
         try:
+
             dir_name = self._remove_header(dir_name)
 
-            new_config_path = self.tftp_root_dir +'\\'+ dir_name
+            head,tail = os.path.split(dir_name)
+
+            new_config_path = self.tftp_root_dir +'\\'+ head
             new_config_path = new_config_path.replace('/', "\\")
-            #new_config_path = self.tftp_root_dir + "\\" + win_path + "\Snapshots\\"
 
             command_array = ['cmd', '/c', 'dir', new_config_path]
             interactive = True
@@ -134,34 +139,27 @@ class TFTPClient(StorageClient):
                      user,
                      '-p',
                      password,
-                     '-h'
-                 ] + (['-i', '0'] if interactive else []) + command_array
+                     '-h',
+                 ] + command_array
 
             rv = subprocess.check_output(ia, stderr=subprocess.STDOUT)
-            print ' psexec result: ' + str(rv).replace('\r\n', '\n')
+            #print ' psexec result for dir: ' + str(rv).replace('\r\n', '\n')
 
             list = str(rv).split()
-            matching = [s for s in list if self.sandbox.Blueprint_name in s]
+            #print list
+            matching = [s for s in list if tail in s]
+
             for word in matching:
-                if word == self.sandbox.Blueprint_name:
-                    return True
+
+                if word == tail:
+                   return True
 
             return False
 
-        except Exception as e:
-            if hasattr(e, 'output'):
-                print 'psexec failed: ' + str(e).replace('\r\n', '\n')
-                return False
+        except:
+            return False
 
-            else:
-                ou = 'no output'
-                err = 'psexec failed: ' + str(e).replace('\r\n', '\n') + ': ' + ou.replace('\r\n', '\n')
-                self.sandbox.report_error(err, write_to_output_window=True)
-
-
-
-
-                #return os.path.isdir(dir_name)
+               #return os.path.isdir(dir_name)
 
     # ----------------------------------
     # ----------------------------------
@@ -172,17 +170,15 @@ class TFTPClient(StorageClient):
 
     # ----------------------------------
     # ----------------------------------
-    def create_dir(self,env_dir, write_to_output=True):
+    def create_dir(self,env_dir,write_to_output=True):
 
         """
         Create new directory on the tftp
         :param env_dir:  The path directory to create
 
         """
-        '''Create directory'''
         try:
             win_path = self._remove_header(env_dir)
-            #win_path=self.tftp_server_destination_path.replace('/',"\\")
             new_config_path = self.tftp_root_dir+'\\'+ win_path
             new_config_path = new_config_path.replace('/',"\\")
 
@@ -206,10 +202,11 @@ class TFTPClient(StorageClient):
                      '-h'
                  ] + (['-i', '0'] if interactive else []) + command_array
 
-
-            self.sandbox.report_info('Creating new folder: ' +  new_config_path, write_to_output)
+        #   self.sandbox.report_info('Creating new folder: ' +  new_config_path, write_to_output)
             rv = subprocess.check_output(ia, stderr=subprocess.STDOUT)
-            print ' psexec result: ' + str(rv).replace('\r\n', '\n')
+            #print ' psexec result for mkdir: ' + str(rv).replace('\r\n', '\n')
+
+            self.create_src_file_on_tftp(env_dir,write_to_output)
 
         except Exception as e:
             if hasattr(e, 'output'):
@@ -218,6 +215,92 @@ class TFTPClient(StorageClient):
                 ou = 'no output'
                 err = 'psexec failed: ' + str(e).replace('\r\n', '\n') + ': ' + ou.replace('\r\n', '\n')
                 self.sandbox.report_error(err, write_to_output_window=write_to_output)
+
+    # ----------------------------------
+    # ----------------------------------
+    def create_src_file_on_tftp(self,win_path,write_to_output=True):
+        #creating new file
+
+        #src
+        tmp_file = "C:\\tmp.txt"
+
+        #destination
+        snapshot_resource_name = "Snapshot_"+self.sandbox.id
+        head,tail = os.path.split(win_path)
+        path = head + '/' + snapshot_resource_name +".txt"
+        path = self.convert_path_to_storage(path)
+
+        try:
+            with open(tmp_file, 'w+') as outfile:
+                outfile.write("1")
+
+            self.upload(path,tmp_file)
+            os.remove(tmp_file)
+
+
+        except Exception as e:
+            if hasattr(e, 'output'):
+                ou = str(e.output)
+            else:
+                err = 'create Src file failed '
+                self.sandbox.report_error(err, write_to_output_window=write_to_output)
+
+    # ----------------------------------
+    # ----------------------------------
+    def save_artifact_info(self,saved_artifact_info,env_dir,dest_name,write_to_output=True):
+
+        tmpfile = 'data.json'
+
+        win_path = self._remove_header(env_dir)
+
+        new_config_path = win_path + '/' + dest_name
+        new_config_path = self.convert_path_to_storage(new_config_path)
+
+        try:
+            with open(tmpfile, 'w+') as outfile:
+                json.dump(saved_artifact_info, outfile)
+
+            self.upload(new_config_path,tmpfile)
+
+            os.remove(tmpfile)
+        except:
+            err = 'saved artifact info failed '
+            self.sandbox.report_error(err, write_to_output_window=write_to_output)
+
+    # ----------------------------------
+    # ----------------------------------
+    def download_artifact_info(self,env_dir,dest_name,write_to_output=True):
+
+        tmpfile = 'data.json'
+
+        win_path = self._remove_header(env_dir)
+        head, tail = os.path.split(win_path)
+
+        new_config_path = head + '/' + dest_name
+        new_config_path = self.convert_path_to_storage(new_config_path)
+
+        try:
+            # Reading data back
+            with open(tmpfile, 'w+') as outfile:
+                self.download(new_config_path,tmpfile)
+                data = json.load(outfile)
+
+            os.remove(tmpfile)
+            return data
+
+        except QualiError as qe:
+            err = "Failed to download artifact configuration for device" + str(qe)
+            return None
+        except:
+            err = 'download artifact info failed '
+           # self.sandbox.report_error(err, write_to_output_window=write_to_output)
+            return None
+
+    # ----------------------------------
+    # ----------------------------------
+    def convert_path_to_storage(self,path):
+        path = path.replace("\\","/")
+        return path
 
 
 class FTPClient(StorageClient):
@@ -237,7 +320,7 @@ class FTPClient(StorageClient):
 
     # ----------------------------------
     # ----------------------------------
-    def __del__(self):
+    def __exit__(self, exc_type, exc_value, traceback):
         self.ftp.quit()
 
     # ----------------------------------
