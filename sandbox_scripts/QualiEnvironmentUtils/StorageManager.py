@@ -1,4 +1,6 @@
 # coding=utf-8
+import paramiko
+
 from sandbox_scripts.QualiEnvironmentUtils.Sandbox import *
 from abc import ABCMeta
 from abc import abstractmethod
@@ -21,6 +23,8 @@ class StorageManager(object):
             return TFTPClient(self.sandbox,self.storage_resource)
         elif self.storage_resource.model.lower() == 'generic ftp server':
             return FTPClient(self.sandbox,self.storage_resource)
+        elif self.storage_resource.model.lower() == 'generic sftp server':
+            return SFTPClient(self.sandbox,self.storage_resource)
 
 
 class StorageClient(object):
@@ -332,3 +336,78 @@ class FTPClient(StorageClient):
         except Exception as e:
             self.sandbox.report_error("Failed to rename file " + from_name + " to " + new_name +
                                       ". Error is: " + str(e), write_to_output_window=False, raise_error=True)
+
+
+class SFTPClient(StorageClient):
+    def __init__(self, sandbox, storage_resource):
+        super(SFTPClient, self).__init__(sandbox, storage_resource)
+        self.username = storage_resource.get_attribute("Storage username")
+        self.password = storage_resource.get_attribute("Storage password")
+
+    def _remove_header(self, path):
+        path = path.replace('sftp://' + self.address + "/", '')
+        path = path.replace(' ', '_')
+        return path
+
+    def download(self, source, destination):
+        transport = paramiko.Transport((self.address, self.port))
+        transport.connect(username=self.username, password=self.password)
+        sftp = paramiko.SFTPClient.from_transport(transport)
+        sftp.get(source, destination)
+        sftp.close()
+        transport.close()
+
+    def create_dir(self, env_dir, write_to_output=True):
+        transport = paramiko.Transport((self.address, self.port))
+        transport.connect(username=self.username, password=self.password)
+        sftp = paramiko.SFTPClient.from_transport(transport)
+        sftp.mkdir(env_dir)
+        sftp.close()
+        transport.close()
+
+    def rename_file(self, file_path, new_name):
+        transport = paramiko.Transport((self.address, self.port))
+        transport.connect(username=self.username, password=self.password)
+        sftp = paramiko.SFTPClient.from_transport(transport)
+        sftp.rename(file_path, new_name)
+        sftp.close()
+        transport.close()
+
+    def get_configs_root(self):
+        if self.configs_root:
+            return 'sftp://' + self.username + ':' + self.password + '@' + self.address + "/" + self.configs_root
+
+    def dir_exist(self, dir_name):
+        transport = paramiko.Transport((self.address, self.port))
+        transport.connect(username=self.username, password=self.password)
+        sftp = paramiko.SFTPClient.from_transport(transport)
+        try:
+            sftp.lstat(dir_name)
+            rv = True
+        except:
+            rv = False
+        sftp.close()
+        transport.close()
+        return rv
+
+    def upload(self, destination, source):
+        transport = paramiko.Transport((self.address, self.port))
+        transport.connect(username=self.username, password=self.password)
+        sftp = paramiko.SFTPClient.from_transport(transport)
+        sftp.put(source, destination)
+        sftp.close()
+        transport.close()
+
+    # a = SFTPClient(None, None)
+    # print a.dir_exist('a')
+    # print a.dir_exist('b')
+    # print a.dir_exist('c')
+    # a.upload('/tmp/vmdet2.txt', r'c:\temp\vmdet.txt')
+    # a.download('/tmp/vmdet2.txt', r'c:\temp\vmdet4.txt')
+    # a.rename_file('b2', 'b')
+    # a.create_dir('d')
+    # self.address = '192.168.41.66'
+    # self.port = 22
+    # self.username = 'quali'
+    # self.password = 'quali1234'
+
