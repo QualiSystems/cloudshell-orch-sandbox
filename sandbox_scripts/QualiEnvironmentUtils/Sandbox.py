@@ -4,6 +4,7 @@ from cloudshell.core.logger.qs_logger import *
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from os.path import *
 
+
 SEVERITY_INFO = 20
 SEVERITY_ERROR = 40
 
@@ -32,8 +33,6 @@ class SandboxBase(object):
 
             if full_path:
                 self.blueprint_details = self.api_session.GetTopologyDetails(full_path)
-
-            print("## SandboxBase 5")
 
         except:
             err = "Failed to initialize the Sandbox. Unexpected error:" + \
@@ -193,8 +192,8 @@ class SandboxBase(object):
                         bi_endpoints.append(route_endpoint.Target)
                         bi_endpoints.append(route_endpoint.Source)
                     elif route_endpoint.RouteType == 'uni':
-                        uni_endpoints.append(route_endpoint.Target)
                         uni_endpoints.append(route_endpoint.Source)
+                        uni_endpoints.append(route_endpoint.Target)
 
             if not bi_endpoints and not uni_endpoints:
                 self.report_info(message="No routes to connect for reservation {0}".format(self.id))

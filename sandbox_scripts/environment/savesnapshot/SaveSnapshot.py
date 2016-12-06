@@ -17,7 +17,7 @@ class EnvironmentSaveSnapshot:
         saveNRestoreTool = NetworkingSaveRestore(sandbox)
         sandbox.clear_all_resources_live_status()
         try:
-            snapshot_name = os.environ['name']
+            snapshot_name =  sandbox.Blueprint_name+ os.environ['name']
             sandbox.save_sandbox_as_blueprint(snapshot_name,folderFullPath='Snapshots')
             try:
                 # replace spaces with _ in the snapshot's name
@@ -29,7 +29,6 @@ class EnvironmentSaveSnapshot:
                 helpers.get_api_session().DeleteTopology('Snapshots/' + snapshot_name)
                 self.logger.error("Save snapshot failed. " + str(qe))
                 raise QualiError('Save snapshot','Save snapshot has failed. For more details please refer to the log file')
-
 
         except QualiError as qe:
             self.logger.error("Save snapshot failed. " + str(qe))

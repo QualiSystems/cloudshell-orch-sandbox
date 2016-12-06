@@ -1,6 +1,7 @@
 # coding=utf-8
 import csv
 import tempfile
+import json
 import subprocess
 
 
@@ -21,7 +22,8 @@ class NetworkingSaveRestore(object):
             self.storage_client = StorageManager(sandbox,storage_server_resource).get_client()
             self.config_files_root = self.storage_client.get_configs_root()
         else:
-            self.sandbox.report_error("Failed to find a storage server resource (e.g. tftp) in the sandbox. ", raise_error=True,
+            if self.is_resources_in_reservation_to_restore():
+                self.sandbox.report_error("Failed to find a storage server resource (e.g. tftp) in the sandbox. ", raise_error=True,
                                       write_to_output_window=False)
 
     # ----------------------------------
@@ -53,6 +55,7 @@ class NetworkingSaveRestore(object):
         :param bool write_to_output: Optional. should messages be sent to the command output.
         """
 
+        self.sandbox.report_info('Loading firmware for devices', write_to_output)
         root_path = ''
         if config_stage.lower() == 'gold' or config_stage.lower() == 'snapshots':
             root_path = self.config_files_root + '/' + config_stage + '/' + self.sandbox.Blueprint_name.strip() + '/'
@@ -63,8 +66,8 @@ class NetworkingSaveRestore(object):
 
         root_path = root_path.replace(' ', '_')
 
+        saved_artifact_info = None
 
-        #root_path = root_path + 'configs/'
         images_path_dict = self._get_images_path_dict(root_path,write_to_output=True)
 
         root_resources = self.sandbox.get_root_resources()
@@ -82,15 +85,12 @@ class NetworkingSaveRestore(object):
                             image_key = (resource.alias + '_' + resource.model).replace(' ', '_')
                             resource_image_path = images_path_dict[image_key]
                             if resource_image_path != '':
-                                self.sandbox.report_info(
-                                    'Loading firmware for device: ' + resource.name + ' from:' + resource_image_path, write_to_output)
                                 resource.load_firmware(self.sandbox.id,resource_image_path)
                         config_path = self._get_concrete_config_file_path(root_path, resource, write_to_output=True)
-                        self.sandbox.report_info(
-                            'Loading configuration for device: ' + resource.name + ' from:' + config_path, write_to_output)
 
-                        print " call loading in resource"
-                        resource.load_network_config(self.sandbox.id, config_path, config_type, restore_method)
+                        saved_artifact_info = self._download_saved_artifact_file(config_path,resource,config_path)
+
+                        resource.load_config(self.sandbox.id,config_path,saved_artifact_info)
                         self.sandbox.api_session.SetResourceLiveStatus(resource.name, 'Online')
                     except QualiError as qe:
                         err = "Failed to load configuration for device " + resource.name + ". " + str(qe)
@@ -156,7 +156,7 @@ class NetworkingSaveRestore(object):
             config_set_pool_manager = ConfigPoolManager(sandbox=self.sandbox, pool_resource=config_set_pool_resource)
             config_set_pool_data = config_set_pool_manager.pool_data_to_dict()
 
-        config_path = root_path + resource.alias + '_' + resource.model + '.cfg'
+        config_path = root_path + resource.name + '_' + resource.model + '.cfg'
 
         # Look for a template config file
         tmp_template_config_file = tempfile.NamedTemporaryFile(delete=False)
@@ -191,6 +191,10 @@ class NetworkingSaveRestore(object):
                 os.unlink(tmp_template_config_file.name)
 
         config_path = config_path.replace(' ','_')
+
+        config_path = self.convert_path_to_storage(config_path)
+        config_path = config_path.replace('\\','/')
+
         return config_path
 
     # ----------------------------------
@@ -204,6 +208,9 @@ class NetworkingSaveRestore(object):
         :param bool write_to_output: Optional. should messages be sent to the command output.
         """
 
+        env_dir = self.config_files_root + '/Snapshots/' + snapshot_name.strip()
+        self.storage_client.create_dir(env_dir, write_to_output=True)
+
         try:
             env_dir = self.config_files_root + '/Snapshots/' + snapshot_name.strip()
             if not self.storage_client.dir_exist(env_dir):
@@ -212,18 +219,18 @@ class NetworkingSaveRestore(object):
             self.sandbox.report_error("Save snapshot failed. " + str(e),
                                       write_to_output_window=write_to_output,raise_error=True)
         '''Call To Save command in resource'''
+        config_path = self.convert_path_to_storage(env_dir)
+        #config_path = env_dir.replace('\\','/')
+
         root_resources = self.sandbox.get_root_resources()
         for resource in root_resources:
             save_config_for_device = self._is_load_config_to_device(resource, ignore_models=ignore_models)
             if save_config_for_device:
                 try:
                     self.sandbox.report_info(
-                        'Saving configuration for device: ' + resource.name + ' to: ' + env_dir, write_to_output)
-                    file_name = resource.save_network_config(self.sandbox.id, env_dir, config_type)
-                    #rename file on the storage server
-                    file_path = env_dir + '/' + file_name
-                    to_name = resource.alias + '_' + resource.model + '.cfg'
-                    self.storage_client.rename_file(file_path, to_name)
+                        'Saving configuration for device: ' + resource.name + ' to: ' + config_path, write_to_output)
+                    saved_artifact_info= resource.save_config(self.sandbox.id, config_path, config_type)
+                    self._upload_artiface_info(saved_artifact_info,resource,config_path)
                     self.sandbox.api_session.SetResourceLiveStatus(resource.name, 'Online')
                 except QualiError as qe:
                     err = "Failed to save configuration for device " + resource.name + ". " + str(qe)
@@ -236,14 +243,17 @@ class NetworkingSaveRestore(object):
                     self.sandbox.api_session.SetResourceLiveStatus(resource.name, 'Error')
 
 
-
-
     # ----------------------------------
     # Is this Sandbox originates from a snapshot Blueprint?
     # ----------------------------------
-    def is_snapshot(self):
+    def is_snapshot(self,fileName = " "):
         # check if there is a directory with the Blueprint's name under the snapshots dir
-        env_dir = self.config_files_root + '/Snapshots/' + self.sandbox.Blueprint_name
+
+        if fileName != " ":
+            env_dir = self.config_files_root + '/Snapshots/' + fileName
+        else:
+            env_dir = self.config_files_root + '/Snapshots/' + self.sandbox.Blueprint_name
+
         env_dir = env_dir.replace(' ', '_')
         return self.storage_client.dir_exist(env_dir)
 
@@ -266,5 +276,64 @@ class NetworkingSaveRestore(object):
                 if resource.model.lower() == ignore_model.lower():
                     return False
 
+        apps = self.sandbox.get_Apps_resources()
+        for app in apps:
+            if app.Name == resource.name:
+                return False
+
         return True
 
+
+    # ----------------------------------
+    # Is there are resources in blueprint that need to load configuration
+    # ----------------------------------
+    def is_resources_in_reservation_to_restore(self,ignore_models):
+
+        root_resources = self.sandbox.get_root_resources()
+
+        if not root_resources or (len(root_resources) == 1 and not root_resources[0].Name):
+            self.logger.info("No resources found in reservation {0}".format(self.reservation_id))
+            return False
+
+        for resource in root_resources:
+            # Check if needs to load configuration to the device
+            if self._is_load_config_to_device(resource, ignore_models=ignore_models):
+                return True
+
+        return False
+
+    # ----------------------------------
+    # download artiface info from storage
+    # ----------------------------------
+    def _download_saved_artifact_file(self, config, resource,config_path):
+        saved_artifact_info = None
+
+        if config.lower() == 'snapshots':
+            dest_name = resource.name + '_' + resource.model + '_artifact.txt'
+            dest_name = dest_name.replace(' ', '-')
+            saved_artifact_info = self.storage_client.download_artifact_info(config_path, dest_name,
+                                                                                write_to_output=True)
+
+        return saved_artifact_info
+
+    # ----------------------------------
+    # upload artiface info to storage
+    # ----------------------------------
+    def _upload_artiface_info(self,artiface_info,resource,path):
+        if artiface_info != "":
+            dest_name = resource.name + '_' + resource.model + '_artifact.txt'
+            dest_name = dest_name.replace(' ', '-')
+            self.storage_client.save_artifact_info(artiface_info, path, dest_name, write_to_output=True)
+
+    # ----------------------------------
+    # convert given path to windows path
+    # ----------------------------------
+    def convert_path_to_win(self,path):
+        path = path.replace("/","\\")
+        return path
+
+    # ----------------------------------
+    # convert given path to storage path
+    # ----------------------------------
+    def convert_path_to_storage(self,path):
+        path = path.replace('\\','/')
