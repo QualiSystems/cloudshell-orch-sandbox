@@ -204,7 +204,7 @@ class EnvironmentSetup(object):
         message_status = {
             "power_on": False,
             "wait_for_ip": False,
-
+            "install": False
         }
 
         async_results = [pool.apply_async(self._power_on_refresh_ip_install,
