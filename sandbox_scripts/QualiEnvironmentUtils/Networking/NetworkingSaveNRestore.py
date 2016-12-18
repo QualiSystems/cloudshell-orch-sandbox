@@ -140,7 +140,7 @@ class NetworkingSaveRestore(object):
                 try:
                     config_path = ''
                     with lock:
-                        config_path = self._get_concrete_config_file_path(root_path, resource, write_to_output=True)
+                        config_path = self._get_concrete_config_file_path(root_path, resource, config_stage, write_to_output=True)
                     resource.set_attribute_value('Config file path', config_path)
                     #TODO - Snapshots currently only restore configuration. We need to restore firmware as well
                     if config_stage.lower() == 'snapshots':
@@ -232,7 +232,7 @@ class NetworkingSaveRestore(object):
 
     # ----------------------------------
     # ----------------------------------
-    def _get_concrete_config_file_path(self, root_path, resource, write_to_output=False):
+    def _get_concrete_config_file_path(self, root_path, resource, config_stage, write_to_output=False):
         """
         Get the path to a concrete config file. If there is only a template for the config file,
         create a temp concrete config file, and send its path
@@ -248,9 +248,10 @@ class NetworkingSaveRestore(object):
         if config_set_pool_resource is not None:
             config_set_pool_manager = ConfigPoolManager(sandbox=self.sandbox, pool_resource=config_set_pool_resource)
             config_set_pool_data = config_set_pool_manager.pool_data_to_dict()
-
-        config_path = root_path + resource.name + '_' + resource.model + '.cfg'
-
+        if config_stage == 'snapshots':
+            config_path = root_path + resource.name + '_' + resource.model + '.cfg'
+        else:
+            config_path = root_path + resource.alias + '_' + resource.model + '.cfg'
         # Look for a template config file
         tmp_template_config_file = tempfile.NamedTemporaryFile(delete=False)
         tftp_template_config_path = root_path + resource.alias + '_' + resource.model + '.tm'
@@ -329,7 +330,7 @@ class NetworkingSaveRestore(object):
                             file_name = resource.save_network_config(self.sandbox.id, env_dir, config_type)
                             #rename file on the storage server
                             file_path = env_dir + '/' + file_name
-                            to_name = resource.alias + '_' + resource.model + '.cfg'
+                            to_name = resource.name + '_' + resource.model + '.cfg'
                             self.storage_client.rename_file(file_path, to_name)
 
                     except QualiError as qe:
