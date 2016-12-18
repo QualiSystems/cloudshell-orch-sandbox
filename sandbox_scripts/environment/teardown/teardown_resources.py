@@ -11,15 +11,24 @@ class EnvironmentTeardownResources:
                                               log_group=self.reservation_id,
                                               log_category='Teardown')
 
-    @profileit(scriptName="Teardown")
+    #@profileit(scriptName="Teardown")
     def execute(self):
         sandbox = SandboxBase(self.reservation_id, self.logger)
         saveNRestoreTool = NetworkingSaveRestore(sandbox)
 
+        api = helpers.get_api_session()
+
+        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                            message='Beginning resources config load')
+
+
         sandbox.clear_all_resources_live_status()
         try:
-            saveNRestoreTool.load_config(config_stage='Base', config_type='Running',
-                                         ignore_models=['Generic TFTP server', 'Config Set Pool','Generic FTP server','netscout switch 3912'])
+
+            if saveNRestoreTool.get_storage_client():
+                saveNRestoreTool.load_config(config_stage='Base', config_type='Running',
+                             ignore_models=['Generic TFTP server', 'Config Set Pool','Generic FTP server',
+                                            'netscout switch 3912'])
 
         except QualiError as qe:
             self.logger.error("Teardown failed. " + str(qe))

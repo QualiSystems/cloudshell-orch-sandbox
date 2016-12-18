@@ -21,7 +21,7 @@ class EnvironmentSetup(object):
                                     log_group=self.reservation_id,
                                     log_category='Setup')
 
-    @profileit(scriptName='Setup')
+    #@profileit(scriptName='Setup')
     def execute(self):
         api = helpers.get_api_session()
         resource_details_cache = {}
@@ -204,6 +204,7 @@ class EnvironmentSetup(object):
         message_status = {
             "power_on": False,
             "wait_for_ip": False,
+            "install": False
 
         }
 

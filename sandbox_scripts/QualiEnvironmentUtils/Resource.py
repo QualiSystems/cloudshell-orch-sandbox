@@ -5,6 +5,10 @@ from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import *
 from QualiUtils import *
+from cloudshell.shell.core.interfaces.save_restore import OrchestrationSavedArtifactInfo
+from cloudshell.shell.core.interfaces.save_restore import OrchestrationRestoreRules
+from cloudshell.shell.core.interfaces.save_restore import OrchestrationSavedArtifact
+from cloudshell.shell.core.interfaces.save_restore import OrchestrationSaveResult
 
 import datetime
 import json
@@ -29,14 +33,14 @@ class ResourceBase(object):
                 self.model = self.details.ResourceModelName
 
             self.alias = resource_alias
-            #self.standard_version = self._get_standard_version()
-
-
 
     # -----------------------------------------
     # -----------------------------------------
     def has_command(self, command_name):
         for command in self.commands:
+            if command_name == command.Name:
+                return True
+        for command in self.connected_commands:
             if command_name == command.Name:
                 return True
         return False
@@ -88,28 +92,6 @@ class ResourceBase(object):
 
     # ----------------------------------
     # ----------------------------------
-    '''
-    def _get_standard_version(self,reservation_id):
-        """
-        Run the get standard details command on all the devices
-        :param str reservation_id:  Reservation id.
-        """
-        if self.has_command('get_standard_version'):
-            try:
-                return self.execute_command(reservation_id, 'get_standard_version', printOutput=False).Output()
-
-            except QualiError as qe:
-                err = "Failed to get the standard version for device: " + self.name + ". " + str(qe)
-                return err
-        else:
-            if self.model.lower().find('cisco ios-xr')>=0 or self.model.lower().find('cisco ios ')>=0 or self.model.lower().find('cisco nxos')>=0:
-                return '3'
-            elif self.model.lower().find('ericsson')>=0 or self.model.lower().find('gigavue-os')>=0:
-                return '4'
-        return -1
-    '''
-    # ----------------------------------
-    # ----------------------------------
     def health_check(self,reservation_id):
         """
         Run the healthCheck command on all the devices
@@ -128,11 +110,115 @@ class ResourceBase(object):
                 return err
         return ""
 
+    # -----------------------------------------
+    # -----------------------------------------
+    def load_network_config(self, reservation_id, config_path, config_type, restore_method='Override'):
+        """
+        Load config from a configuration file on the device
+        :param str reservation_id:  Reservation id.
+        :param config_path:  The path to the config file
+        :param config_type:  StartUp or Running
+        :param restore_method:  Optional. Restore method. Can be Append or Override.
+        """
+        # Run executeCommand with the restore command and its params (ConfigPath,RestoreMethod)
+        try:
+            command_inputs = [InputNameValue('path', str(config_path)),
+                              InputNameValue('restore_method', str(restore_method)),
+                              InputNameValue('configuration_type', str(config_type))]
 
+            if self.attribute_exist('VRF Management Name'):
+                vrf_name = self.get_attribute('VRF Management Name')
+                if vrf_name != '':
+                    command_inputs.append(InputNameValue('vrf_management_name', str(vrf_name)))
+
+            self.execute_command(reservation_id, 'restore',
+                                 commandInputs=command_inputs,
+                                 printOutput=True)
+
+        except:
+            try:
+                command_inputs = [InputNameValue('src_Path', str(config_path)),
+                                    InputNameValue('restore_method', str(restore_method)),
+                                    InputNameValue('config_type', str(config_type))]
+
+                if self.attribute_exist('VRF Management Name'):
+                    vrf_name = self.get_attribute('VRF Management Name')
+                    if vrf_name !='':
+                        command_inputs.append(InputNameValue('vrf_management_name', str(vrf_name)))
+
+                self.execute_command(reservation_id, 'Restore',
+                                     commandInputs=command_inputs,
+                                     printOutput=True)
+            except:
+                try:
+                    command_inputs = [InputNameValue('path', str(config_path)),
+                                        InputNameValue('restore_method', str(restore_method)),
+                                        InputNameValue('config_type', str(config_type))]
+
+                    if self.attribute_exist('VRF Management Name'):
+                        vrf_name = self.get_attribute('VRF Management Name')
+                        if vrf_name !='':
+                            command_inputs.append(InputNameValue('vrf', str(vrf_name)))
+
+                    self.execute_command(reservation_id, 'restore',
+                                         commandInputs=command_inputs,
+                                         printOutput=True)
+                except QualiError as qerror:
+                    raise QualiError(self.name, "Failed to load configuration: " + qerror.message)
+                except:
+                    raise QualiError(self.name, "Failed to load configuration. Unexpected error:" + str(sys.exc_info()[0]))
 
     # -----------------------------------------
     # -----------------------------------------
-    def load_config(self, reservation_id,config_path,artifact_info = None):
+    def save_network_config(self, reservation_id, config_path, config_type):
+        """
+        Save config from the device
+        :param str reservation_id:  Reservation id.
+        :param config_path:  The path where to save the config file
+        :param config_type:  StartUp or Running
+        """
+        # Run executeCommand with the restore command and its params (ConfigPath,RestoreMethod)
+        try:
+            command_inputs = [InputNameValue('source_filename', str(config_type)),
+                                InputNameValue('destination_host', str(config_path))]
+
+            if self.attribute_exist('VRF Management Name'):
+                vrf_name = self.get_attribute('VRF Management Name')
+                if vrf_name !='':
+                    command_inputs.append(InputNameValue('vrf', str(vrf_name)))
+
+            config_name = self.execute_command(reservation_id, 'Save',
+                                               commandInputs=command_inputs,
+                                               printOutput=True).Output
+
+            #TODO check the output is the created file name
+            return config_name
+        except:
+            try:
+                command_inputs = [InputNameValue('source_filename', str(config_type)),
+                                    InputNameValue('destination_host', str(config_path))]
+
+                if self.attribute_exist('VRF Management Name'):
+                    vrf_name = self.get_attribute('VRF Management Name')
+                    if vrf_name !='':
+                        command_inputs.append(InputNameValue('vrf', str(vrf_name)))
+
+                config_name = self.execute_command(reservation_id, 'save',
+                                                   commandInputs=command_inputs,
+                                                   printOutput=True).Output
+
+                #TODO check the output is the created file name
+                config_name = config_name.rstrip(',')
+                return config_name
+
+            except QualiError as qerror:
+                raise QualiError(self.name, "Failed to save configuration: " + qerror.message)
+            except:
+                raise QualiError(self.name, "Failed to save configuration. Unexpected error:" + str(sys.exc_info()[0]))
+
+    # -----------------------------------------
+    # -----------------------------------------
+    def orchestration_restore(self, reservation_id,config_path,artifact_info = None):
         """
         Load config from a configuration file on the device
         :param str reservation_id:  Reservation id.
@@ -143,17 +229,12 @@ class ResourceBase(object):
         # Run executeCommand with the restore command and its params (ConfigPath,RestoreMethod)
 
         try:
-            is_snapshot = True
-            if(artifact_info == None):
-                artifact_info = self.create_artifact_info(config_path)
-                is_snapshot = False
-                json_str = json.dumps(artifact_info)
-            else:
-                json_str = artifact_info
 
             if self.is_app():
-                if is_snapshot:
 
+                if artifact_info:
+
+                    json_str = artifact_info
                     for command in self.connected_commands:
                         if 'orchestration_restore' == command.Name:
                             tag = command.Tag
@@ -163,14 +244,14 @@ class ResourceBase(object):
                                 printOutput=True)
 
             else:
+                if(artifact_info == None):
+                    artifact_info = self.create_artifact_info(config_path)
+                    json_str = json.dumps(artifact_info)
+                else:
+                    json_str = artifact_info
 
                 if self.has_command('orchestration_restore'):
-
                     command_inputs = [InputNameValue('saved_details', json_str)]
-
-                    if self.attribute_exist('VRF Management Name'):
-                        vrf_name = self.get_attribute('VRF Management Name')
-                        command_inputs.append(InputNameValue('vrf_management_name', str(vrf_name)))
 
                     self.execute_command(reservation_id, 'orchestration_restore',
                                      commandInputs=command_inputs,
@@ -183,7 +264,7 @@ class ResourceBase(object):
 
     # -----------------------------------------
     # -----------------------------------------
-    def save_config(self, reservation_id, config_path, config_type):
+    def orchestration_save(self, reservation_id, config_path, config_type):
         """
         Save config from the device
         :param str reservation_id:  Reservation id.
@@ -209,7 +290,7 @@ class ResourceBase(object):
                                                commandInputs=['shallow',''],
                                                printOutput=False)
 
-
+                        return config_name.Output
 
             else:
                 if self.has_command('orchestration_save'):
@@ -219,12 +300,13 @@ class ResourceBase(object):
                                                               InputNameValue('mode','shallow')],
                                                printOutput=False)
 
-
+                    return config_name.Output
 
             if config_name:
                 return config_name.Output
             else:
                 return ""
+
 
             # check the output is the created file name
 
@@ -283,7 +365,6 @@ class ResourceBase(object):
         else:
             raise QualiError(self.name, 'No commands were found')
 
-
     # -----------------------------------------
     # -----------------------------------------
     def set_address(self, address):
@@ -303,7 +384,8 @@ class ResourceBase(object):
             command_inputs = [InputNameValue('path', str(image_path))]
             if self.attribute_exist('VRF Management Name'):
                 vrf_name = self.get_attribute('VRF Management Name')
-                command_inputs.append(InputNameValue('vrf_management_name', str(vrf_name)))
+                if vrf_name != '':
+                    command_inputs.append(InputNameValue('vrf_management_name', str(vrf_name)))
             self.execute_command(reservation_id, 'load_firmware',
                                  commandInputs=command_inputs,
                                  printOutput=True)
@@ -322,22 +404,53 @@ class ResourceBase(object):
     def get_live_status(self):
         self.api_session.GetResourceLiveStatus(self.name)
 
-    # -----------------------------------------
-    # -----------------------------------------
-    def print_commands (self):
 
-        print "Resource commands:" + self.commands
-	# -----------------------------------------
     # -----------------------------------------
+    # -----------------------------------------
+    def load_Apps_config(self, reservation_id,artifact_info):
 
+        try:
+           command_inputs = [InputNameValue('saved_details', artifact_info)]
+           self.execute_command(reservation_id, 'orchestration_restore',command_inputs,
+                                 printOutput=True)
+        except QualiError as qerror:
+            raise QualiError(self.name, "Failed to load configuration on App: " + qerror.message)
+        except:
+            raise QualiError(self.name, "Failed to load configuration on App. Unexpected error:" + str(sys.exc_info()[0]))
+
+    # -----------------------------------------
+    # -----------------------------------------
+    def save_apps_config(self,reservation_id):
+
+        try:
+            config_name = self.execute_command(reservation_id, 'orchestration_save',
+                                            printOutput=True)
+
+            OrchestrationSavedArtifact = json.load(config_name)
+
+            print "OrchestrationSavedArtifact: " + OrchestrationSavedArtifact
+            return OrchestrationSavedArtifact
+
+            # check the output is the created file name
+
+        except QualiError as qerror:
+            raise QualiError(self.name, "Failed to save configuration: " + qerror.message)
+        except:
+            raise QualiError(self.name, "Failed to save configuration. Unexpected error:" + str(sys.exc_info()[0]))
+
+
+    # -----------------------------------------
+    # -----------------------------------------
     def create_artifact_info(self,config_path):
 
         created_date = str(datetime.datetime.utcnow())
 
+        #get the storage type tftp/ftp ...
+        artifact_type = str(config_path).split(':')[0]
         saved_artifacts_info = {
             "saved_artifacts_info": {
                 "saved_artifact": {
-                    "artifact_type": "tftp",
+                    "artifact_type": artifact_type,
                     "identifier": config_path
                 },
                 "resource_name": self.name,
@@ -353,13 +466,28 @@ class ResourceBase(object):
     # -----------------------------------------
     # -----------------------------------------
     def is_app(self):
+        try:
+            if self.details.VmDetails.UID:
+                return True
 
-        if hasattr(self.details.VmDetails, "UID"):
-            return True
-        else:
+        except:
             return False
 
 
-
-
-
+    # -----------------------------------------
+    # -----------------------------------------
+    def get_version(self, reservation_id):
+        """
+        Get the device's image version
+        :param str reservation_id:  Reservation id.
+        """
+        # Run executeCommand with the update_firmware command and its params (ConfigPath,RestoreMethod)
+        try:
+            version = self.execute_command(reservation_id, 'get_version',
+                                 printOutput=False).Output
+            version = version.replace('\r\n', '')
+            return  version
+        except QualiError as qerror:
+            raise QualiError(self.name, "Failed to get the version: " + qerror.message)
+        except:
+            raise QualiError(self.name, "Failed to get the version. Unexpected error:" + str(sys.exc_info()[0]))

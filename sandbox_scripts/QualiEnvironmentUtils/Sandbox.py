@@ -4,6 +4,9 @@ from cloudshell.core.logger.qs_logger import *
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from os.path import *
 
+from quali_utils.quali_packaging import PackageEditor
+from quali_api_client import QualiAPIClient
+
 
 SEVERITY_INFO = 20
 SEVERITY_ERROR = 40
@@ -20,7 +23,9 @@ class SandboxBase(object):
             """:type : logging.Logger"""
             self.api_session = helpers.get_api_session()
             self.id = reservation_id
+
             self.Blueprint_name = helpers.get_reservation_context_details().environment_name
+
 
             full_path = None
             tp = self.api_session.GetActiveTopologyNames()
@@ -84,8 +89,9 @@ class SandboxBase(object):
         """
         root_resources = []
         root_resources_names_dict = {}
-        resources = self.api_session.GetReservationDetails(self.id).ReservationDescription.Resources
-        topo_resources = self.api_session.GetReservationDetails(self.id).ReservationDescription.TopologiesReservedResources
+        details = self.get_details()
+        resources = details.ReservationDescription.Resources
+        topo_resources = details.ReservationDescription.TopologiesReservedResources
         # Loop over all devices in the sandbox and add to a dictionary all root devices:
         for resource in resources:
             split_name = resource.Name.split('/')
@@ -137,6 +143,7 @@ class SandboxBase(object):
         try:
             self.report_info(message="Connecting the connectors and routes", write_to_output_window=write_to_output)
             self.activate_connectors(write_to_output=False)
+
             self.activate_routes(write_to_output=False)
             self.report_info(message="Connectors and routes are connected", write_to_output_window=write_to_output)
         except CloudShellAPIError as error:
@@ -231,25 +238,37 @@ class SandboxBase(object):
 
     # -----------------------------------------
     # -----------------------------------------
-    def save_sandbox_as_blueprint(self, blueprint_name, write_to_output=True, folderFullPath=''):
+    def save_sandbox_as_blueprint(self, blueprint_name, write_to_output=True):
+        snapshot_exist = True
+
         try:
-            snapshot_exist = True
-            details = self.api_session.GetTopologyDetails(blueprint_name)
-        except CloudShellAPIError:
-            snapshot_exist = False
+            full_path = None
+            tp = self.api_session.GetActiveTopologyNames()
+
+            for value in tp.Topologies:
+                filename = basename(value)
+                if filename == blueprint_name:
+                    full_path = value
+                    break
+
+            if full_path is None:
+                snapshot_exist = False
+
+        except CloudShellAPIError as error:
+            err = "Failed to save sandbox as blueprint. " + error.message
+            self.report_error(error_message=err, write_to_output_window=write_to_output)
         if snapshot_exist:
             err = "Blueprint " + blueprint_name + " already exist. Please select a different name."
             self.report_error(error_message=err, write_to_output_window=write_to_output)
-        else:
-            # save the current Sandbox as a new Blueprint with the given snapshot name
-            if folderFullPath !='':
-                #create a folder with the given name
-                try:
-                    self.api_session.GetFolderContent(fullPath=folderFullPath)
-                except:
-                    self.api_session.CreateFolder(folderFullPath)
-            self.api_session.SaveReservationAsTopology(self.id, topologyName=blueprint_name,
-                                                       folderFullPath=folderFullPath, includeInactiveRoutes=True)
+            raise Exception('Blueprint name already exist. Please select a different name.')
+        # save the current Sandbox as a new Blueprint with the given snapshot name
+        fullpath = 'Snapshots'
+        self.api_session.SaveReservationAsTopology(self.id, topologyName=blueprint_name,folderFullPath=fullpath, includeInactiveRoutes=True)
+
+        #update the new snapshot with the user as owner
+        username = helpers.get_reservation_context_details().owner_user
+        fullTopologyName = 'Snapshots/'+blueprint_name
+        self.api_session.UpdateTopologyOwner(topologyName=fullTopologyName,ownerName=username)
 
     # -----------------------------------------
     # check if this resource originated from an abstract resource
@@ -279,4 +298,49 @@ class SandboxBase(object):
                 if resource.model.lower() == 'config set pool':
                     return resource
         return None
+
+
+    # -----------------------------------------
+    # Return the pool Apps of the sandbox, if found
+    #  -----------------------------------------
+    def get_Apps_resources(self):
+        """
+			Get the Apps resources
+			:rtype: list[ReservationAppResource]
+		"""
+        details = self.get_details()
+        apps_resources = details.ReservationDescription.Apps
+
+        return apps_resources
+
+    # -----------------------------------------
+    # Return if there are apps in the sandbox
+    #  -----------------------------------------
+    def is_apps_in_reservation(self):
+        """Check if there are apps in reservation"""
+        details = self.get_details()
+        apps = details.ReservationDescription.App
+
+        if not apps or (len(apps) == 1 and not apps[0].Name):
+            self.report_info("No apps found in reservation {0}".format(self.reservation_id))
+            self.api_session.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                                                     message='No apps in reservation')
+            return False
+
+        return True
+
+    # ----------------------------------
+    # Power on VMs
+    # ----------------------------------
+    def power_on_vms(self, write_to_output=True):
+
+        root_resources = self.get_root_resources()
+
+        for resource in root_resources:
+            if resource.is_app():
+                deployed_app_name = resource.name
+                self.api_session.WriteMessageToReservationOutput(reservationId=self.id,
+                                                                     message='Power on Apps again')
+                self.api_session.ExecuteResourceConnectedCommand(self.id, deployed_app_name, "PowerOn", "power")
+
 

@@ -28,12 +28,25 @@ class EnvironmentTeardownVM:
 
         filename = "Snapshot_"+self.reservation_id+".txt"
 
-        if saveNRestoreTool.is_snapshot(filename):
+        is_snapshot = False
+
+        #if the current reservation was saved as snapshot we look it by reservation_id
+        if saveNRestoreTool.get_storage_client():
+            if saveNRestoreTool.is_snapshot(filename):
+                is_snapshot = True
+            else: #if this is a snapshot we look it by blueprint name
+                if saveNRestoreTool.is_snapshot():
+                    is_snapshot = True
+
+        if is_snapshot:
             self.delete_VM_and_Power_off(api,reservation_details,to_delete = False)
+            #api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+            #                                                    message='It snapshot...')
 
         else:
             self.delete_VM_and_Power_off(api,reservation_details,to_delete =True)
-
+            #api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+            #                                                    message='not snapshot...')
 
     def delete_VM_and_Power_off(self,api,reservation_details,to_delete = False):
 
@@ -44,8 +57,9 @@ class EnvironmentTeardownVM:
         :return:
         """
         # filter out resources not created in this reservation
-        resources = get_resources_created_in_res(reservation_details=reservation_details,
-                                                 reservation_id=self.reservation_id)
+        resources = reservation_details.ReservationDescription.Resources
+       # resources = get_resources_created_in_res(reservation_details=reservation_details,
+        #                                         reservation_id=self.reservation_id)
         pool = ThreadPool()
         async_results = []
         lock = Lock()
@@ -56,9 +70,10 @@ class EnvironmentTeardownVM:
 
         for resource in resources:
             resource_details = api.GetResourceDetails(resource.Name)
-            if resource_details.VmDetails:
+            vm_details = resource_details.VmDetails
+            if hasattr(vm_details, "UID"):
                 result_obj = pool.apply_async(self._power_off_or_delete_deployed_app,
-                                              (api, resource_details, lock, message_status,to_delete))
+                                    (api, resource_details, lock, message_status,to_delete))
                 async_results.append(result_obj)
 
         pool.close()
@@ -92,45 +107,33 @@ class EnvironmentTeardownVM:
         """
         resource_name = resource_info.Name
 
+        if resource_info.ResourceModelName.lower() =="vcenter static vm":
+            to_delete = False
+
         try:
 
             self.logger.info("Executing 'Delete' on deployed app {0} in reservation {1}"
                                .format(resource_name, self.reservation_id))
             if to_delete:
                 with lock:
-                    if not message_status['delete']:
-                        message_status['delete'] = True
-                        if not message_status['power_off']:
-                            message_status['power_off'] = True
-                            api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                                message='Apps are being powered off and deleted...Inga')
-                        else:
-                            api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                                message='Apps are being deleted...Inga')
+                    api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                                    message='Apps are being powered off and deleted...')
 
                 return resource_name
 
             else:
 
                 api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                   message="Executing 'Power Off' on deployed app {0} in reservation {1}"
+                                                   message="Executing 'Power Off' on deployed app {0}"
                                                     .format(resource_name, self.reservation_id))
 
 
-                self.logger.info("Executing 'Power Off' on deployed app {0} in reservation {1}"
-                                 .format(resource_name, self.reservation_id))
-
-                if not message_status['power_off']:
-                    with lock:
-                        if not message_status['power_off']:
-                            message_status['power_off'] = True
-                            api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                                    message='Apps are powering off...')
+                with lock:
+                    api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                                               message='Apps are powering off... ')
 
                     api.ExecuteResourceConnectedCommand(self.reservation_id, resource_name, "PowerOff", "power")
-                else:
-                    self.logger.info("Auto Power Off is disabled for deployed app {0} in reservation {1}"
-                                     .format(resource_name, self.reservation_id))
+
                 return None
 
         except Exception as exc:
