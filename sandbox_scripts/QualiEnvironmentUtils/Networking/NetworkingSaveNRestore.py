@@ -56,7 +56,7 @@ class NetworkingSaveRestore(object):
     # e.g. tftp://configs/Base/svl290-gg07-sw1_c3850.cfg
     # ----------------------------------
     def load_config(self, config_stage, config_type, restore_method="Override", config_set_name='', ignore_models=None,
-                    write_to_output=True, remove_temp_files = False):
+                    write_to_output=True, remove_temp_files = False, in_teardown_mode = False):
         """
         Load the configuration from config files on the Blueprint's devices
         :param str config_stage:  The stage of the config e.g Gold, Base
@@ -88,7 +88,8 @@ class NetworkingSaveRestore(object):
         pool = ThreadPool(len(root_resources))
         lock = Lock()
         async_results = [pool.apply_async(self._run_asynch_load,
-                                          (resource, images_path_dict, root_path, ignore_models,config_stage, lock))
+                                          (resource, images_path_dict, root_path, ignore_models,config_stage, lock,
+                                           in_teardown_mode))
                          for resource in root_resources]
 
         pool.close()
@@ -116,14 +117,14 @@ class NetworkingSaveRestore(object):
             try:
                 if resource.attribute_exist('Config file path'):
                     tmp_config_file_path = resource.get_attribute('Config file path')
-                    if tmp_config_file_path != '':
+                    if tmp_config_file_path != '' and tmp_config_file_path.find('/temp/') > -1:
                         self.storage_client.delete(tmp_config_file_path)
             except QualiError as qe:
                 self.sandbox.report_info("Failed to delete temp config file " + tmp_config_file_path +
                                          "Error is: " + str(qe))
     # ----------------------------------
     # ----------------------------------
-    def _run_asynch_load(self,resource, images_path_dict,root_path, ignore_models,config_stage, lock):
+    def _run_asynch_load(self, resource, images_path_dict, root_path, ignore_models, config_stage, lock, in_teardown_mode):
         message = ""
         #run_status = True
         saved_artifact_info = None
@@ -132,7 +133,7 @@ class NetworkingSaveRestore(object):
         load_config_to_device = self._is_load_config_to_device(resource, ignore_models=ignore_models)
         if load_config_to_device:
             #if we are in teardown the vm is already down - no need to do anything
-            if resource.is_app() and config_stage.lower() == 'base':
+            if in_teardown_mode and resource.is_app():
                 return
 
             health_check_result = resource.health_check(self.sandbox.id)

@@ -26,10 +26,10 @@ class EnvironmentTeardownResources:
         try:
 
             if saveNRestoreTool.get_storage_client():
+                ignore_models = ['Generic TFTP server', 'Config Set Pool', 'Generic FTP server', 'netscout switch 3912',
+                             'OnPATH Switch 3903', 'Ixia Traffic generator']
                 saveNRestoreTool.load_config(config_stage='Base', config_type='Running',
-                             ignore_models=['Generic TFTP server', 'Config Set Pool','Generic FTP server',
-                                            'netscout switch 3912'])
-
+                                         ignore_models=ignore_models, remove_temp_files=True, in_teardown_mode=True)
         except QualiError as qe:
             self.logger.error("Teardown failed. " + str(qe))
         except:
