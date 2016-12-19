@@ -1,15 +1,18 @@
 # coding=utf-8
-import paramiko
-
 from sandbox_scripts.QualiEnvironmentUtils.Sandbox import *
 from abc import ABCMeta
 from abc import abstractmethod
-import tftpy
 import ftplib
 import subprocess
 import json
 import tempfile
-
+import logging
+try:
+    import tftpy
+    imported_tftpy = True
+except Exception as e:
+    imported_tftpy = False
+	
 
 class StorageManager(object):
     def __init__(self, sandbox, storage_resource):
@@ -26,8 +29,6 @@ class StorageManager(object):
             return TFTPClient(self.sandbox,self.storage_resource)
         elif self.storage_resource.model.lower() == 'generic ftp server':
             return FTPClient(self.sandbox,self.storage_resource)
-        elif self.storage_resource.model.lower() == 'generic sftp server':
-            return SFTPClient(self.sandbox,self.storage_resource)
 
 
 class StorageClient(object):
@@ -71,16 +72,30 @@ class StorageClient(object):
     def rename_file(self, file_path, new_name):
         raise NotImplementedError('subclasses must override rename_file()!')
 
+    @abstractmethod
+    def delete(self, file_path):
+        raise NotImplementedError('subclasses must override delete()!')
+    @abstractmethod
+    def create_src_file_on_tftp(self,win_path,write_to_output=True):
+        raise NotImplementedError('subclasses must override create_src_file_on_tftp()!')
+    @abstractmethod
+    def save_artifact_info(self,saved_artifact_info,env_dir,dest_name,write_to_output=True):
+        raise NotImplementedError('subclasses must override save_artifact_info()!')
+    @abstractmethod
+    def download_artifact_info(self,env_dir,dest_name,write_to_output=True):
+        raise NotImplementedError('subclasses must override download_artifact_info()!')
+
 class TFTPClient(StorageClient):
     # ----------------------------------
     # ----------------------------------
     def __init__(self, sandbox, storage_resource):
+        if imported_tftpy == False:
+            self.sandbox.report_error('TFTPY lib was not installed', write_to_output_window=True)
         super(TFTPClient,self).__init__(sandbox, storage_resource)
         self.username = storage_resource.get_attribute("Storage username")
         self.password = storage_resource.get_attribute("Storage password")
         self.tftp_psexe = storage_resource.get_attribute('TFTP psexec')
         self.tftp_root_dir = storage_resource.get_attribute('TFTP Root')
-        #self.tftp_root_dir = self.configs_root
 
         self.tftp_client = tftpy.TftpClient(self.address, self.port)
 
@@ -99,6 +114,10 @@ class TFTPClient(StorageClient):
         :param str source:  The path to the file on the tftp server
         :param str destination:  destination file name
         """
+
+        tftpy.log.propagate = False
+        tftpy.log.addHandler(logging.NullHandler())
+
         source = self._remove_header(source)
         self.tftp_client.download(str(unicode(source)), str(unicode(destination)))
 
@@ -116,7 +135,6 @@ class TFTPClient(StorageClient):
     # ----------------------------------
     # ----------------------------------
     def dir_exist(self, dir_name):
-
 
         try:
 
@@ -163,7 +181,7 @@ class TFTPClient(StorageClient):
         except:
             return False
 
-               #return os.path.isdir(dir_name)
+
 
     # ----------------------------------
     # ----------------------------------
@@ -210,7 +228,7 @@ class TFTPClient(StorageClient):
             rv = subprocess.check_output(ia, stderr=subprocess.STDOUT)
             #print ' psexec result for mkdir: ' + str(rv).replace('\r\n', '\n')
 
-            self.create_src_file_on_tftp(env_dir,write_to_output)
+
 
         except Exception as e:
             if hasattr(e, 'output'):
@@ -220,19 +238,24 @@ class TFTPClient(StorageClient):
                 err = 'psexec failed: ' + str(e).replace('\r\n', '\n') + ': ' + ou.replace('\r\n', '\n')
                 self.sandbox.report_error(err, write_to_output_window=write_to_output)
 
+        self.create_src_file_on_tftp(env_dir,write_to_output)
+
     # ----------------------------------
     # ----------------------------------
     def create_src_file_on_tftp(self,win_path,write_to_output=True):
         #creating new file
 
-        #src
+        #Src
+        #tmp_file = "C:\Quali\\tmp.txt"
         tmp_file = "C:\\tmp.txt"
+        #tmp_file = "tmp.txt"
+        src_path = tmp_file.replace("\\","/")
 
         #destination
         snapshot_resource_name = "Snapshot_"+self.sandbox.id
         head,tail = os.path.split(win_path)
         path = head + '/' + snapshot_resource_name +".txt"
-        path = self.convert_path_to_storage(path)
+        path = path.replace("\\","/")
 
         try:
             with open(tmp_file, 'w+') as outfile:
@@ -240,7 +263,6 @@ class TFTPClient(StorageClient):
 
             self.upload(path,tmp_file)
             os.remove(tmp_file)
-
 
         except Exception as e:
             if hasattr(e, 'output'):
@@ -253,58 +275,67 @@ class TFTPClient(StorageClient):
     # ----------------------------------
     def save_artifact_info(self,saved_artifact_info,env_dir,dest_name,write_to_output=True):
 
-        tmpfile = 'data.json'
+        tmpfile = "data.json"
 
         win_path = self._remove_header(env_dir)
 
         new_config_path = win_path + '/' + dest_name
-        new_config_path = self.convert_path_to_storage(new_config_path)
+        new_config_path = new_config_path.replace("\\","/")
 
         try:
+            #tmp_file = tempfile.NamedTemporaryFile(delete=True)
+            #tf = file(tmp_file.name, 'w')
+            #with open(tmp_file.name, 'w+') as outfile:
+            #json.dump(saved_artifact_info,tf)
+
+            #self.upload(new_config_path,tmp_file.name)
+
             with open(tmpfile, 'w+') as outfile:
-                json.dump(saved_artifact_info, outfile)
+                json.dump(saved_artifact_info,outfile)
 
             self.upload(new_config_path,tmpfile)
-
             os.remove(tmpfile)
+
         except:
             err = 'saved artifact info failed '
             self.sandbox.report_error(err, write_to_output_window=write_to_output)
 
     # ----------------------------------
     # ----------------------------------
+
     def download_artifact_info(self,env_dir,dest_name,write_to_output=True):
 
-        tmpfile = 'data.json'
+        tmpfile = "data.json"
+        data = None
 
         win_path = self._remove_header(env_dir)
         head, tail = os.path.split(win_path)
 
         new_config_path = head + '/' + dest_name
-        new_config_path = self.convert_path_to_storage(new_config_path)
+        new_config_path = new_config_path.replace("\\","/")
 
         try:
-            # Reading data back
-            with open(tmpfile, 'w+') as outfile:
-                self.download(new_config_path,tmpfile)
+            # Reading data backm
+
+            tftpy.log.propagate = False
+            tftpy.log.addHandler(logging.NullHandler())
+
+            self.tftp_client.download(str(new_config_path),tmpfile)
+            #self.download(new_config_path, tmpfile)
+            with open(tmpfile,'r') as outfile:
                 data = json.load(outfile)
 
-            os.remove(tmpfile)
-            return data
+            #os.remove(tmpfile)
 
-        except QualiError as qe:
-            err = "Failed to download artifact configuration for device" + str(qe)
-            return None
+
         except:
+            #if os.path.isfile(tmpfile):
+             #   os.remove(tmpfile)
             err = 'download artifact info failed '
            # self.sandbox.report_error(err, write_to_output_window=write_to_output)
-            return None
 
-    # ----------------------------------
-    # ----------------------------------
-    def convert_path_to_storage(self,path):
-        path = path.replace("\\","/")
-        return path
+        return data
+
 
 
 class FTPClient(StorageClient):
@@ -319,13 +350,18 @@ class FTPClient(StorageClient):
             self.ftp = ftplib.FTP()
             self.ftp.connect(self.address,self.port)
             self.ftp.login(self.username,self.password)
+
+
         except Exception as e:
             self.sandbox.report_error("Failed to connect to the FTP server . Error is: " + str(e), raise_error=True)
 
     # ----------------------------------
     # ----------------------------------
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.ftp.quit()
+    def __del__(self):
+        try:
+            self.ftp.quit()
+        except:
+            pass
 
     # ----------------------------------
     # ----------------------------------
@@ -343,6 +379,8 @@ class FTPClient(StorageClient):
         :param str destination:  destination file name
         """
         try:
+            self.ftp.connect(self.address, self.port)
+            self.ftp.login(self.username, self.password)
             source = self._remove_header(source)
             self.ftp.retrbinary("RETR " + source ,open(destination, 'wb').write)
         except Exception as e:
@@ -359,9 +397,12 @@ class FTPClient(StorageClient):
         :param str destination:  destination file name
         """
         try:
+            self.ftp.connect(self.address, self.port)
+            self.ftp.login(self.username, self.password)
             file_idx=destination.rfind('/')
             destination_dir = destination[:(file_idx-len(destination))]
             destination_dir = self._remove_header(destination_dir)
+            #destination_dir = destination_dir.replace('//','/')
             self.ftp.cwd(destination_dir)
             destination_file =destination[file_idx+1:]
             myfile = open(source, 'r')
@@ -376,6 +417,8 @@ class FTPClient(StorageClient):
     # ----------------------------------
     def dir_exist(self, dir_name):
         try:
+            self.ftp.connect(self.address, self.port)
+            self.ftp.login(self.username, self.password)
             dir_name = self._remove_header(dir_name)
             self.ftp.cwd(dir_name)
             return True
@@ -395,6 +438,8 @@ class FTPClient(StorageClient):
 
     def create_dir(self,env_dir, write_to_output=True):
         try:
+            self.ftp.connect(self.address, self.port)
+            self.ftp.login(self.username, self.password)
             dir_name = self._remove_header(env_dir)
             self.ftp.mkd(dir_name)
         except Exception as e:
@@ -404,6 +449,8 @@ class FTPClient(StorageClient):
     # -----------------------------------
     def rename_file(self, file_path, new_name):
         try:
+            self.ftp.connect(self.address, self.port)
+            self.ftp.login(self.username, self.password)
             file_path = self._remove_header(file_path)
             new_name = self._remove_header(new_name)
             #self.ftp.rename(from_name,new_name)
@@ -421,76 +468,26 @@ class FTPClient(StorageClient):
                                       ". Error is: " + str(e), write_to_output_window=False, raise_error=True)
 
 
-class SFTPClient(StorageClient):
-    def __init__(self, sandbox, storage_resource):
-        super(SFTPClient, self).__init__(sandbox, storage_resource)
-        self.username = storage_resource.get_attribute("Storage username")
-        self.password = storage_resource.get_attribute("Storage password")
-
-    def _remove_header(self, path):
-        path = path.replace('sftp://' + self.address + "/", '')
-        path = path.replace(' ', '_')
-        return path
-
-    def download(self, source, destination):
-        transport = paramiko.Transport((self.address, self.port))
-        transport.connect(username=self.username, password=self.password)
-        sftp = paramiko.SFTPClient.from_transport(transport)
-        sftp.get(source, destination)
-        sftp.close()
-        transport.close()
-
-    def create_dir(self, env_dir, write_to_output=True):
-        transport = paramiko.Transport((self.address, self.port))
-        transport.connect(username=self.username, password=self.password)
-        sftp = paramiko.SFTPClient.from_transport(transport)
-        sftp.mkdir(env_dir)
-        sftp.close()
-        transport.close()
-
-    def rename_file(self, file_path, new_name):
-        transport = paramiko.Transport((self.address, self.port))
-        transport.connect(username=self.username, password=self.password)
-        sftp = paramiko.SFTPClient.from_transport(transport)
-        sftp.rename(file_path, new_name)
-        sftp.close()
-        transport.close()
-
-    def get_configs_root(self):
-        if self.configs_root:
-            return 'sftp://' + self.username + ':' + self.password + '@' + self.address + "/" + self.configs_root
-
-    def dir_exist(self, dir_name):
-        transport = paramiko.Transport((self.address, self.port))
-        transport.connect(username=self.username, password=self.password)
-        sftp = paramiko.SFTPClient.from_transport(transport)
+    # ----------------------------------
+    # ----------------------------------
+    def delete(self, file_path):
+        """
+        Delete file from the ftp server
+        :param str file_path:  The path to the file on the ftp server
+        """
         try:
-            sftp.lstat(dir_name)
-            rv = True
-        except:
-            rv = False
-        sftp.close()
-        transport.close()
-        return rv
+            self.ftp.connect(self.address, self.port)
+            self.ftp.login(self.username, self.password)
+            file_path = self._remove_header(file_path)
+            file_idx=file_path.rfind('/')
+            destination_dir = file_path[:(file_idx-len(file_path))]
+            destination_dir = self._remove_header(destination_dir)
 
-    def upload(self, destination, source):
-        transport = paramiko.Transport((self.address, self.port))
-        transport.connect(username=self.username, password=self.password)
-        sftp = paramiko.SFTPClient.from_transport(transport)
-        sftp.put(source, destination)
-        sftp.close()
-        transport.close()
-
-    # a = SFTPClient(None, None)
-    # print a.dir_exist('a')
-    # print a.dir_exist('b')
-    # print a.dir_exist('c')
-    # a.upload('/tmp/vmdet2.txt', r'c:\temp\vmdet.txt')
-    # a.download('/tmp/vmdet2.txt', r'c:\temp\vmdet4.txt')
-    # a.rename_file('b2', 'b')
-    # a.create_dir('d')
-    # self.address = '192.168.41.66'
-    # self.port = 22
-    # self.username = 'quali'
-    # self.password = 'quali1234'
-
+            pwd = self.ftp.pwd()
+            if pwd != destination_dir:
+                self.ftp.cwd(destination_dir)
+            file_name = file_path[file_idx+1:]
+            self.ftp.delete(file_name)
+        except Exception as e:
+            self.sandbox.report_error("Failed to delete file " + file_path +
+                                      ". Error is: " + str(e), write_to_output_window=False, raise_error=True)

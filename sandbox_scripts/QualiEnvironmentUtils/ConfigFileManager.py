@@ -41,7 +41,10 @@ class ConfigFileManager:
             it = re.finditer(r"\{Device.Self\.[^}]*\}", concrete_config_data,flags=re.IGNORECASE)
             for match in it:
                 param = match.group()
-                param_val = resource.get_attribute(param)
+                idx = param.rfind('.')+1
+                att_name = param[idx:len(param)-1]
+                param_val = resource.get_attribute(att_name)
+                #param_val = resource.get_attribute(param)
                 concrete_config_data = concrete_config_data.replace(param, param_val)
 
             # TODO - Implement replacemant of params from types: {Device.NAME.Attribute_name}

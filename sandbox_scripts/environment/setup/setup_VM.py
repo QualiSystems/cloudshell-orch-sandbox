@@ -12,21 +12,24 @@ class EnvironmentSetupVM(object):
         self.logger = get_qs_logger(log_file_prefix="CloudShell Sandbox Setup",
                                     log_group=self.reservation_id,
                                     log_category='Setup')
+        self.is_snapshot = False
 
     #@profileit(scriptName='Setup')
     def execute(self):
         api = helpers.get_api_session()
 
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                            message='Beginning resources power On Inga!!')
+                                            message='Beginning resources power On')
 
         reservation_details = api.GetReservationDetails(self.reservation_id)
 
         sandbox = SandboxBase(self.reservation_id, self.logger)
         saveNRestoreTool = NetworkingSaveRestore(sandbox)
+        if saveNRestoreTool.get_storage_client():
+            if saveNRestoreTool.is_snapshot():
+                self.is_snapshot = True
 
-        if saveNRestoreTool.is_snapshot():
-            self._run_async_power_on_refresh_ip_install(api,reservation_details)
+        self._run_async_power_on_refresh_ip_install(api,reservation_details)
 
        # self._run_async_power_on_refresh_ip_install(api,reservation_details)
 
@@ -42,16 +45,12 @@ class EnvironmentSetupVM(object):
         """
         # filter out resources not created in this reservation
 
-        api.WriteMessageToReservationOutput(
-                reservationId=self.reservation_id,
-                message='Start power on!! Inga!')
-
         resources = reservation_details.ReservationDescription.Resources
 
         if len(resources) == 0:
             api.WriteMessageToReservationOutput(
                 reservationId=self.reservation_id,
-                message='No resources to power on or install Inga')
+                message='No resources to power on or install')
             return
 
         pool = ThreadPool(len(resources))
@@ -61,7 +60,6 @@ class EnvironmentSetupVM(object):
             "wait_for_ip": False,
             "install": False
             }
-
         async_results = [pool.apply_async(self._power_on_refresh_ip,
                                           (api,lock, message_status, resource))
                          for resource in resources]
@@ -92,12 +90,19 @@ class EnvironmentSetupVM(object):
         vm_details = resource_details.VmDetails
 
         if not hasattr(vm_details, "UID"):
-            self.logger.debug("Resource {0} is not a deployed app, nothing to do with it".format(deployed_app_name))
+            #self.logger.debug("Resource {0} is not a app, nothing to do with it".format(deployed_app_name))
             return True, ""
 
         power_on = "true"
         wait_for_ip = "true"
-        install = "true"
+
+        if resource.ResourceModelName.lower() =="vcenter static vm":
+            self.logger.debug("Resource {0} is a static app".format(deployed_app_name))
+            wait_for_ip = "false"
+
+        elif not self.is_snapshot:
+            return True, ""
+
 
         try:
             self._power_on(api, deployed_app_name, power_on, lock, message_status)
@@ -107,7 +112,8 @@ class EnvironmentSetupVM(object):
             return False, "Error powering on deployed app {0}".format(deployed_app_name)
 
         try:
-            self._wait_for_ip(api, deployed_app_name, wait_for_ip, lock, message_status)
+            if resource.ResourceModelName.lower() !="vCenter Static VM":
+                self._wait_for_ip(api, deployed_app_name, wait_for_ip, lock, message_status)
         except Exception as exc:
             self.logger.error("Error refreshing IP on deployed app {0} in reservation {1}. Error: {2}"
                               .format(deployed_app_name, self.reservation_id, str(exc)))
@@ -117,6 +123,7 @@ class EnvironmentSetupVM(object):
 
 
     def _wait_for_ip(self, api, deployed_app_name, wait_for_ip, lock, message_status):
+
         if wait_for_ip.lower() == "true":
 
             if not message_status['wait_for_ip']:
@@ -125,7 +132,7 @@ class EnvironmentSetupVM(object):
                         message_status['wait_for_ip'] = True
                         api.WriteMessageToReservationOutput(
                             reservationId=self.reservation_id,
-                            message='Waiting for apps IP addresses, this may take a while...Inga')
+                            message='Waiting for apps IP addresses, this may take a while...')
 
             self.logger.info("Executing 'Refresh IP' on deployed app {0} in reservation {1}"
                              .format(deployed_app_name, self.reservation_id))
@@ -141,25 +148,20 @@ class EnvironmentSetupVM(object):
 
         api.WriteMessageToReservationOutput(
                             reservationId=self.reservation_id,
-                            message="Executing 111 'Power On' on deployed app {0} in reservation {1} Inga"
-                                .format(deployed_app_name, self.reservation_id))
-        self.logger.info("Executing 111 'Power On' on deployed app {0} in reservation {1}"
+                            message="Executing 'Power On' on deployed app {0} "
+                                .format(deployed_app_name))
+        self.logger.info("Executing 'Power On' on deployed app {0} in reservation {1}"
                              .format(deployed_app_name, self.reservation_id))
 
         if power_on.lower() == "true":
 
-            api.WriteMessageToReservationOutput(
-                            reservationId=self.reservation_id,
-                            message="Executing 222 'Power On' on deployed app {0} in reservation {1} Inga"
-                                .format(deployed_app_name, self.reservation_id))
-
-            self.logger.info("Executing 222 'Power On' on deployed app {0} in reservation {1}"
+            self.logger.info("Executing 'Power On' on deployed app {0} in reservation {1}"
                              .format(deployed_app_name, self.reservation_id))
             with lock:
                 if not message_status['power_on']:
                     message_status['power_on'] = True
                     api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                            message='Apps are powering on... Inga')
+                                                            message='Apps are powering on... ')
 
             api.ExecuteResourceConnectedCommand(self.reservation_id, deployed_app_name, "PowerOn", "power")
 

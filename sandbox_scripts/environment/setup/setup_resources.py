@@ -3,7 +3,7 @@ from sandbox_scripts.QualiEnvironmentUtils.Sandbox import *
 from sandbox_scripts.QualiEnvironmentUtils.Networking.NetworkingSaveNRestore import *
 from sandbox_scripts.QualiEnvironmentUtils.Networking.NetworkingHealthCheck import *
 from sandbox_scripts.profiler.env_profiler import profileit
-
+from sandbox_scripts.QualiEnvironmentUtils.Networking.VCenterSaveNRestore import *
 
 class EnvironmentSetupResources(object):
     def __init__(self):
@@ -17,6 +17,12 @@ class EnvironmentSetupResources(object):
         sandbox = SandboxBase(self.reservation_id, self.logger)
         saveNRestoreTool = NetworkingSaveRestore(sandbox)
 
+        api = helpers.get_api_session()
+
+        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                            message='Beginning resources config load')
+
+
         try:
             sandbox.clear_all_resources_live_status()
 
@@ -27,13 +33,21 @@ class EnvironmentSetupResources(object):
             except:
                 pass
             ignore_models=['Generic TFTP server', 'Config Set Pool','Generic FTP server','netscout switch 3912']
-            if saveNRestoreTool.is_snapshot():
-                saveNRestoreTool.load_config(config_stage='Snapshots', config_type='Running',
+
+            if saveNRestoreTool.get_storage_client():
+
+
+                if saveNRestoreTool.is_snapshot():
+                    saveNRestoreTool.load_config(config_stage='Snapshots', config_type='Running',
                                              ignore_models=ignore_models)
-            else:
-                saveNRestoreTool.load_config(config_stage='Gold', config_type='Running',
+
+                else:
+                    saveNRestoreTool.load_config(config_stage='Gold', config_type='Running',
                                              ignore_models=ignore_models,
                                              config_set_name=config_set_name)
+
+            # power on Vms that might be powered off because of the snapshot configuration
+            sandbox.power_on_vms()
 
             # call activate_all_routes_and_connectors
             sandbox.activate_all_routes_and_connectors()
