@@ -18,7 +18,7 @@ class EnvironmentTeardown:
                                               log_group=self.reservation_id,
                                               log_category='Teardown')
 
-    @profileit(scriptName="Teardown")
+    #profileit(scriptName="Teardown")
     def execute(self):
         api = helpers.get_api_session()
         reservation_details = api.GetReservationDetails(self.reservation_id)

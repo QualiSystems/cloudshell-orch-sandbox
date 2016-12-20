@@ -21,7 +21,7 @@ class EnvironmentSetup(object):
                                     log_group=self.reservation_id,
                                     log_category='Setup')
 
-    @profileit(scriptName='Setup')
+    #@profileit(scriptName='Setup')
     def execute(self):
         api = helpers.get_api_session()
         resource_details_cache = {}
@@ -205,6 +205,7 @@ class EnvironmentSetup(object):
             "power_on": False,
             "wait_for_ip": False,
             "install": False
+
         }
 
         async_results = [pool.apply_async(self._power_on_refresh_ip_install,
