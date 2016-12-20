@@ -76,7 +76,7 @@ class StorageClient(object):
     def delete(self, file_path):
         raise NotImplementedError('subclasses must override delete()!')
     @abstractmethod
-    def create_src_file_on_tftp(self,win_path,write_to_output=True):
+    def create_src_file_on_storage(self,win_path,write_to_output=True):
         raise NotImplementedError('subclasses must override create_src_file_on_tftp()!')
     @abstractmethod
     def save_artifact_info(self,saved_artifact_info,env_dir,dest_name,write_to_output=True):
@@ -327,19 +327,17 @@ class TFTPClient(StorageClient):
 
     # ----------------------------------
     # ----------------------------------
-    def create_src_file_on_tftp(self,win_path,write_to_output=True):
+    def create_src_file_on_storage(self,win_path,write_to_output=True):
         #creating new file on tftp with the sandbox id name to indicate that this topology was saved as snapshot
 
        #Src
         #tmp_file = "C:\\tmp.txt"
         tmp_file = "C:\\tmp" + self.sandbox.id + ".txt"
-
         src_path = tmp_file.replace("\\","/")
-
         #destination
-        snapshot_resource_name = "Snapshot_"+self.sandbox.id
+        snapshot_source_name = "Snapshot_"+self.sandbox.id
         head,tail = os.path.split(win_path)
-        path = head + '/' + snapshot_resource_name +".txt"
+        path = head + '/' + snapshot_source_name +".txt"
         path = path.replace("\\","/")
 
         try:
@@ -362,9 +360,7 @@ class TFTPClient(StorageClient):
 
         #tmpfile = "data.json"
         tmpfile = "data" + self.sandbox.id + ".json"
-
         win_path = self._remove_header(env_dir)
-
         new_config_path = win_path + '/' + dest_name
         new_config_path = new_config_path.replace("\\","/")
 
@@ -405,10 +401,7 @@ class TFTPClient(StorageClient):
             #self.download(new_config_path, tmpfile)
             with open(tmpfile,'r') as outfile:
                 data = json.load(outfile)
-
             #os.remove(tmpfile)
-
-
         except:
             #if os.path.isfile(tmpfile):
              #   os.remove(tmpfile)
@@ -523,9 +516,36 @@ class FTPClient(StorageClient):
             self.ftp.login(self.username, self.password)
             dir_name = self._remove_header(env_dir)
             self.ftp.mkd(dir_name)
+
         except Exception as e:
             self.sandbox.report_error("Failed to create dir " + dir_name +
                                       " on  the FTP server. Error is: " + str(e), write_to_output_window=False, raise_error=True)
+
+        self.create_src_file_on_tftp(env_dir, write_to_output)
+    # -----------------------------------
+    # -----------------------------------
+    def create_src_file_on_storage(self, env_dir, write_to_output=True):
+
+        try:
+            snapshot_source_name = "Snapshot_" + self.sandbox.id
+            head, tail = os.path.split(env_dir)
+            path = head + '/' + snapshot_source_name + ".txt"
+
+            tmp_file = tempfile.NamedTemporaryFile(delete=False)
+            tf = file(tmp_file.name, 'wb+')
+            tf.write('1')
+            tf.flush()
+            tf.close()
+
+            self.upload(path, tmp_file.name)
+            tmp_file.close()
+            os.unlink(tmp_file.name)
+
+        except Exception as e:
+            self.sandbox.report_error("Failed to create file " + snapshot_source_name +
+                                      " on  the FTP server. Error is: " + str(e), write_to_output_window=False,
+                                      raise_error=True)
+
     # -----------------------------------
     # -----------------------------------
     def rename_file(self, file_path, new_name):
@@ -572,3 +592,47 @@ class FTPClient(StorageClient):
         except Exception as e:
             self.sandbox.report_error("Failed to delete file " + file_path +
                                       ". Error is: " + str(e), write_to_output_window=False, raise_error=True)
+
+
+    # ----------------------------------
+    # ----------------------------------
+    def save_artifact_info(self, saved_artifact_info, file_path, dest_name, write_to_output=True):
+
+        try:
+            file_path = self._remove_header(file_path)
+            new_config_path = file_path + '/' + dest_name
+
+            tmp_file = tempfile.NamedTemporaryFile(delete=False)
+            tf = file(tmp_file.name, 'wb+')
+            json.dump(saved_artifact_info, tf)
+            tf.flush()
+            tf.close()
+            self.upload(new_config_path, tmp_file.name)
+            tmp_file.close()
+            os.unlink(tmp_file.name)
+
+        except:
+            err = 'saved artifact info failed '
+            self.sandbox.report_error(err, write_to_output_window=write_to_output)
+
+    # ----------------------------------
+    # ----------------------------------
+
+    def download_artifact_info(self, file_path, dest_name, write_to_output=True):
+
+        tmp_file = tempfile.NamedTemporaryFile(delete=False)
+        data = None
+
+        file_path = self._remove_header(file_path)
+        head, tail = os.path.split(file_path)
+        new_config_path = head + '/' + dest_name
+
+        try:
+            self.download(str(new_config_path), tmp_file)
+            with open(tmp_file, 'r') as outfile:
+                data = json.load(outfile)
+
+        except:
+            err = 'download artifact info failed '
+
+        return data

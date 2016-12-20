@@ -3,7 +3,7 @@ from sandbox_scripts.QualiEnvironmentUtils.Sandbox import *
 from sandbox_scripts.QualiEnvironmentUtils.Networking.NetworkingSaveNRestore import *
 from sandbox_scripts.QualiEnvironmentUtils.Networking.NetworkingHealthCheck import *
 from sandbox_scripts.profiler.env_profiler import profileit
-from sandbox_scripts.QualiEnvironmentUtils.Networking.VCenterSaveNRestore import *
+
 
 class EnvironmentSetupResources(object):
     def __init__(self):
