@@ -34,6 +34,7 @@ class EnvironmentTeardownVM:
         if saveNRestoreTool.get_storage_client():
             if saveNRestoreTool.is_snapshot(filename):
                 is_snapshot = True
+                saveNRestoreTool.delete_src_file(filename)
             else: #if this is a snapshot we look it by blueprint name
                 if saveNRestoreTool.is_snapshot():
                     is_snapshot = True

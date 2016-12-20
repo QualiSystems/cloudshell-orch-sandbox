@@ -228,8 +228,6 @@ class TFTPClient(StorageClient):
             rv = subprocess.check_output(ia, stderr=subprocess.STDOUT)
             #print ' psexec result for mkdir: ' + str(rv).replace('\r\n', '\n')
 
-
-
         except Exception as e:
             if hasattr(e, 'output'):
                 ou = str(e.output)
@@ -240,15 +238,102 @@ class TFTPClient(StorageClient):
 
         self.create_src_file_on_tftp(env_dir,write_to_output)
 
+    #-----------------------------------
+    #-----------------------------------
+    def delete(self, file_path):
+        """
+		Delete file from the tftp server
+		:param str file_path:  The path to the file on the ftp server
+		"""
+        try:
+            win_path = self._remove_header(file_path)
+            new_config_path = self.tftp_root_dir + '\\' + win_path
+            new_config_path = new_config_path.replace('/', "\\")
+
+            self.tftp_psexe = self.tftp_psexe.replace('/', '\\')
+            pspath = self.tftp_psexe + '\psexec.exe'
+            user = self.username
+            password = self.password
+
+            command_array = ['cmd', '/c', 'del ', new_config_path]
+
+            interactive = True
+
+            ia = [
+                     pspath,
+                     '\\\\' + self.address,
+                     '/accepteula',
+                     '-u',
+                     user,
+                     '-p',
+                     password,
+                     '-h'
+                 ] + (['-i', '0'] if interactive else []) + command_array
+
+            #   self.sandbox.report_info('delete file: ' +  new_config_path, write_to_output)
+            rv = subprocess.check_output(ia, stderr=subprocess.STDOUT)
+
+        except Exception as e:
+            if hasattr(e, 'output'):
+                ou = str(e.output)
+            else:
+                ou = 'no output'
+                err = 'psexec failed: ' + str(e).replace('\r\n', '\n') + ': ' + ou.replace('\r\n', '\n')
+                self.sandbox.report_error(err, write_to_output_window=True)
+
+    # ----------------------------------
+    # ----------------------------------
+    def rename_file(self, file_path, new_name):
+        """
+        Rename file from the ftp server
+        :param str file_path:  The path to the file on the ftp server
+        """
+        try:
+            win_path = self._remove_header(file_path)
+            new_config_path = self.tftp_root_dir + '\\' + win_path
+            new_config_path = new_config_path.replace('/', "\\")
+
+            self.tftp_psexe = self.tftp_psexe.replace('/', '\\')
+            pspath = self.tftp_psexe + '\psexec.exe'
+            user = self.username
+            password = self.password
+
+            command_array = ['cmd', '/c', 'ren ', new_config_path,new_name]
+
+            interactive = True
+
+            ia = [
+                     pspath,
+                     '\\\\' + self.address,
+                     '/accepteula',
+                     '-u',
+                     user,
+                     '-p',
+                     password,
+                     '-h'
+                 ] + (['-i', '0'] if interactive else []) + command_array
+
+            #   self.sandbox.report_info('rename file: ' +  new_config_path, write_to_output)
+            rv = subprocess.check_output(ia, stderr=subprocess.STDOUT)
+
+
+        except Exception as e:
+            if hasattr(e, 'output'):
+                ou = str(e.output)
+            else:
+                ou = 'no output'
+                err = 'psexec failed: ' + str(e).replace('\r\n', '\n') + ': ' + ou.replace('\r\n', '\n')
+                self.sandbox.report_error(err, write_to_output_window=True)
+
     # ----------------------------------
     # ----------------------------------
     def create_src_file_on_tftp(self,win_path,write_to_output=True):
-        #creating new file
+        #creating new file on tftp with the sandbox id name to indicate that this topology was saved as snapshot
 
-        #Src
-        #tmp_file = "C:\Quali\\tmp.txt"
-        tmp_file = "C:\\tmp.txt"
-        #tmp_file = "tmp.txt"
+       #Src
+        #tmp_file = "C:\\tmp.txt"
+        tmp_file = "C:\\tmp" + self.sandbox.id + ".txt"
+
         src_path = tmp_file.replace("\\","/")
 
         #destination
@@ -275,7 +360,8 @@ class TFTPClient(StorageClient):
     # ----------------------------------
     def save_artifact_info(self,saved_artifact_info,env_dir,dest_name,write_to_output=True):
 
-        tmpfile = "data.json"
+        #tmpfile = "data.json"
+        tmpfile = "data" + self.sandbox.id + ".json"
 
         win_path = self._remove_header(env_dir)
 
@@ -283,12 +369,6 @@ class TFTPClient(StorageClient):
         new_config_path = new_config_path.replace("\\","/")
 
         try:
-            #tmp_file = tempfile.NamedTemporaryFile(delete=True)
-            #tf = file(tmp_file.name, 'w')
-            #with open(tmp_file.name, 'w+') as outfile:
-            #json.dump(saved_artifact_info,tf)
-
-            #self.upload(new_config_path,tmp_file.name)
 
             with open(tmpfile, 'w+') as outfile:
                 json.dump(saved_artifact_info,outfile)
@@ -305,7 +385,8 @@ class TFTPClient(StorageClient):
 
     def download_artifact_info(self,env_dir,dest_name,write_to_output=True):
 
-        tmpfile = "data.json"
+       #tmpfile = "data.json"
+        tmpfile = "data" + self.sandbox.id + ".json"
         data = None
 
         win_path = self._remove_header(env_dir)
