@@ -30,6 +30,8 @@ class EnvironmentTeardownResources:
                              'OnPATH Switch 3903', 'Ixia Traffic generator']
                 saveNRestoreTool.load_config(config_stage='Base', config_type='Running',
                                          ignore_models=ignore_models, remove_temp_files=True, in_teardown_mode=True)
+
+
         except QualiError as qe:
             self.logger.error("Teardown failed. " + str(qe))
         except:

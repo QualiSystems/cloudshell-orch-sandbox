@@ -358,6 +358,15 @@ class NetworkingSaveRestore(object):
         return self.storage_client.dir_exist(env_dir)
 
     # ----------------------------------
+    # delete file name on storage
+    # ----------------------------------
+    def delete_src_file(self,fileName):
+
+        env_dir = self.config_files_root + '/Snapshots/' + fileName
+        env_dir = env_dir.replace(' ', '_')
+        self.storage_client.delete(env_dir)
+
+    # ----------------------------------
     # Check if need to load configuration to the given device
     # A device should not be in the ignored models list,
     # or should not have a "Disable Load Config" attribute set to True
