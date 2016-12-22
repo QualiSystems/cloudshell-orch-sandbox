@@ -516,12 +516,12 @@ class FTPClient(StorageClient):
             self.ftp.login(self.username, self.password)
             dir_name = self._remove_header(env_dir)
             self.ftp.mkd(dir_name)
-
+            self.create_src_file_on_storage(env_dir, write_to_output)
         except Exception as e:
             self.sandbox.report_error("Failed to create dir " + dir_name +
                                       " on  the FTP server. Error is: " + str(e), write_to_output_window=False, raise_error=True)
 
-        self.create_src_file_on_tftp(env_dir, write_to_output)
+
     # -----------------------------------
     # -----------------------------------
     def create_src_file_on_storage(self, env_dir, write_to_output=True):
@@ -620,17 +620,19 @@ class FTPClient(StorageClient):
 
     def download_artifact_info(self, file_path, dest_name, write_to_output=True):
 
-        tmp_file = tempfile.NamedTemporaryFile(delete=False)
         data = None
-
         file_path = self._remove_header(file_path)
         head, tail = os.path.split(file_path)
         new_config_path = head + '/' + dest_name
 
         try:
+            tmp_file = tempfile.NamedTemporaryFile(delete=False)
             self.download(str(new_config_path), tmp_file)
             with open(tmp_file, 'r') as outfile:
                 data = json.load(outfile)
+
+            tmp_file.close()
+            os.unlink(tmp_file.name)
 
         except:
             err = 'download artifact info failed '
