@@ -40,7 +40,8 @@ class EnvironmentTeardown:
         connectors = reservation_details.ReservationDescription.Connectors
         endpoints = []
         for endpoint in connectors:
-            if endpoint.Target and endpoint.Source:
+            if endpoint.State in ['Connected', 'PartiallyConnected'] \
+                    and endpoint.Target and endpoint.Source:
                 endpoints.append(endpoint.Target)
                 endpoints.append(endpoint.Source)
 
