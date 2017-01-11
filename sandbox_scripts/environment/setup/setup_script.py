@@ -49,11 +49,13 @@ class EnvironmentSetup(object):
                                                 reservation_id=self.reservation_id,
                                                 resource_details_cache=resource_details_cache)
 
-        self._run_async_power_on_refresh_ip_install(api=api,
-                                                    reservation_details=reservation_details,
-                                                    deploy_results=deploy_result,
-                                                    resource_details_cache=resource_details_cache,
-                                                    reservation_id=self.reservation_id)
+        self._run_async_power_on_refresh_ip(api=api,
+                                            reservation_details=reservation_details,
+                                            deploy_results=deploy_result,
+                                            resource_details_cache=resource_details_cache,
+                                            reservation_id=self.reservation_id)
+
+        self._configure_apps(api=api, reservation_id=self.reservation_id)
 
         self.logger.info("Setup for reservation {0} completed".format(self.reservation_id))
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
@@ -180,7 +182,7 @@ class EnvironmentSetup(object):
         res = api.ConnectRoutesInReservation(self.reservation_id, endpoints, 'bi')
         return res
 
-    def _run_async_power_on_refresh_ip_install(self, api, reservation_details, deploy_results, resource_details_cache,
+    def _run_async_power_on_refresh_ip(self, api, reservation_details, deploy_results, resource_details_cache,
                                                reservation_id):
         """
         :param CloudShellAPISession api:
@@ -195,7 +197,7 @@ class EnvironmentSetup(object):
         if len(resources) == 0:
             api.WriteMessageToReservationOutput(
                 reservationId=self.reservation_id,
-                message='No resources to power on or install')
+                message='No resources to power on')
             self._validate_all_apps_deployed(deploy_results)
             return
 
@@ -203,11 +205,10 @@ class EnvironmentSetup(object):
         lock = Lock()
         message_status = {
             "power_on": False,
-            "wait_for_ip": False,
-            "install": False
+            "wait_for_ip": False
         }
 
-        async_results = [pool.apply_async(self._power_on_refresh_ip_install,
+        async_results = [pool.apply_async(self._power_on_refresh_ip,
                                           (api, lock, message_status, resource, deploy_results, resource_details_cache))
                          for resource in resources]
 
@@ -221,13 +222,28 @@ class EnvironmentSetup(object):
 
         self._validate_all_apps_deployed(deploy_results)
 
+    def _configure_apps(self, api, reservation_id):
+        """
+        :param CloudShellAPISession api:
+        :param str reservation_id:
+        :return:
+        """
+
+        try:
+            api.WriteMessageToReservationOutput(reservationId=reservation_id, message='Apps are being configured ...')
+            configuration_result = api.ConfigureApps(reservationId=reservation_id)
+            self.logger.debug("Configuration result: " + configuration_result.Output) # Output is property ApiCommandResult
+        except Exception as ex:
+            self.logger.exception("Error configuring deployed apps. Error: ")
+            raise
+
     def _validate_all_apps_deployed(self, deploy_results):
         if deploy_results is not None:
             for deploy_res in deploy_results.ResultItems:
                 if not deploy_res.Success:
                     raise Exception("Reservation is Active with Errors - " + deploy_res.Error)
 
-    def _power_on_refresh_ip_install(self, api, lock, message_status, resource, deploy_result, resource_details_cache):
+    def _power_on_refresh_ip(self, api, lock, message_status, resource, deploy_result, resource_details_cache):
         """
         :param CloudShellAPISession api:
         :param Lock lock:
@@ -288,44 +304,7 @@ class EnvironmentSetup(object):
                               .format(deployed_app_name, self.reservation_id, str(exc)))
             return False, "Error refreshing IP deployed app {0}. Error: {1}".format(deployed_app_name, exc.message)
 
-        try:
-            self._install(api, deployed_app_data, deployed_app_name, lock, message_status)
-        except Exception as exc:
-            self.logger.error("Error installing deployed app {0} in reservation {1}. Error: {2}"
-                              .format(deployed_app_name, self.reservation_id, str(exc)))
-            return False, "Error installing deployed app {0}. Error: {1}".format(deployed_app_name, str(exc))
-
         return True, ""
-
-    def _install(self, api, deployed_app_data, deployed_app_name, lock, message_status):
-        installation_info = None
-        if deployed_app_data:
-            installation_info = deployed_app_data.AppInstallationInfo
-        else:
-            self.logger.info("Cant execute installation script for deployed app {0} - No deployment data"
-                             .format(deployed_app_name))
-            return
-
-        if installation_info and hasattr(installation_info, "ScriptCommandName"):
-            self.logger.info("Executing installation script {0} on deployed app {1} in reservation {2}"
-                             .format(installation_info.ScriptCommandName, deployed_app_name, self.reservation_id))
-
-            if not message_status['install']:
-                with lock:
-                    if not message_status['install']:
-                        message_status['install'] = True
-                        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                            message='Apps are installing...')
-
-            script_inputs = []
-            for installation_script_input in installation_info.ScriptInputs:
-                script_inputs.append(
-                    InputNameValue(installation_script_input.Name, installation_script_input.Value))
-
-            installation_result = api.InstallApp(self.reservation_id, deployed_app_name,
-                                                 installation_info.ScriptCommandName, script_inputs)
-
-            self.logger.debug("Installation_result: " + installation_result.Output)
 
     def _wait_for_ip(self, api, deployed_app_name, wait_for_ip, lock, message_status):
         if wait_for_ip.lower() == "true":
