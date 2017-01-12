@@ -183,7 +183,7 @@ class EnvironmentSetup(object):
         return res
 
     def _run_async_power_on_refresh_ip(self, api, reservation_details, deploy_results, resource_details_cache,
-                                               reservation_id):
+                                       reservation_id):
         """
         :param CloudShellAPISession api:
         :param GetReservationDescriptionResponseInfo reservation_details:
@@ -232,17 +232,26 @@ class EnvironmentSetup(object):
         try:
             api.WriteMessageToReservationOutput(reservationId=reservation_id, message='Apps are being configured ...')
             configuration_result = api.ConfigureApps(reservationId=reservation_id)
-            if not configuration_result.Success:
-                for conf_res in configuration_result.ResultItems:
-                    if conf_res.Success:
-                        message = "App '{0}' configured successfully".format(conf_res.AppName)
-                        self.logger.info(message)
-                    else:
-                        message = "App '{0}' configuration failed due to {1}".format(conf_res.AppName,
-                                                                                     conf_res.Error)
-                        self.logger.error(message)
-                raise Exception("Configuration of apps failed see logs")
-            api.WriteMessageToReservationOutput(reservationId=reservation_id, message='All apps were configured successfully ...')
+
+            failed_apps = []
+            for conf_res in configuration_result.ResultItems:
+                if conf_res.Success:
+                    message = "App '{0}' configured successfully".format(conf_res.AppName)
+                    self.logger.info(message)
+                else:
+                    message = "App '{0}' configuration failed due to {1}".format(conf_res.AppName,
+                                                                                 conf_res.Error)
+                    self.logger.error(message)
+                    failed_apps.append(conf_res.AppName)
+
+            if not failed_apps:
+                api.WriteMessageToReservationOutput(reservationId=reservation_id, message=
+                'Apps were configured successfully.')
+            else:
+                api.WriteMessageToReservationOutput(reservationId=reservation_id, message=
+                'Apps: {0} configuration failed. See logs for more details'.format(
+                    ",".join(failed_apps)))
+                raise Exception("Configuration of apps failed see logs.")
         except Exception as ex:
             self.logger.error("Error configuring apps. Error: {0}".format(str(ex)))
             raise
