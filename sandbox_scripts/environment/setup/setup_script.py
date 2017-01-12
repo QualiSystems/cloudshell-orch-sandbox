@@ -232,9 +232,19 @@ class EnvironmentSetup(object):
         try:
             api.WriteMessageToReservationOutput(reservationId=reservation_id, message='Apps are being configured ...')
             configuration_result = api.ConfigureApps(reservationId=reservation_id)
-            self.logger.debug("Configuration result: " + configuration_result.Output) # Output is property ApiCommandResult
+            if not configuration_result.Success:
+                for conf_res in configuration_result.ResultItems:
+                    if conf_res.Success:
+                        message = "App '{0}' configured successfully".format(conf_res.AppName)
+                        self.logger.info(message)
+                    else:
+                        message = "App '{0}' configuration failed due to {1}".format(conf_res.AppName,
+                                                                                     conf_res.Error)
+                        self.logger.error(message)
+                raise Exception("Configuration of apps failed see logs")
+            api.WriteMessageToReservationOutput(reservationId=reservation_id, message='All apps were configured successfully ...')
         except Exception as ex:
-            self.logger.exception("Error configuring deployed apps. Error: ")
+            self.logger.error("Error configuring apps. Error: {0}".format(str(ex)))
             raise
 
     def _validate_all_apps_deployed(self, deploy_results):
