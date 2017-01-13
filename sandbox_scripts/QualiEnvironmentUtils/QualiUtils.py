@@ -7,4 +7,4 @@ class QualiError(Exception):
         self.name = name
 
     def __str__(self):
-        return 'CloudShell error at ' + self.name + '. Error is:' + self.message
+        return 'CloudShell error at ' + self.name + '. Error is: ' + self.message

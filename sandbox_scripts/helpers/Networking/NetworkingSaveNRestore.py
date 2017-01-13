@@ -11,17 +11,6 @@ from sandbox_scripts.QualiEnvironmentUtils.ConfigPoolManager import *
 from sandbox_scripts.QualiEnvironmentUtils.StorageManager import StorageManager
 
 
-class image_struct:
-    def __init__(self, path, version):
-        self.path = path
-        self.version = version
-
-class load_result_struct:
-    def __init__(self, resource_name):
-        self.run_result = True
-        self.resource_name = resource_name
-        self.message = ""
-
 class NetworkingSaveRestore(object):
     def __init__(self, sandbox):
         """
@@ -415,3 +404,15 @@ class NetworkingSaveRestore(object):
     # ----------------------------------
     def get_storage_client(self):
         return self.storage_client
+
+class image_struct:
+    def __init__(self, path, version):
+        self.path = path
+        self.version = version
+
+class load_result_struct:
+    def __init__(self, resource_name):
+        self.run_result = True
+        self.resource_name = resource_name
+        self.message = ""
+

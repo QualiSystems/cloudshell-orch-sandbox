@@ -1,9 +1,11 @@
 # coding=utf-8
-from sandbox_scripts.QualiEnvironmentUtils.Sandbox import *
-from sandbox_scripts.QualiEnvironmentUtils.Networking.NetworkingSaveNRestore import *
-from sandbox_scripts.QualiEnvironmentUtils.Networking.NetworkingHealthCheck import *
-from sandbox_scripts.profiler.env_profiler import profileit
-
+#from sandbox_scripts.helpers.Networking.NetworkingHealthCheck import *
+from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
+from sandbox_scripts.helpers.Networking.NetworkingSaveNRestore import NetworkingSaveRestore
+from sandbox_scripts.QualiEnvironmentUtils.Sandbox import SandboxBase
+from cloudshell.core.logger.qs_logger import get_qs_logger
+from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
+import os, sys
 
 class EnvironmentSetupResources(object):
     def __init__(self):
@@ -12,7 +14,6 @@ class EnvironmentSetupResources(object):
                                     log_group=self.reservation_id,
                                     log_category='Setup')
 
-    #@profileit(scriptName='Setup')
     def execute(self):
         sandbox = SandboxBase(self.reservation_id, self.logger)
         saveNRestoreTool = NetworkingSaveRestore(sandbox)
@@ -35,11 +36,9 @@ class EnvironmentSetupResources(object):
             ignore_models=['Generic TFTP server', 'Config Set Pool','Generic FTP server','netscout switch 3912']
 
             if saveNRestoreTool.get_storage_client():
-
-
                 if saveNRestoreTool.is_snapshot():
                     saveNRestoreTool.load_config(config_stage='Snapshots', config_type='Running',
-                                             ignore_models=ignore_models)
+                                                 ignore_models=ignore_models)
 
                 else:
                     saveNRestoreTool.load_config(config_stage='Gold', config_type='Running',
