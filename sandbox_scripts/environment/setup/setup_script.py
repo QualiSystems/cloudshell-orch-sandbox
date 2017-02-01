@@ -228,10 +228,13 @@ class EnvironmentSetup(object):
         :param str reservation_id:
         :return:
         """
-
+        self.logger.info('App configuration started ...')
         try:
-            api.WriteMessageToReservationOutput(reservationId=reservation_id, message='Apps are being configured ...')
             configuration_result = api.ConfigureApps(reservationId=reservation_id)
+
+            if not configuration_result.ResultItems:
+                api.WriteMessageToReservationOutput(reservationId=reservation_id, message='No apps to configure')
+                return
 
             failed_apps = []
             for conf_res in configuration_result.ResultItems:
