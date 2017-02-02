@@ -165,7 +165,8 @@ class SandboxBase(object):
                     bi_endpoints.append(endpoint.Target)
                     bi_endpoints.append(endpoint.Source)
             if not bi_endpoints:
-                self.report_info(message="No connectors to connect for reservation {0}".format(self.id))
+                self.report_info(message="No connectors to connect for reservation {0}".format(self.id),
+                                 write_to_output_window=write_to_output)
                 return
             self.api_session.ConnectRoutesInReservation(self.id, bi_endpoints, 'bi')
             self.report_info(message="Connectors connected", write_to_output_window=write_to_output)
@@ -198,7 +199,8 @@ class SandboxBase(object):
                         uni_endpoints.append(route_endpoint.Target)
 
             if not bi_endpoints and not uni_endpoints:
-                self.report_info(message="No routes to connect for reservation {0}".format(self.id))
+                self.report_info(message="No routes to connect for reservation {0}".format(self.id),
+                                 write_to_output_window=write_to_output)
                 return
             if bi_endpoints:
                 self.api_session.ConnectRoutesInReservation(self.id, bi_endpoints, 'bi')
@@ -234,9 +236,8 @@ class SandboxBase(object):
     # -----------------------------------------
     # -----------------------------------------
     def save_sandbox_as_blueprint(self, blueprint_name, write_to_output=True):
-        snapshot_exist = True
-
         try:
+            #TODO - fullpath should be passed as a param to the function and not hard coded
             # save the current Sandbox as a new Blueprint with the given snapshot name
             fullpath = 'Snapshots'
             self.api_session.SaveReservationAsTopology(self.id, topologyName=blueprint_name,folderFullPath=fullpath, includeInactiveRoutes=True)
