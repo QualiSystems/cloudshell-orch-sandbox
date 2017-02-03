@@ -1,8 +1,8 @@
 #TODO: implement this file/move code from NetworkSaveNResource
 from sandbox_scripts.QualiEnvironmentUtils.StorageManager import StorageManager
 from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
-
-class NetworkingSaveRestore(object):
+'''
+class SnapshotManager(object):
     def __init__(self, storage_client):
         self.storage_client = storage_client
         self.config_files_root = self.storage_client.get_configs_root()
@@ -33,3 +33,4 @@ class NetworkingSaveRestore(object):
         env_dir = self.config_files_root + '/Snapshots/' + snapshot_name.strip()
         if not self.storage_client.dir_exist(env_dir):
             self.storage_client.create_dir(env_dir, write_to_output=True)
+'''
