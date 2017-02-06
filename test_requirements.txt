@@ -1,0 +1,7 @@
+nose
+coverage
+unittest2
+mock
+jsonpickle
+nose-exclude
+coveralls
