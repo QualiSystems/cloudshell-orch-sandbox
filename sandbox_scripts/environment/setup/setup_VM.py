@@ -1,9 +1,5 @@
-from multiprocessing.pool import ThreadPool
-from threading import Lock
-from sandbox_scripts.profiler.env_profiler import profileit
-from sandbox_scripts.QualiEnvironmentUtils.Networking.NetworkingSaveNRestore import *
-from cloudshell.core.logger import qs_logger
-from sandbox_scripts.helpers.resource_helpers import *
+from sandbox_scripts.helpers.Networking.NetworkingSaveNRestore import *
+
 
 class EnvironmentSetupVM(object):
 
@@ -24,6 +20,7 @@ class EnvironmentSetupVM(object):
         reservation_details = api.GetReservationDetails(self.reservation_id)
 
         sandbox = SandboxBase(self.reservation_id, self.logger)
+        #TODO: don't use networking save and restore to figure if it's a snapshot setup
         saveNRestoreTool = NetworkingSaveRestore(sandbox)
         if saveNRestoreTool.get_storage_client():
             if saveNRestoreTool.is_snapshot():

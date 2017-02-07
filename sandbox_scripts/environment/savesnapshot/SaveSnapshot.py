@@ -1,8 +1,7 @@
 # coding=utf-8
-from sandbox_scripts.QualiEnvironmentUtils.Networking.NetworkingSaveNRestore import *
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
-from sandbox_scripts.profiler.env_profiler import profileit
 
+from sandbox_scripts.helpers.Networking.NetworkingSaveNRestore import *
 
 
 class EnvironmentSaveSnapshot:
