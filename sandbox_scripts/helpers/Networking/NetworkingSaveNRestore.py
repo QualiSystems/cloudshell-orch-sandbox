@@ -333,33 +333,33 @@ class NetworkingSaveRestore(object):
         with lock:
             save_config_for_device = self._is_load_config_to_device(resource, ignore_models=ignore_models)
         if save_config_for_device:
-                try:
-                    message +='\nSaving configuration for device: ' + resource.name
-                    if resource.has_command('orchestration_save'):
-                        config_path = snapshot_dir.replace('\\', '/')
-                        saved_artifact_info= resource.orchestration_save(self.sandbox.id, config_path, config_type)
-                        if saved_artifact_info != "":
-                            dest_name = resource.name + '_' + resource.model +'_artifact.txt'
-                            dest_name = dest_name.replace(' ','-')
-                            with lock:
-                                self.storage_client.save_artifact_info(saved_artifact_info,config_path,dest_name,write_to_output=True)
-                    else:
-                        file_name = resource.save_network_config(self.sandbox.id, snapshot_dir, config_type)
-                        #rename file on the storage server
-                        file_path = snapshot_dir + '/' + file_name
-                        to_name = resource.name + '_' + resource.model + '.cfg'
+            try:
+                message +='\nSaving configuration for device: ' + resource.name
+                if resource.has_command('orchestration_save'):
+                    config_path = snapshot_dir.replace('\\', '/')
+                    saved_artifact_info= resource.orchestration_save(self.sandbox.id, config_path, config_type)
+                    if saved_artifact_info != "":
+                        dest_name = resource.name + '_' + resource.model +'_artifact.txt'
+                        dest_name = dest_name.replace(' ','-')
                         with lock:
-                            self.storage_client.rename_file(file_path, to_name)
+                            self.storage_client.save_artifact_info(saved_artifact_info,config_path,dest_name,write_to_output=True)
+                else:
+                    file_name = resource.save_network_config(self.sandbox.id, snapshot_dir, config_type)
+                    #rename file on the storage server
+                    file_path = snapshot_dir + '/' + file_name
+                    to_name = resource.name + '_' + resource.model + '.cfg'
+                    with lock:
+                        self.storage_client.rename_file(file_path, to_name)
 
-                except QualiError as qe:
-                    save_result.run_result = False
-                    err = "\nFailed to save configuration for device " + resource.name + ". " + str(qe)
-                    message += err
-                except Exception as ex:
-                    save_result.run_result = False
-                    err = "\nFailed to save configuration for device " + resource.name + \
-                          ". Unexpected error: " + str(ex)
-                    message += err
+            except QualiError as qe:
+                save_result.run_result = False
+                err = "\nFailed to save configuration for device " + resource.name + ". " + str(qe)
+                message += err
+            except Exception as ex:
+                save_result.run_result = False
+                err = "\nFailed to save configuration for device " + resource.name + \
+                      ". Unexpected error: " + str(ex)
+                message += err
 
         save_result.message = message
         return save_result
@@ -448,4 +448,3 @@ class load_result_struct:
         self.run_result = True
         self.resource_name = resource_name
         self.message = ""
-
