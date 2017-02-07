@@ -346,7 +346,7 @@ class SandboxTests(unittest.TestCase):
         self.mock_api_session.return_value.WriteMessageToReservationOutput.assert_has_calls(calls)
 
     #================================================================
-    #test activate_routes
+    #test save as blueprint
     def test_save_sandbox_as_blueprint(self):
         self.sandbox.save_sandbox_as_blueprint('aaa')
         self.mock_api_session.return_value.SaveReservationAsTopology.assert_called_with('5487c6ce-d0b3-43e9-8ee7-e27af8406905',
@@ -383,7 +383,7 @@ class SandboxTests(unittest.TestCase):
         rr = [resource1, resource2]
         self.sandbox.get_root_resources = Mock(return_value=rr)
         self.sandbox.power_on_vms()
-        self.mock_api_session.return_value.ExecuteResourceConnectedCommand.assert_called_with('5487c6ce-d0b3-43e9-8ee7-e27af8406905', 'r2', 'PowerOn', 'power')
+        self.mock_api_session.return_value.ExecuteResourceConnectedCommand.assert_called_with('5487c6ce-d0b3-43e9-8ee7-e27af8406905', 'r1', 'PowerOn', 'power')
 
     # ---------------------------
     def test_power_on_vms_only_vms(self):
