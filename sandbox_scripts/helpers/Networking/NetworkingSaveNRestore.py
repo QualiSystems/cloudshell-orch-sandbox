@@ -294,6 +294,7 @@ class NetworkingSaveRestore(object):
         :param bool write_to_output: Optional. should messages be sent to the command output.
         """
 
+        env_dir = ""
         try:
             env_dir = self.config_files_root + '/Snapshots/' + snapshot_name.strip()
             if not self.storage_client.dir_exist(env_dir):
@@ -301,35 +302,67 @@ class NetworkingSaveRestore(object):
         except QualiError as e:
             self.sandbox.report_error("Save snapshot failed. " + str(e),
                                       write_to_output_window=write_to_output,raise_error=True)
-        '''Call To Save command in resource'''
-        root_resources = self.sandbox.get_root_resources()
-        for resource in root_resources:
-            save_config_for_device = self._is_load_config_to_device(resource, ignore_models=ignore_models)
-            if save_config_for_device:
-                    try:
-                        self.sandbox.report_info(
-                                'Saving configuration for device: ' + resource.name, write_to_output)
-                        if resource.has_command('orchestration_save'):
-                            config_path = env_dir.replace('\\','/')
-                            saved_artifact_info= resource.orchestration_save(self.sandbox.id, config_path, config_type)
-                            if saved_artifact_info != "":
-                                dest_name = resource.name + '_' + resource.model +'_artifact.txt'
-                                dest_name = dest_name.replace(' ','-')
-                                self.storage_client.save_artifact_info(saved_artifact_info,config_path,dest_name,write_to_output=True)
-                        else:
-                            file_name = resource.save_network_config(self.sandbox.id, env_dir, config_type)
-                            #rename file on the storage server
-                            file_path = env_dir + '/' + file_name
-                            to_name = resource.name + '_' + resource.model + '.cfg'
-                            self.storage_client.rename_file(file_path, to_name)
 
-                    except QualiError as qe:
-                        err = "Failed to save configuration for device " + resource.name + ". " + str(qe)
-                        self.sandbox.report_error(err, write_to_output_window=write_to_output,raise_error=False)
-                    except Exception as e:
-                        err = "Failed to save configuration for device " + resource.name + \
-                              ". Unexpected error: " + str(e)
-                        self.sandbox.report_error(err, write_to_output_window=write_to_output,raise_error=False)
+        root_resources = self.sandbox.get_root_resources()
+        """:type : list[ResourceBase]"""
+        pool = ThreadPool(len(root_resources))
+        lock = Lock()
+        async_results = [pool.apply_async(self._run_asynch_save,
+                                          (resource, env_dir, config_type, lock, ignore_models))
+                         for resource in root_resources]
+
+        pool.close()
+        pool.join()
+        for async_result in async_results:
+            res = async_result.get()
+            """:type : load_result_struct"""
+            if not res.run_result:
+                err = "Failed to save configuration on device " + res.resource_name
+                self.sandbox.report_error(err, write_to_output_window=write_to_output, raise_error=False)
+                self.sandbox.report_error(res.message, raise_error=False)
+
+            elif res.message != '':
+                self.sandbox.report_info(res.resource_name + "\n" + res.message)
+
+    # ----------------------------------
+    # ----------------------------------
+    def _run_asynch_save(self, resource, snapshot_dir, config_type, lock, ignore_models=None):
+        message = ""
+        save_result = load_result_struct(resource.name)
+
+        with lock:
+            save_config_for_device = self._is_load_config_to_device(resource, ignore_models=ignore_models)
+        if save_config_for_device:
+            try:
+                message +='\nSaving configuration for device: ' + resource.name
+                if resource.has_command('orchestration_save'):
+                    config_path = snapshot_dir.replace('\\', '/')
+                    saved_artifact_info= resource.orchestration_save(self.sandbox.id, config_path, config_type)
+                    if saved_artifact_info != "":
+                        dest_name = resource.name + '_' + resource.model +'_artifact.txt'
+                        dest_name = dest_name.replace(' ','-')
+                        with lock:
+                            self.storage_client.save_artifact_info(saved_artifact_info,config_path,dest_name,write_to_output=True)
+                else:
+                    file_name = resource.save_network_config(self.sandbox.id, snapshot_dir, config_type)
+                    #rename file on the storage server
+                    file_path = snapshot_dir + '/' + file_name
+                    to_name = resource.name + '_' + resource.model + '.cfg'
+                    with lock:
+                        self.storage_client.rename_file(file_path, to_name)
+
+            except QualiError as qe:
+                save_result.run_result = False
+                err = "\nFailed to save configuration for device " + resource.name + ". " + str(qe)
+                message += err
+            except Exception as ex:
+                save_result.run_result = False
+                err = "\nFailed to save configuration for device " + resource.name + \
+                      ". Unexpected error: " + str(ex)
+                message += err
+
+        save_result.message = message
+        return save_result
 
 
     # ----------------------------------
@@ -415,4 +448,3 @@ class load_result_struct:
         self.run_result = True
         self.resource_name = resource_name
         self.message = ""
-

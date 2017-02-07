@@ -220,19 +220,36 @@ class SandboxBase(object):
         """
         Executes a command
         :param str commandName:  Command Name - Specify the name of the command.
-        :param list[str] commandInputs:  Command Inputs - Specify a matrix of input names and values
+        :param list[InputNameValue] commandInputs:  Command Inputs - Specify a matrix of input names and values
         required for executing the command.
         :param bool printOutput:  Print Output - Defines whether to print the command output
          in the Sandbox command output window.
         :rtype: CommandExecutionCompletedResultInfo
         """
         try:
-            return self.api_session.ExecuteTopologyCommand(reservationId=self.id, commandName=commandName,
-                                                           parameterValues=commandInputs, printOutput=printOutput)
+            return self.api_session.ExecuteEnvironmentCommand(self.id, commandName, commandInputs, printOutput)
 
         except CloudShellAPIError as error:
             raise QualiError(self.id, error.message)
 
+    # -----------------------------------------
+    # -----------------------------------------
+    def enqueue_command(self, commandName, commandInputs=[], printOutput=False):
+        """
+        Enqueue a command
+        :param str commandName:  Command Name - Specify the name of the command.
+        :param list[InputNameValue] commandInputs:  Command Inputs - Specify a matrix of input names and values
+        required for executing the command.
+        :param bool printOutput:  Print Output - Defines whether to print the command output
+         in the Sandbox command output window.
+        :rtype: CommandExecutionCompletedResultInfo
+        """
+        try:
+            return self.api_session.EnqueueEnvironmentCommand(self.id, commandName, commandInputs, printOutput)
+
+        except CloudShellAPIError as error:
+            raise QualiError(self.id, error.message)
+        
     # -----------------------------------------
     # -----------------------------------------
     def save_sandbox_as_blueprint(self, blueprint_name, write_to_output=True):
