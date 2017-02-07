@@ -194,35 +194,19 @@ class SandboxTests(unittest.TestCase):
     #---------------------------
     @patch('sandbox_scripts.QualiEnvironmentUtils.Sandbox.ResourceBase')
     def test_clear_all_resources_live_status_two_devices(self,mock_resourcebase):
-        rdi = Mock()
         resource1 = Mock()
-        resource1.Name = "r1"
+        resource1.name = "r1"
         resource2 = Mock()
-        resource2.Name = "r2"
-        rdi.ReservationDescription.Resources = [resource1, resource2]
-        rdi.ReservationDescription.TopologiesReservedResources = []
-        self.mock_api_session.return_value.GetReservationDetails = Mock(return_value=rdi)
+        resource2.name = "r2"
+        rr = Mock()
+        rr = [resource1, resource2]
+        self.sandbox.get_root_resources = Mock(return_value=rr)
 
         self.sandbox.clear_all_resources_live_status()
-        self.mock_api_session.return_value.SetResourceLiveStatus.assert_called()
-
-    #---------------------------
-    @patch('sandbox_scripts.QualiEnvironmentUtils.Sandbox.ResourceBase')
-    def test_clear_all_resources_live_status_resources_and_services(self,mock_resourcebase):
-        rdi = Mock()
-        resource1 = Mock()
-        resource1.Name = "r1"
-        resource2 = Mock()
-        resource2.Name = "r2"
-        Service1 = Mock()
-        Service1.Name = "s1"
-        rdi.ReservationDescription.Services = [Service1]
-        rdi.ReservationDescription.Resources = [resource1, resource2]
-        rdi.ReservationDescription.TopologiesReservedResources = []
-        self.mock_api_session.return_value.GetReservationDetails = Mock(return_value=rdi)
-
-        self.sandbox.clear_all_resources_live_status()
-        self.mock_api_session.return_value.SetResourceLiveStatus.assert_called()
+        #self.mock_api_session.return_value.SetResourceLiveStatus.assert_called()
+        calls = [call('r1', ''),
+                 call('r2', '')]
+        self.mock_api_session.return_value.SetResourceLiveStatus.assert_has_calls(calls)
 
     #================================================================
     #test activate_connectors
@@ -289,7 +273,7 @@ class SandboxTests(unittest.TestCase):
         rdi.ReservationDescription.Connectors = [connector1,connector2]
         self.mock_api_session.return_value.GetReservationDetails = Mock(return_value=rdi)
         self.sandbox.activate_connectors(True)
-        self.mock_api_session.return_value.ConnectRoutesInReservation.assert_called()
+        self.mock_api_session.return_value.ConnectRoutesInReservation.assert_called_with('5487c6ce-d0b3-43e9-8ee7-e27af8406905', ['a', 'z'], 'bi')
         calls = [call('5487c6ce-d0b3-43e9-8ee7-e27af8406905', 'Connecting the connectors'),
                  call('5487c6ce-d0b3-43e9-8ee7-e27af8406905', 'Connectors connected')]
         self.mock_api_session.return_value.WriteMessageToReservationOutput.assert_has_calls(calls)
