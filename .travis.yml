@@ -1,0 +1,14 @@
+after_success: coveralls
+install: 
+  - pip install -r ./test_requirements.txt
+  - pip install "cloudshell-core>=2.0.0,<2.1.0"
+  - pip install "cloudshell-automation-api>=7.1,<7.3"
+  - pip install "cloudshell-shell-core>=2.3.0,<2.4.0"
+  - pip install pytest-cov
+language: python
+notifications: 
+  webhools: "https://qualisystemslab-cloudshell-orch-sandbox.getbadges.io/api/app/webhook/96453247-3989-49f9-a6c0-201036e14a70"
+python: 
+  - "2.7"
+script: 
+  py.test --cov=sandbox_scripts

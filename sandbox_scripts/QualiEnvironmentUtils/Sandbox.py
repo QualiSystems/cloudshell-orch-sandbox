@@ -4,9 +4,6 @@ from cloudshell.core.logger.qs_logger import *
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from os.path import *
 
-from quali_utils.quali_packaging import PackageEditor
-from quali_api_client import QualiAPIClient
-
 
 SEVERITY_INFO = 20
 SEVERITY_ERROR = 40
@@ -46,15 +43,14 @@ class SandboxBase(object):
 
     # ----------------------------------
     # ----------------------------------
-    def write_message_to_output(self, message, severity_level=SEVERITY_INFO):
+    def _write_message_to_output(self, message, severity_level=SEVERITY_INFO):
         """
             Write a message to the output window
         """
-
         if severity_level == SEVERITY_INFO:
             self.api_session.WriteMessageToReservationOutput(self.id, message)
         elif severity_level == SEVERITY_ERROR:
-                self.api_session.WriteMessageToReservationOutput(self.id, '<font color="red">' + message + '</font>')
+            self.api_session.WriteMessageToReservationOutput(self.id, '<font color="red">' + message + '</font>')
 
     # ----------------------------------
     def report_error(self, error_message, raise_error=True, write_to_output_window=False):
@@ -64,9 +60,10 @@ class SandboxBase(object):
         :param bool raise_error:  Do you want to throw an exception
         :param bool write_to_output_window:  Would you like to write the message to the output window
         """
-        self._logger.error(error_message)
+        if self._logger:
+            self._logger.error(error_message)
         if write_to_output_window:
-            self.write_message_to_output(error_message, SEVERITY_ERROR)
+            self._write_message_to_output(error_message, SEVERITY_ERROR)
         if raise_error:
             raise QualiError(self.id, error_message)
 
@@ -77,9 +74,10 @@ class SandboxBase(object):
         :param str message:  The message you would like to present
         :param bool write_to_output_window:  Would you like to write the message to the output window?
         """
-        self._logger.info(message)
+        if self._logger:
+            self._logger.info(message)
         if write_to_output_window:
-            self.write_message_to_output(message, SEVERITY_INFO)
+            self._write_message_to_output(message, SEVERITY_INFO)
 
     # ----------------------------------
     def get_root_resources(self):
@@ -127,9 +125,6 @@ class SandboxBase(object):
         """
         try:
             return self.api_session.GetReservationDetails(self.id)
-        except QualiError as qe:
-            err = "Failed to get the Sandbox's details. " + str(qe)
-            self.report_error(error_message=err)
         except:
             err = "Failed to get the Sandbox's details. Unexpected error: " + str(sys.exc_info()[0])
             self.report_error(error_message=err)
@@ -170,7 +165,8 @@ class SandboxBase(object):
                     bi_endpoints.append(endpoint.Target)
                     bi_endpoints.append(endpoint.Source)
             if not bi_endpoints:
-                self.report_info(message="No connectors to connect for reservation {0}".format(self.id))
+                self.report_info(message="No connectors to connect for reservation {0}".format(self.id),
+                                 write_to_output_window=write_to_output)
                 return
             self.api_session.ConnectRoutesInReservation(self.id, bi_endpoints, 'bi')
             self.report_info(message="Connectors connected", write_to_output_window=write_to_output)
@@ -203,7 +199,8 @@ class SandboxBase(object):
                         uni_endpoints.append(route_endpoint.Target)
 
             if not bi_endpoints and not uni_endpoints:
-                self.report_info(message="No routes to connect for reservation {0}".format(self.id))
+                self.report_info(message="No routes to connect for reservation {0}".format(self.id),
+                                 write_to_output_window=write_to_output)
                 return
             if bi_endpoints:
                 self.api_session.ConnectRoutesInReservation(self.id, bi_endpoints, 'bi')
@@ -256,31 +253,19 @@ class SandboxBase(object):
     # -----------------------------------------
     # -----------------------------------------
     def save_sandbox_as_blueprint(self, blueprint_name, write_to_output=True):
-        snapshot_exist = True
-
         try:
-            full_path = None
-            tp = self.api_session.GetActiveTopologyNames()
-
-            for value in tp.Topologies:
-                filename = basename(value)
-                if filename == blueprint_name:
-                    full_path = value
-                    break
-
-            if full_path is None:
-                snapshot_exist = False
+            #TODO - fullpath should be passed as a param to the function and not hard coded
+            # save the current Sandbox as a new Blueprint with the given snapshot name
+            fullpath = 'Snapshots'
+            self.api_session.SaveReservationAsTopology(self.id, topologyName=blueprint_name,folderFullPath=fullpath, includeInactiveRoutes=True)
 
         except CloudShellAPIError as error:
             err = "Failed to save sandbox as blueprint. " + error.message
-            self.report_error(error_message=err, write_to_output_window=write_to_output)
-        if snapshot_exist:
-            err = "Blueprint " + blueprint_name + " already exist. Please select a different name."
-            self.report_error(error_message=err, write_to_output_window=write_to_output)
-            raise Exception('Blueprint name already exist. Please select a different name.')
-        # save the current Sandbox as a new Blueprint with the given snapshot name
-        fullpath = 'Snapshots'
-        self.api_session.SaveReservationAsTopology(self.id, topologyName=blueprint_name,folderFullPath=fullpath, includeInactiveRoutes=True)
+            self.report_error(error_message=err, raise_error=True, write_to_output_window=write_to_output)
+        # if snapshot_exist:
+        #     err = "Blueprint " + blueprint_name + " already exist. Please select a different name."
+        #     self.report_error(error_message=err, write_to_output_window=write_to_output)
+        #     raise Exception('Blueprint name already exist. Please select a different name.')
 
         #update the new snapshot with the user as owner
         username = helpers.get_reservation_context_details().owner_user
@@ -292,8 +277,8 @@ class SandboxBase(object):
     # -----------------------------------------
     def is_abstract(self, resource_alias):
         for abstract_resource in self.blueprint_details.AbstractResources:
-                if resource_alias == abstract_resource.Alias:
-                        return True
+            if resource_alias == abstract_resource.Alias:
+                    return True
         return False
 
     # -----------------------------------------
@@ -312,8 +297,8 @@ class SandboxBase(object):
     def get_config_set_pool_resource(self):
         root_resources = self.get_root_resources()
         for resource in root_resources:
-                if resource.model.lower() == 'config set pool':
-                    return resource
+            if resource.model.lower() == 'config set pool':
+                return resource
         return None
 
 
