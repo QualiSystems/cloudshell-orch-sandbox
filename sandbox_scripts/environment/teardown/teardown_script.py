@@ -24,7 +24,7 @@ class EnvironmentTeardown:
         reservation_details = api.GetReservationDetails(self.reservation_id)
 
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                            message='Beginning reservation teardown')
+                                            message='Beginning sandbox teardown')
 
         self._disconnect_all_routes_in_reservation(api, reservation_details)
 
@@ -34,7 +34,7 @@ class EnvironmentTeardown:
 
         self.logger.info("Teardown for reservation {0} completed".format(self.reservation_id))
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                            message='Reservation teardown finished successfully')
+                                            message='Sandbox teardown finished successfully')
 
     def _disconnect_all_routes_in_reservation(self, api, reservation_details):
         connectors = reservation_details.ReservationDescription.Connectors
