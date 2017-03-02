@@ -18,11 +18,7 @@ class EnvironmentSetupResources(object):
         sandbox = SandboxBase(self.reservation_id, self.logger)
         saveNRestoreTool = NetworkingSaveRestore(sandbox)
 
-        api = helpers.get_api_session()
-
-        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                            message='Beginning resources config load')
-
+        sandbox.report_info('Beginning resources config load')
 
         try:
             sandbox.clear_all_resources_live_status()
@@ -44,6 +40,9 @@ class EnvironmentSetupResources(object):
                         saveNRestoreTool.load_config(config_stage='Gold', config_type='Running',
                                                  ignore_models=ignore_models,
                                                  config_set_name=config_set_name)
+            else:
+                sandbox.report_info("Skipping load configuration. No storage resource associated with the blueprint ",
+                                    write_to_output_window=True)
 
             # power on Vms that might be powered off because of the snapshot configuration
             sandbox.power_on_vms()

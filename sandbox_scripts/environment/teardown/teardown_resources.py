@@ -16,21 +16,17 @@ class EnvironmentTeardownResources:
         sandbox = SandboxBase(self.reservation_id, self.logger)
         saveNRestoreTool = NetworkingSaveRestore(sandbox)
 
-        api = helpers.get_api_session()
-
-        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                            message='Beginning resources config load')
-
-
+        sandbox.report_info("Beginning resources config load")
         sandbox.clear_all_resources_live_status()
         try:
-            if sandbox.get_storage_server_resource():
-                if saveNRestoreTool.get_storage_client():
-                    ignore_models = ['Generic TFTP server', 'Config Set Pool', 'Generic FTP server', 'netscout switch 3912',
-                                 'OnPATH Switch 3903', 'Ixia Traffic generator']
-                    saveNRestoreTool.load_config(config_stage='Base', config_type='Running',
-                                             ignore_models=ignore_models, remove_temp_files=True, in_teardown_mode=True)
-
+            if saveNRestoreTool.get_storage_client():
+                ignore_models = ['Generic TFTP server', 'Config Set Pool', 'Generic FTP server', 'netscout switch 3912',
+                             'OnPATH Switch 3903', 'Ixia Traffic generator']
+                saveNRestoreTool.load_config(config_stage='Base', config_type='Running',
+                                         ignore_models=ignore_models, remove_temp_files=True, in_teardown_mode=True)
+            else:
+                sandbox.report_info("Skipping load configuration. No storage resource associated with the blueprint ",
+                                    write_to_output_window=True)
 
         except QualiError as qe:
             self.logger.error("Teardown failed. " + str(qe))
