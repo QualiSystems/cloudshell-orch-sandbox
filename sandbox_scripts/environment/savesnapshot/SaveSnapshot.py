@@ -22,18 +22,18 @@ class EnvironmentSaveSnapshot:
         try:
 
             username = helpers.get_reservation_context_details().owner_user
+            if sandbox.get_storage_server_resource():
+                snapshot_name = sandbox.Blueprint_name+"_"+username+"_"+ os.environ['name']
+                sandbox.save_sandbox_as_blueprint(snapshot_name)
 
-            snapshot_name = sandbox.Blueprint_name+"_"+username+"_"+ os.environ['name']
+                # replace spaces with _ in the snapshot's name
+                snapshot_name = snapshot_name.replace(' ', '_')
 
-            sandbox.save_sandbox_as_blueprint(snapshot_name)
-
-
-            # replace spaces with _ in the snapshot's name
-            snapshot_name = snapshot_name.replace(' ', '_')
-
-            saveNRestoreTool.save_config(snapshot_name=snapshot_name, config_type='running',
+                saveNRestoreTool.save_config(snapshot_name=snapshot_name, config_type='running',
                                          ignore_models=['Generic TFTP server', 'Config Set Pool','Generic FTP server',
                                                         'netscout switch 3912'])
+            else:
+                 sandbox.report_error("There is no storage resource (e.g. FTP) available in the reservation",True,True)
 
         except QualiError as qe:
             self.logger.error("Save snapshot failed. " + str(qe))

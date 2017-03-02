@@ -26,24 +26,24 @@ class EnvironmentSetupResources(object):
 
         try:
             sandbox.clear_all_resources_live_status()
+            if sandbox.get_storage_server_resource():
+                # Get the config set name from the orchestration's params
+                config_set_name = ''
+                try:
+                    config_set_name = os.environ['Set Name']
+                except:
+                    pass
+                ignore_models=['Generic TFTP server', 'Config Set Pool','Generic FTP server','netscout switch 3912']
 
-            # Get the config set name from the orchestration's params
-            config_set_name = ''
-            try:
-                config_set_name = os.environ['Set Name']
-            except:
-                pass
-            ignore_models=['Generic TFTP server', 'Config Set Pool','Generic FTP server','netscout switch 3912']
+                if saveNRestoreTool.get_storage_client():
+                    if saveNRestoreTool.is_snapshot():
+                        saveNRestoreTool.load_config(config_stage='Snapshots', config_type='Running',
+                                                     ignore_models=ignore_models)
 
-            if saveNRestoreTool.get_storage_client():
-                if saveNRestoreTool.is_snapshot():
-                    saveNRestoreTool.load_config(config_stage='Snapshots', config_type='Running',
-                                                 ignore_models=ignore_models)
-
-                else:
-                    saveNRestoreTool.load_config(config_stage='Gold', config_type='Running',
-                                             ignore_models=ignore_models,
-                                             config_set_name=config_set_name)
+                    else:
+                        saveNRestoreTool.load_config(config_stage='Gold', config_type='Running',
+                                                 ignore_models=ignore_models,
+                                                 config_set_name=config_set_name)
 
             # power on Vms that might be powered off because of the snapshot configuration
             sandbox.power_on_vms()
