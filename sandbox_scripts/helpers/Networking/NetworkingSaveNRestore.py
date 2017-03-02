@@ -45,7 +45,7 @@ class NetworkingSaveRestore(object):
     # e.g. tftp://configs/Base/svl290-gg07-sw1_c3850.cfg
     # ----------------------------------
     def load_config(self, config_stage, config_type, restore_method="Override", config_set_name='', ignore_models=None,
-                    write_to_output=True, remove_temp_files = False, in_teardown_mode = False):
+                    write_to_output=True, remove_temp_files = False, in_teardown_mode = False,use_Config_file_path_attr = False):
         """
         Load the configuration from config files on the Blueprint's devices
         :param str config_stage:  The stage of the config e.g Gold, Base
@@ -78,7 +78,7 @@ class NetworkingSaveRestore(object):
         lock = Lock()
         async_results = [pool.apply_async(self._run_asynch_load,
                                           (resource, images_path_dict, root_path, ignore_models,config_stage, lock,
-                                           in_teardown_mode))
+                                           in_teardown_mode,use_Config_file_path_attr))
                          for resource in root_resources]
 
         pool.close()
@@ -108,12 +108,14 @@ class NetworkingSaveRestore(object):
                     tmp_config_file_path = resource.get_attribute('Config file path')
                     if tmp_config_file_path != '' and tmp_config_file_path.find('/temp/') > -1:
                         self.storage_client.delete(tmp_config_file_path)
+                    #TODO - clean the attribute
             except QualiError as qe:
                 self.sandbox.report_info("Failed to delete temp config file " + tmp_config_file_path +
                                          "Error is: " + str(qe))
     # ----------------------------------
     # ----------------------------------
-    def _run_asynch_load(self, resource, images_path_dict, root_path, ignore_models, config_stage, lock, in_teardown_mode):
+    def _run_asynch_load(self, resource, images_path_dict, root_path, ignore_models, config_stage, lock, in_teardown_mode,
+                         use_Config_file_path_attr):
         message = ""
         #run_status = True
         saved_artifact_info = None
@@ -131,7 +133,8 @@ class NetworkingSaveRestore(object):
                     config_path = ''
                     with lock:
                         config_path = self._get_concrete_config_file_path(root_path, resource, config_stage, write_to_output=True)
-                    resource.set_attribute_value('Config file path', config_path)
+                    if use_Config_file_path_attr:
+                        resource.set_attribute_value('Config file path', config_path)
                     #TODO - Snapshots currently only restore configuration. We need to restore firmware as well
                     if config_stage.lower() == 'snapshots':
                         if resource.has_command('orchestration_restore'):
@@ -242,9 +245,11 @@ class NetworkingSaveRestore(object):
             config_path = root_path + resource.name + '_' + resource.model + '.cfg'
         else:
             config_path = root_path + resource.alias + '_' + resource.model + '.cfg'
+        config_path = config_path.replace(' ', '_')
         # Look for a template config file
         tmp_template_config_file = tempfile.NamedTemporaryFile(delete=False)
         tftp_template_config_path = root_path + resource.alias + '_' + resource.model + '.tm'
+        tftp_template_config_path = tftp_template_config_path.replace(' ', '_')
         #try:
         #look for a concrete config file
         try:
@@ -258,6 +263,7 @@ class NetworkingSaveRestore(object):
             except:
                 #look for a generic config file for the model
                 tftp_template_config_path = root_path + resource.model + '.tm'
+                tftp_template_config_path = tftp_template_config_path.replace(' ', '_')
                 self.storage_client.download(tftp_template_config_path, tmp_template_config_file.name)
             with open(tmp_template_config_file.name, 'r') as content_file:
                 tmp_template_config_file_data = content_file.read()
