@@ -5,10 +5,6 @@ from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import *
 from QualiUtils import *
-from cloudshell.shell.core.interfaces.save_restore import OrchestrationSavedArtifactInfo
-from cloudshell.shell.core.interfaces.save_restore import OrchestrationRestoreRules
-from cloudshell.shell.core.interfaces.save_restore import OrchestrationSavedArtifact
-from cloudshell.shell.core.interfaces.save_restore import OrchestrationSaveResult
 
 import datetime
 import json
