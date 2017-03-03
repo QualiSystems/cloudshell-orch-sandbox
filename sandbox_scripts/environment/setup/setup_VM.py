@@ -26,11 +26,11 @@ class EnvironmentSetupVM(object):
             if saveNRestoreTool.is_snapshot():
                 self.is_snapshot = True
 
-        self._run_async_power_on_refresh_ip_install(api,reservation_details)
+        self._run_async_power_on_refresh_ip(api,reservation_details)
 
-       # self._run_async_power_on_refresh_ip_install(api,reservation_details)
 
-    def _run_async_power_on_refresh_ip_install(self, api, reservation_details):
+
+    def _run_async_power_on_refresh_ip(self, api, reservation_details):
 
         """
         :param CloudShellAPISession api:
@@ -47,15 +47,14 @@ class EnvironmentSetupVM(object):
         if len(resources) == 0:
             api.WriteMessageToReservationOutput(
                 reservationId=self.reservation_id,
-                message='No resources to power on or install')
+                message='No resources to power on ')
             return
 
         pool = ThreadPool(len(resources))
         lock = Lock()
         message_status = {
             "power_on": False,
-            "wait_for_ip": False,
-            "install": False
+            "wait_for_ip": False
             }
         async_results = [pool.apply_async(self._power_on_refresh_ip,
                                           (api,lock, message_status, resource))
@@ -68,8 +67,6 @@ class EnvironmentSetupVM(object):
             res = async_result.get()
             if not res[0]:
                 raise Exception("Reservation is Active with Errors - " + res[1])
-
-
 
     def _power_on_refresh_ip(self, api, lock, message_status, resource):
         """
