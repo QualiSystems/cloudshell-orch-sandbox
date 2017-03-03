@@ -14,16 +14,18 @@ class EnvironmentTeardownVM:
         self.logger = qs_logger.get_qs_logger(log_file_prefix="CloudShell Sandbox Teardown",
                                               log_group=self.reservation_id,
                                               log_category='Teardown')
+        self.sandbox = None
 
-    #@profileit(scriptName="Teardown")
     def execute(self):
 
-        api = helpers.get_api_session()
+        self.sandbox = SandboxBase(self.reservation_id, self.logger)
 
-        reservation_details = api.GetReservationDetails(self.reservation_id)
+        self.sandbox.report_info("Beginning VMs cleanup")
 
-        sandbox = SandboxBase(self.reservation_id, self.logger)
-        saveNRestoreTool = NetworkingSaveRestore(sandbox)
+        reservation_details = self.sandbox.api_session.GetReservationDetails(self.reservation_id)
+
+
+        saveNRestoreTool = NetworkingSaveRestore(self.sandbox)
 
         filename = "Snapshot_"+self.reservation_id+".txt"
 
@@ -39,27 +41,21 @@ class EnvironmentTeardownVM:
                     is_snapshot = True
 
         if is_snapshot:
-            self.delete_VM_and_Power_off(api,reservation_details,to_delete = False)
-            #api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-            #                                                    message='It snapshot...')
+            self.delete_VM_or_Power_off(reservation_details, to_delete = False)
 
         else:
-            self.delete_VM_and_Power_off(api,reservation_details,to_delete =True)
-            #api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-            #                                                    message='not snapshot...')
+            self.delete_VM_or_Power_off(reservation_details, to_delete =True)
 
-    def delete_VM_and_Power_off(self,api,reservation_details,to_delete = False):
+    def delete_VM_or_Power_off(self, reservation_details, to_delete = False):
 
         """
-        :param CloudShellAPISession api:
         :param GetReservationDescriptionResponseInfo reservation_details:
         :param str reservation_id:
         :return:
         """
         # filter out resources not created in this reservation
         resources = reservation_details.ReservationDescription.Resources
-       # resources = get_resources_created_in_res(reservation_details=reservation_details,
-        #                                         reservation_id=self.reservation_id)
+
         pool = ThreadPool()
         async_results = []
         lock = Lock()
@@ -69,11 +65,11 @@ class EnvironmentTeardownVM:
         }
 
         for resource in resources:
-            resource_details = api.GetResourceDetails(resource.Name)
+            resource_details = self.sandbox.api_session.GetResourceDetails(resource.Name)
             vm_details = resource_details.VmDetails
             if hasattr(vm_details, "UID"):
                 result_obj = pool.apply_async(self._power_off_or_delete_deployed_app,
-                                    (api, resource_details, lock, message_status,to_delete))
+                                    (resource_details, lock, message_status,to_delete))
                 async_results.append(result_obj)
 
         pool.close()
@@ -88,18 +84,17 @@ class EnvironmentTeardownVM:
         # delete resource - bulk
         if resource_to_delete:
             try:
-                api.RemoveResourcesFromReservation(self.reservation_id, resource_to_delete)
+                self.sandbox.api_session.RemoveResourcesFromReservation(self.reservation_id, resource_to_delete)
             except CloudShellAPIError as exc:
                 if exc.code == EnvironmentTeardownVM.REMOVE_DEPLOYED_RESOURCE_ERROR:
-                    self.logger.error(
-                            "Error executing RemoveResourcesFromReservation command. Error: {0}".format(exc.message))
-                    api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                        message=exc.message)
+                    self.sandbox.report_error(error_message=exc.message,
+                              log_message="Error executing RemoveResourcesFromReservation command. "
+                                          "Error: {0}".format(exc.message),
+                              raise_error=True, write_to_output_window=True)
 
 
-    def _power_off_or_delete_deployed_app(self, api, resource_info, lock, message_status,to_delete):
+    def _power_off_or_delete_deployed_app(self, resource_info, lock, message_status, to_delete):
         """
-        :param CloudShellAPISession api:
         :param Lock lock:
         :param (dict of str: Boolean) message_status:
         :param ResourceInfo resource_info:
@@ -112,27 +107,30 @@ class EnvironmentTeardownVM:
 
         try:
 
-            self.logger.info("Executing 'Delete' on deployed app {0} in reservation {1}"
-                               .format(resource_name, self.reservation_id))
             if to_delete:
                 with lock:
-                    api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                    message='Apps are being powered off and deleted...')
+                    if not message_status['delete']:
+                        message_status['delete'] = True
+                        self.sandbox.report_info("Apps are being powered off and deleted...",
+                                                 write_to_output_window=True)
+
+                self.logger.info("Executing 'Delete' on deployed app {0} in reservation {1}"
+                                 .format(resource_name, self.reservation_id))
 
                 return resource_name
 
             else:
-
-                api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                   message="Executing 'Power Off' on deployed app {0}"
-                                                    .format(resource_name, self.reservation_id))
-
+                with lock:
+                    if not message_status['power_off']:
+                        message_status['power_off'] = True
+                        self.sandbox.report_info('Apps are being powering off... ',
+                                                 write_to_output_window=True)
 
                 with lock:
-                    api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                               message='Apps are powering off... ')
-
-                    api.ExecuteResourceConnectedCommand(self.reservation_id, resource_name, "PowerOff", "power")
+                    self.logger.info("Executing 'Power Off' on deployed app {0}"
+                                     .format(resource_name, self.reservation_id))
+                    self.sandbox.api_session.ExecuteResourceConnectedCommand(self.reservation_id, resource_name,
+                                                                        "PowerOff", "power")
 
                 return None
 

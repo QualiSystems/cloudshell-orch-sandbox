@@ -18,7 +18,7 @@ class EnvironmentSetupResources(object):
         sandbox = SandboxBase(self.reservation_id, self.logger)
         saveNRestoreTool = NetworkingSaveRestore(sandbox)
 
-        sandbox.report_info('Beginning resources config load')
+        sandbox.report_info('Beginning load configuration for resources')
 
         try:
             sandbox.clear_all_resources_live_status()
@@ -49,6 +49,8 @@ class EnvironmentSetupResources(object):
 
             # call activate_all_routes_and_connectors
             sandbox.activate_all_routes_and_connectors()
+
+            sandbox.report_info('Sandbox setup finished successfully')
 
             # Call routes_validation
             #   sandbox.routes_validation()
