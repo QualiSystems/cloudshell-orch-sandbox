@@ -25,8 +25,8 @@ class NetworkingSaveRestore(object):
             self.config_files_root = self.storage_client.get_configs_root()
         else:
             if self.is_resources_in_reservation_to_restore(ignore_models = None):
-                self.sandbox.report_error("Failed to find a storage server resource (e.g. tftp) in the sandbox. ", raise_error=True,
-                                      write_to_output_window=True)
+                self.sandbox.report_info("Failed to find a storage server resource (e.g. tftp) in the sandbox. ",
+                                      write_to_output_window=False)
 
     # ----------------------------------
     # load_network_config(ResourceName,config_type, RestoreMethod=Override)
