@@ -203,7 +203,6 @@ class SandboxTests(unittest.TestCase):
         self.sandbox.get_root_resources = Mock(return_value=rr)
 
         self.sandbox.clear_all_resources_live_status()
-        #self.mock_api_session.return_value.SetResourceLiveStatus.assert_called()
         calls = [call('r1', ''),
                  call('r2', '')]
         self.mock_api_session.return_value.SetResourceLiveStatus.assert_has_calls(calls)
