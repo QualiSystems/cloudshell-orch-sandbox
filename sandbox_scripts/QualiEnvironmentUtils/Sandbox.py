@@ -53,29 +53,37 @@ class SandboxBase(object):
             self.api_session.WriteMessageToReservationOutput(self.id, '<font color="red">' + message + '</font>')
 
     # ----------------------------------
-    def report_error(self, error_message, raise_error=True, write_to_output_window=False):
+    def report_error(self, error_message, log_message=None, raise_error=True, write_to_output_window=False):
         """
         Report on an error to the log file, output window is optional.There is also an option to raise the error up
         :param str error_message:  The error message you would like to present
+        :param str log_message: The error message you would like to write to the log. Keep None to use the message param
         :param bool raise_error:  Do you want to throw an exception
         :param bool write_to_output_window:  Would you like to write the message to the output window
         """
         if self._logger:
-            self._logger.error(error_message)
+            if log_message:
+                self._logger.error(log_message)
+            else:
+                self._logger.error(error_message)
         if write_to_output_window:
             self._write_message_to_output(error_message, SEVERITY_ERROR)
         if raise_error:
             raise QualiError(self.id, error_message)
 
     # ----------------------------------
-    def report_info(self, message, write_to_output_window=False):
+    def report_info(self, message, log_message=None, write_to_output_window=False):
         """
         Report information to the log file, output window is optional.
         :param str message:  The message you would like to present
+        :param str log_message: The error message you would like to write to the log. Keep None to use the message param
         :param bool write_to_output_window:  Would you like to write the message to the output window?
         """
         if self._logger:
-            self._logger.info(message)
+            if log_message:
+                self._logger.info(log_message)
+            else:
+                self._logger.info(message)
         if write_to_output_window:
             self._write_message_to_output(message, SEVERITY_INFO)
 

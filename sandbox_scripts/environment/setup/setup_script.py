@@ -21,7 +21,7 @@ class EnvironmentSetup(object):
                                     log_group=self.reservation_id,
                                     log_category='Setup')
 
-    @profileit(scriptName='Setup')
+    #@profileit(scriptName='Setup')
     def execute(self):
         api = helpers.get_api_session()
         resource_details_cache = {}
@@ -58,8 +58,8 @@ class EnvironmentSetup(object):
         self._configure_apps(api=api, reservation_id=self.reservation_id)
 
         self.logger.info("Setup for reservation {0} completed".format(self.reservation_id))
-        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                            message='Sandbox setup finished successfully')
+        #api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+        #                                    message='Sandbox setup finished successfully')
 
     def _prepare_connectivity(self, api, reservation_id):
         """

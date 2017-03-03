@@ -16,7 +16,7 @@ class EnvironmentTeardownResources:
         sandbox = SandboxBase(self.reservation_id, self.logger)
         saveNRestoreTool = NetworkingSaveRestore(sandbox)
 
-        sandbox.report_info("Beginning resources config load")
+        sandbox.report_info("Beginning load configuration for resources")
         sandbox.clear_all_resources_live_status()
         try:
             if saveNRestoreTool.get_storage_client():
@@ -27,6 +27,8 @@ class EnvironmentTeardownResources:
             else:
                 sandbox.report_info("Skipping load configuration. No storage resource associated with the blueprint ",
                                     write_to_output_window=True)
+
+            sandbox.report_info('Sandbox teardown finished successfully')
 
         except QualiError as qe:
             self.logger.error("Teardown failed. " + str(qe))
