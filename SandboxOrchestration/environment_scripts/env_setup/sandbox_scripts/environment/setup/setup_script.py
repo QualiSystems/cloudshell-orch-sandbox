@@ -1,78 +1,82 @@
 from multiprocessing.pool import ThreadPool
 from threading import Lock
 
-from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from cloudshell.core.logger.qs_logger import get_qs_logger
-from remap_child_resources_constants import *
-
+from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from sandbox_scripts.helpers.resource_helpers import *
 from sandbox_scripts.profiler.env_profiler import profileit
 
+from configuration_commands import pre_autoload_configuration_step, call_resource_command_configure
+from remap_child_resources_constants import *
+from utils import validate_all_apps_deployed
+
+
+# In future we will refactor out the following to a separate setup package:
+# pre_autoload_app_configuration
+#
 
 class EnvironmentSetup(object):
     NO_DRIVER_ERR = "129"
     DRIVER_FUNCTION_ERROR = "151"
 
     def __init__(self):
-        self.reservation_id = helpers.get_reservation_context_details().id
+        self.sandbox_id = helpers.get_reservation_context_details().id
         self.logger = get_qs_logger(log_file_prefix="CloudShell Sandbox Setup",
-                                    log_group=self.reservation_id,
+                                    log_group=self.sandbox_id,
                                     log_category='Setup')
 
-    @profileit(scriptName='Setup')
+    @profileit('Setup')
     def execute(self):
-        api = helpers.get_api_session()
-        resource_details_cache = {}
+        api, resource_details_cache, sandbox_msg = self._prepare_execute()
+        sandbox_msg('Beginning reservation setup')
+        self._setup_sandbox(api, resource_details_cache)
+        self.logger.info("Setup for reservation {0} completed".format(self.sandbox_id))
+        sandbox_msg('Reservation setup finished successfully')
 
-        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                            message='Beginning reservation setup')
+    def _setup_sandbox(self, api, resource_details_cache):
+        self._prepare_connectivity(api)
+        deploy_result, sandbox_details = self._deploy_and_autoload_apps(api, resource_details_cache)
+        self._connect_all_routes_in_reservation(api, sandbox_details)
+        self._run_async_power_on_refresh_ip(api, sandbox_details, deploy_result, resource_details_cache)
+        self._configure_apps(api)
+        call_resource_command_configure(api, deploy_result, resource_details_cache, self.logger, self.sandbox_id)
 
-        self._prepare_connectivity(api, self.reservation_id)
+    def _deploy_and_autoload_apps(self, api, resource_details_cache):
+        sandbox_details = self._get_reservation_details(api)
+        deploy_result = self._deploy_apps_in_reservation(api, sandbox_details)
+        self._autoload_apps(api, deploy_result, resource_details_cache)
+        sandbox_details = self._refresh_sandbox_details_if_apps_deployed(api, deploy_result, sandbox_details)
+        return deploy_result, sandbox_details
 
-        reservation_details = api.GetReservationDetails(self.reservation_id)
+    def _get_reservation_details(self, api):
+        return api.GetReservationDetails(self.sandbox_id)
 
-        deploy_result = self._deploy_apps_in_reservation(api=api,
-                                                         reservation_details=reservation_details)
-
-        self._try_exeucte_autoload(api=api,
-                                   deploy_result=deploy_result,
-                                   resource_details_cache=resource_details_cache)
-
+    def _refresh_sandbox_details_if_apps_deployed(self, api, deploy_result, reservation_details):
         # refresh reservation_details after app deployment if any deployed apps
         if deploy_result and deploy_result.ResultItems:
-            reservation_details = api.GetReservationDetails(self.reservation_id)
+            reservation_details = api.GetReservationDetails(self.sandbox_id)
+        return reservation_details
 
-        self._connect_all_routes_in_reservation(api=api,
-                                                reservation_details=reservation_details,
-                                                reservation_id=self.reservation_id,
-                                                resource_details_cache=resource_details_cache)
+    def _prepare_execute(self):
+        api = helpers.get_api_session()
+        resource_details_cache = {}
+        def sandbox_msg(x): api.WriteMessageToReservationOutput(self.sandbox_id, x)
+        return api, resource_details_cache, sandbox_msg
 
-        self._run_async_power_on_refresh_ip(api=api,
-                                            reservation_details=reservation_details,
-                                            deploy_results=deploy_result,
-                                            resource_details_cache=resource_details_cache,
-                                            reservation_id=self.reservation_id)
-
-        self._configure_apps(api=api, reservation_id=self.reservation_id)
-
-        self.logger.info("Setup for reservation {0} completed".format(self.reservation_id))
-        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                            message='Reservation setup finished successfully')
-
-    def _prepare_connectivity(self, api, reservation_id):
+    def _prepare_connectivity(self, api):
         """
         :param CloudShellAPISession api:
         :param str reservation_id:
         """
-        self.logger.info("Preparing connectivity for reservation {0}".format(self.reservation_id))
-        api.WriteMessageToReservationOutput(reservationId=self.reservation_id, message='Preparing connectivity')
+        reservation_id = self.sandbox_id
+        self.logger.info("Preparing connectivity for reservation {0}".format(self.sandbox_id))
+        api.WriteMessageToReservationOutput(reservationId=self.sandbox_id, message='Preparing connectivity')
         api.PrepareSandboxConnectivity(reservation_id)
 
-    def _try_exeucte_autoload(self, api, deploy_result, resource_details_cache):
+    def _autoload_apps(self, api, deploy_result, resource_details_cache):
         """
-        :param GetReservationDescriptionResponseInfo reservation_details:
         :param CloudShellAPISession api:
         :param BulkAppDeploymentyInfo deploy_result:
         :param (dict of str: ResourceInfo) resource_details_cache:
@@ -81,7 +85,7 @@ class EnvironmentSetup(object):
 
         if deploy_result is None:
             self.logger.info("No apps to discover")
-            api.WriteMessageToReservationOutput(reservationId=self.reservation_id, message='No apps to discover')
+            api.WriteMessageToReservationOutput(self.sandbox_id, 'No apps to discover')
             return
 
         message_written = False
@@ -105,17 +109,14 @@ class EnvironmentSetup(object):
             try:
                 self.logger.info("Executing Autoload command on deployed app {0}".format(deployed_app_name))
                 if not message_written:
-                    api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                        message='Apps are being discovered...')
+                    api.WriteMessageToReservationOutput(self.sandbox_id, 'Apps are being discovered...')
                     message_written = True
+
+                pre_autoload_configuration_step(api, deployed_app, self.sandbox_id)
 
                 api.AutoLoad(deployed_app_name)
 
-                # for devices that are autoloaded and have child resources attempt to call "Connect child resources"
-                # which copies CVCs from app to deployed app ports.
-                api.ExecuteCommand(self.reservation_id, deployed_app_name,
-                                   TARGET_TYPE_RESOURCE,
-                                   REMAP_CHILD_RESOURCES, [])
+                remap_child_resources(api, deployed_app_name, self.sandbox_id)
 
             except CloudShellAPIError as exc:
                 if exc.code not in (EnvironmentSetup.NO_DRIVER_ERR,
@@ -124,43 +125,39 @@ class EnvironmentSetup(object):
                     self.logger.error(
                         "Error executing Autoload command on deployed app {0}. Error: {1}".format(deployed_app_name,
                                                                                                   exc.rawxml))
-                    api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                        message='Discovery failed on "{0}": {1}'
+                    api.WriteMessageToReservationOutput(self.sandbox_id, 'Discovery failed on "{0}": {1}'
                                                         .format(deployed_app_name, exc.message))
 
             except Exception as exc:
                 self.logger.error("Error executing Autoload command on deployed app {0}. Error: {1}"
                                   .format(deployed_app_name, str(exc)))
-                api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                    message='Discovery failed on "{0}": {1}'
+                api.WriteMessageToReservationOutput(self.sandbox_id, 'Discovery failed on "{0}": {1}'
                                                     .format(deployed_app_name, exc.message))
 
     def _deploy_apps_in_reservation(self, api, reservation_details):
         apps = reservation_details.ReservationDescription.Apps
         if not apps or (len(apps) == 1 and not apps[0].Name):
-            self.logger.info("No apps found in reservation {0}".format(self.reservation_id))
-            api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+            self.logger.info("No apps found in reservation {0}".format(self.sandbox_id))
+            api.WriteMessageToReservationOutput(reservationId=self.sandbox_id,
                                                 message='No apps to deploy')
             return None
 
         app_names = map(lambda x: x.Name, apps)
         app_inputs = map(lambda x: DeployAppInput(x.Name, "Name", x.Name), apps)
 
-        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+        api.WriteMessageToReservationOutput(reservationId=self.sandbox_id,
                                             message='Apps deployment started')
         self.logger.info(
             "Deploying apps for reservation {0}. App names: {1}".format(reservation_details, ", ".join(app_names)))
 
-        res = api.DeployAppToCloudProviderBulk(self.reservation_id, app_names, app_inputs)
+        res = api.DeployAppToCloudProviderBulk(self.sandbox_id, app_names, app_inputs)
 
         return res
 
-    def _connect_all_routes_in_reservation(self, api, reservation_details, reservation_id, resource_details_cache):
+    def _connect_all_routes_in_reservation(self, api, reservation_details):
         """
         :param CloudShellAPISession api:
         :param GetReservationDescriptionResponseInfo reservation_details:
-        :param str reservation_id:
-        :param (dict of str: ResourceInfo) resource_details_cache:
         :return:
         """
         connectors = reservation_details.ReservationDescription.Connectors
@@ -172,33 +169,31 @@ class EnvironmentSetup(object):
                 endpoints.append(endpoint.Source)
 
         if not endpoints:
-            self.logger.info("No routes to connect for reservation {0}".format(self.reservation_id))
+            self.logger.info("No routes to connect for reservation {0}".format(self.sandbox_id))
             return
 
-        self.logger.info("Executing connect routes for reservation {0}".format(self.reservation_id))
+        self.logger.info("Executing connect routes for reservation {0}".format(self.sandbox_id))
         self.logger.debug("Connecting: {0}".format(",".join(endpoints)))
-        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+        api.WriteMessageToReservationOutput(reservationId=self.sandbox_id,
                                             message='Connecting all apps')
-        res = api.ConnectRoutesInReservation(self.reservation_id, endpoints, 'bi')
+        res = api.ConnectRoutesInReservation(self.sandbox_id, endpoints, 'bi')
         return res
 
-    def _run_async_power_on_refresh_ip(self, api, reservation_details, deploy_results, resource_details_cache,
-                                       reservation_id):
+    def _run_async_power_on_refresh_ip(self, api, reservation_details, deploy_results, resource_details_cache):
         """
         :param CloudShellAPISession api:
         :param GetReservationDescriptionResponseInfo reservation_details:
         :param BulkAppDeploymentyInfo deploy_results:
-        :param (dict of str: ResourceInfo) resource_details_cache:
-        :param str reservation_id:
         :return:
         """
         # filter out resources not created in this reservation
-        resources = get_resources_created_in_res(reservation_details=reservation_details, reservation_id=reservation_id)
+        resources = get_resources_created_in_res(reservation_details=reservation_details,
+                                                 reservation_id=self.sandbox_id)
         if len(resources) == 0:
             api.WriteMessageToReservationOutput(
-                reservationId=self.reservation_id,
+                reservationId=self.sandbox_id,
                 message='No resources to power on')
-            self._validate_all_apps_deployed(deploy_results)
+            validate_all_apps_deployed(deploy_results)
             return
 
         pool = ThreadPool(len(resources))
@@ -220,14 +215,15 @@ class EnvironmentSetup(object):
             if not res[0]:
                 raise Exception("Reservation is Active with Errors - " + res[1])
 
-        self._validate_all_apps_deployed(deploy_results)
+        validate_all_apps_deployed(deploy_results)
 
-    def _configure_apps(self, api, reservation_id):
+    def _configure_apps(self, api):
         """
         :param CloudShellAPISession api:
         :param str reservation_id:
         :return:
         """
+        reservation_id = self.sandbox_id
         self.logger.info('App configuration started ...')
         try:
             configuration_result = api.ConfigureApps(reservationId=reservation_id)
@@ -259,12 +255,6 @@ class EnvironmentSetup(object):
             self.logger.error("Error configuring apps. Error: {0}".format(str(ex)))
             raise
 
-    def _validate_all_apps_deployed(self, deploy_results):
-        if deploy_results is not None:
-            for deploy_res in deploy_results.ResultItems:
-                if not deploy_res.Success:
-                    raise Exception("Reservation is Active with Errors - " + deploy_res.Error)
-
     def _power_on_refresh_ip(self, api, lock, message_status, resource, deploy_result, resource_details_cache):
         """
         :param CloudShellAPISession api:
@@ -284,7 +274,7 @@ class EnvironmentSetup(object):
 
         try:
             self.logger.debug("Getting resource details for resource {0} in reservation {1}"
-                              .format(deployed_app_name, self.reservation_id))
+                              .format(deployed_app_name, self.sandbox_id))
 
             resource_details = get_resource_details_from_cache_or_server(api, deployed_app_name, resource_details_cache)
             # check if deployed app
@@ -309,21 +299,21 @@ class EnvironmentSetup(object):
         except Exception as exc:
             self.logger.error("Error getting resource details for deployed app {0} in reservation {1}. "
                               "Will use default settings. Error: {2}".format(deployed_app_name,
-                                                                             self.reservation_id,
+                                                                             self.sandbox_id,
                                                                              str(exc)))
 
         try:
             self._power_on(api, deployed_app_name, power_on, lock, message_status)
         except Exception as exc:
             self.logger.error("Error powering on deployed app {0} in reservation {1}. Error: {2}"
-                              .format(deployed_app_name, self.reservation_id, str(exc)))
+                              .format(deployed_app_name, self.sandbox_id, str(exc)))
             return False, "Error powering on deployed app {0}".format(deployed_app_name)
 
         try:
             self._wait_for_ip(api, deployed_app_name, wait_for_ip, lock, message_status)
         except Exception as exc:
             self.logger.error("Error refreshing IP on deployed app {0} in reservation {1}. Error: {2}"
-                              .format(deployed_app_name, self.reservation_id, str(exc)))
+                              .format(deployed_app_name, self.sandbox_id, str(exc)))
             return False, "Error refreshing IP deployed app {0}. Error: {1}".format(deployed_app_name, exc.message)
 
         return True, ""
@@ -336,32 +326,34 @@ class EnvironmentSetup(object):
                     if not message_status['wait_for_ip']:
                         message_status['wait_for_ip'] = True
                         api.WriteMessageToReservationOutput(
-                            reservationId=self.reservation_id,
+                            reservationId=self.sandbox_id,
                             message='Waiting for apps IP addresses, this may take a while...')
 
             self.logger.info("Executing 'Refresh IP' on deployed app {0} in reservation {1}"
-                             .format(deployed_app_name, self.reservation_id))
+                             .format(deployed_app_name, self.sandbox_id))
 
-            api.ExecuteResourceConnectedCommand(self.reservation_id, deployed_app_name,
+            api.ExecuteResourceConnectedCommand(self.sandbox_id, deployed_app_name,
                                                 "remote_refresh_ip",
                                                 "remote_connectivity")
         else:
             self.logger.info("Wait For IP is off for deployed app {0} in reservation {1}"
-                             .format(deployed_app_name, self.reservation_id))
+                             .format(deployed_app_name, self.sandbox_id))
 
     def _power_on(self, api, deployed_app_name, power_on, lock, message_status):
         if power_on.lower() == "true":
             self.logger.info("Executing 'Power On' on deployed app {0} in reservation {1}"
-                             .format(deployed_app_name, self.reservation_id))
+                             .format(deployed_app_name, self.sandbox_id))
 
             if not message_status['power_on']:
                 with lock:
                     if not message_status['power_on']:
                         message_status['power_on'] = True
-                        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                        api.WriteMessageToReservationOutput(reservationId=self.sandbox_id,
                                                             message='Apps are powering on...')
 
-            api.ExecuteResourceConnectedCommand(self.reservation_id, deployed_app_name, "PowerOn", "power")
+            api.ExecuteResourceConnectedCommand(self.sandbox_id, deployed_app_name, "PowerOn", "power")
         else:
             self.logger.info("Auto Power On is off for deployed app {0} in reservation {1}"
-                             .format(deployed_app_name, self.reservation_id))
+                             .format(deployed_app_name, self.sandbox_id))
+
+
