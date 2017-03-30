@@ -1,0 +1,69 @@
+<ResourceManagementExportImport xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://schemas.qualisystems.com/ResourceManagement/ExportImportConfigurationSchema.xsd">
+  <Tags>
+    <Tag Name="Editable After Run (System Administrators)" />
+    <Tag Name="Editable After Run (Everyone)" />
+    <Tag Name="Configuration" />
+    <Tag Name="Setting" />
+    <Tag Name="Displayed In Diagram" />
+    <Tag Name="Link Configurations" />
+    <Tag Name="Variable Capability" />
+    <Tag Name="Constant Capability" />
+    <Tag Name="Topology Category" />
+    <Tag Name="Displayed In Route Creation" />
+    <Tag Name="Available For Abstract Resources" />
+    <Tag Name="Displayed In Search Filters" />
+    <Tag Name="Execution Server Selector" />
+    <Tag Name="Monitor Modifications" />
+    <Tag Name="Admin Only" />
+    <Tag Name="Displayed In Insight" />
+  </Tags>
+  <Attributes>
+    <AttributeInfo Name="GitLab URL" Type="String" DefaultValue="" IsReadOnly="false" IsCommand="false">
+      <Tags>
+        <TagName Name="Configuration" />
+      </Tags>
+    </AttributeInfo>
+    <AttributeInfo Name="GitLab Token" Type="String" DefaultValue="" IsReadOnly="false" IsCommand="false">
+      <Tags>
+        <TagName Name="Configuration" />
+      </Tags>
+    </AttributeInfo>
+    <AttributeInfo Name="GitLab Project Name" Type="String" DefaultValue="" IsReadOnly="false" IsCommand="false">
+      <Tags>
+        <TagName Name="Configuration" />
+      </Tags>
+    </AttributeInfo>
+  </Attributes>
+  <Modules>
+  </Modules>
+  <ResourceFamilies>
+    <ResourceFamily Name="Repository" IsMappableContainer="false" IsMappable="false" IsConnectable="false" IsLicenseCheckRequired="false" IsAllConnectedContainer="false" IsLockedByDefault="false" AcceptsMultipleConnections="false" Description="" SupportsMulticastMapping="false" SupportsLoopbackMapping="false" IsPowerSwitch="false" IsConsoleServer="false" ResourceType="Resource" IsAdminOnly="true" Searchable="true">
+      <AttachedAttributes />
+      <AttributeValues />
+      <Models>
+        <ResourceModel Name="GitLab" Description="" SupportsConcurrentCommands="false">
+          <AttachedAttributes>
+            <AttachedAttribute Name="GitLab URL" IsOverridable="true" IsLocal="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute Name="GitLab Token" IsOverridable="true" IsLocal="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute Name="GitLab Project Name" IsOverridable="true" IsLocal="true">
+              <AllowedValues />
+            </AttachedAttribute>
+          </AttachedAttributes>
+          <AttributeValues>
+            <AttributeValue Name="GitLab URL" Value="" />
+            <AttributeValue Name="GitLab Token" Value="" />
+            <AttributeValue Name="GitLab Project Name" Value="" />
+          </AttributeValues>
+          <ParentModels />
+          <Drivers />
+        </ResourceModel>
+      </Models>
+    </ResourceFamily>
+  </ResourceFamilies>
+  <DriverDescriptors>
+  </DriverDescriptors>
+</ResourceManagementExportImport>
