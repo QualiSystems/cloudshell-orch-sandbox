@@ -300,6 +300,16 @@ class SandboxBase(object):
         return None
 
     # -----------------------------------------
+    # Return the repositroy resource of the sandbox (e.g. gitlab), if found
+    # -----------------------------------------
+    def get_repository_server_resource(self):
+        root_resources = self.get_root_resources()
+        for resource in root_resources:
+            if resource.details.ResourceFamilyName.lower() == 'repository':
+                return resource
+        return None
+
+    # -----------------------------------------
     # Return the pool resource of the sandbox, if found
     #  -----------------------------------------
     def get_config_set_pool_resource(self):

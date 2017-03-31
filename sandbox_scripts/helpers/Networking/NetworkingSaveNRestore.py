@@ -19,10 +19,10 @@ class NetworkingSaveRestore(object):
         """
         self.sandbox = sandbox
         storage_server_resource = self.sandbox.get_storage_server_resource()
-        self.storage_client = None
+        self.storage_mgr = None
         if storage_server_resource is not None:
-            self.storage_client = StorageManager(sandbox,storage_server_resource).get_client()
-            self.config_files_root = self.storage_client.get_configs_root()
+            self.storage_mgr = StorageManager(sandbox)
+            self.config_files_root = self.storage_mgr.get_configs_root()
         else:
             if self.is_resources_in_reservation_to_restore(ignore_models = None):
                 self.sandbox.report_info("Failed to find a storage server resource (e.g. tftp) in the sandbox. ",
@@ -107,7 +107,7 @@ class NetworkingSaveRestore(object):
                 if resource.attribute_exist('Config file path'):
                     tmp_config_file_path = resource.get_attribute('Config file path')
                     if tmp_config_file_path != '' and tmp_config_file_path.find('/temp/') > -1:
-                        self.storage_client.delete(tmp_config_file_path)
+                        self.storage_mgr.delete(tmp_config_file_path)
                     #TODO - clean the attribute
             except QualiError as qe:
                 self.sandbox.report_info("Failed to delete temp config file " + tmp_config_file_path +
@@ -140,7 +140,7 @@ class NetworkingSaveRestore(object):
                         if resource.has_command('orchestration_restore'):
                             dest_name = resource.name + '_' + resource.model +'_artifact.txt'
                             dest_name = dest_name.replace(' ','-')
-                            saved_artifact_info = self.storage_client.download_artifact_info(config_path,dest_name,write_to_output=True)
+                            saved_artifact_info = self.storage_mgr.download_artifact_info(config_path, dest_name, write_to_output=True)
                             resource.orchestration_restore(self.sandbox.id,config_path,saved_artifact_info)
                         else:
                             resource.load_network_config(self.sandbox.id, config_path, 'running', 'override')
@@ -211,7 +211,7 @@ class NetworkingSaveRestore(object):
         # Check if there is a file pointing to firmware images files in the config directory
         try:
             firmware_data_file = root_path + 'FirmwareData.csv'
-            self.storage_client.download(firmware_data_file, tmp_firmware_file.name)
+            self.storage_mgr.download(firmware_data_file, tmp_firmware_file.name)
             # Create a dictionary for each resource its image file location
             with open(tmp_firmware_file.name) as csvfile:
                 reader = csv.DictReader(csvfile)
@@ -235,6 +235,7 @@ class NetworkingSaveRestore(object):
         """
 
         config_file_mgr = ConfigFileManager(self.sandbox)
+        #TODO - set the pool dictionary only once during the init of the class
         config_set_pool_data = dict()
         # If there is a pool resource, get the pool data
         config_set_pool_resource = self.sandbox.get_config_set_pool_resource()
@@ -253,18 +254,18 @@ class NetworkingSaveRestore(object):
         #try:
         #look for a concrete config file
         try:
-            self.storage_client.download(config_path, tmp_template_config_file.name)
+            self.storage_mgr.download(config_path, tmp_template_config_file.name)
             tmp_template_config_file.close()
             os.unlink(tmp_template_config_file.name)
         #if no concrete file, look for a template file
         except:
             try:
-                self.storage_client.download(tftp_template_config_path,tmp_template_config_file.name)
+                self.storage_mgr.download(tftp_template_config_path, tmp_template_config_file.name)
             except:
                 #look for a generic config file for the model
                 tftp_template_config_path = root_path + resource.model + '.tm'
                 tftp_template_config_path = tftp_template_config_path.replace(' ', '_')
-                self.storage_client.download(tftp_template_config_path, tmp_template_config_file.name)
+                self.storage_mgr.download(tftp_template_config_path, tmp_template_config_file.name)
             with open(tmp_template_config_file.name, 'r') as content_file:
                 tmp_template_config_file_data = content_file.read()
             concrete_config_data = config_file_mgr.create_concrete_config_from_template(
@@ -281,7 +282,7 @@ class NetworkingSaveRestore(object):
                                  '_' + resource.model + '.cfg'
             concrete_file_path = concrete_file_path.replace(' ', '_')
             # TODO - clean the temp dir on the tftp server
-            self.storage_client.upload(concrete_file_path, tmp_concrete_config_file.name)
+            self.storage_mgr.upload(concrete_file_path, tmp_concrete_config_file.name)
             tmp_concrete_config_file.close()
             os.unlink(tmp_concrete_config_file.name)
             # Set the path to the new concrete file
@@ -303,8 +304,8 @@ class NetworkingSaveRestore(object):
         env_dir = ""
         try:
             env_dir = self.config_files_root + '/Snapshots/' + snapshot_name.strip()
-            if not self.storage_client.dir_exist(env_dir):
-                self.storage_client.create_dir(env_dir, write_to_output=True)
+            if not self.storage_mgr.dir_exist(env_dir):
+                self.storage_mgr.create_dir(env_dir, write_to_output=True)
         except QualiError as e:
             self.sandbox.report_error("Save snapshot failed. " + str(e),
                                       write_to_output_window=write_to_output,raise_error=True)
@@ -348,14 +349,14 @@ class NetworkingSaveRestore(object):
                         dest_name = resource.name + '_' + resource.model +'_artifact.txt'
                         dest_name = dest_name.replace(' ','-')
                         with lock:
-                            self.storage_client.save_artifact_info(saved_artifact_info,config_path,dest_name,write_to_output=True)
+                            self.storage_mgr.save_artifact_info(saved_artifact_info, config_path, dest_name, write_to_output=True)
                 else:
                     file_name = resource.save_network_config(self.sandbox.id, snapshot_dir, config_type)
                     #rename file on the storage server
                     file_path = snapshot_dir + '/' + file_name
                     to_name = resource.name + '_' + resource.model + '.cfg'
                     with lock:
-                        self.storage_client.rename_file(file_path, to_name)
+                        self.storage_mgr.rename_file(file_path, to_name)
 
             except QualiError as qe:
                 save_result.run_result = False
@@ -383,7 +384,7 @@ class NetworkingSaveRestore(object):
             env_dir = self.config_files_root + '/Snapshots/' + self.sandbox.Blueprint_name
 
         env_dir = env_dir.replace(' ', '_')
-        return self.storage_client.dir_exist(env_dir)
+        return self.storage_mgr.dir_exist(env_dir)
 
     # ----------------------------------
     # delete file name on storage
@@ -392,7 +393,7 @@ class NetworkingSaveRestore(object):
 
         env_dir = self.config_files_root + '/Snapshots/' + fileName
         env_dir = env_dir.replace(' ', '_')
-        self.storage_client.delete(env_dir)
+        self.storage_mgr.delete(env_dir)
 
     # ----------------------------------
     # Check if need to load configuration to the given device
@@ -442,7 +443,7 @@ class NetworkingSaveRestore(object):
     # ----------------------------------
     # ----------------------------------
     def get_storage_client(self):
-        return self.storage_client
+        return self.storage_mgr
 
 class image_struct:
     def __init__(self, path, version):
