@@ -31,7 +31,7 @@ class EnvironmentSetupResources(object):
                     pass
                 ignore_models=['Generic TFTP server', 'Config Set Pool','Generic FTP server','netscout switch 3912']
 
-                if saveNRestoreTool.get_storage_client():
+                if saveNRestoreTool.get_storage_manager():
                     if saveNRestoreTool.is_snapshot():
                         saveNRestoreTool.load_config(config_stage='Snapshots', config_type='Running',
                                                      ignore_models=ignore_models)

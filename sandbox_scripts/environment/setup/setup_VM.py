@@ -20,7 +20,7 @@ class EnvironmentSetupVM(object):
 
         #TODO: don't use networking save and restore to figure if it's a snapshot setup
         saveNRestoreTool = NetworkingSaveRestore(self.sandbox)
-        if saveNRestoreTool.get_storage_client():
+        if saveNRestoreTool.get_storage_manager():
             if saveNRestoreTool.is_snapshot():
                 self.is_snapshot = True
 

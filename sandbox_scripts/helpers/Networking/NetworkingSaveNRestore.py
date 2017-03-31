@@ -442,7 +442,7 @@ class NetworkingSaveRestore(object):
 
     # ----------------------------------
     # ----------------------------------
-    def get_storage_client(self):
+    def get_storage_manager(self):
         return self.storage_mgr
 
 class image_struct:

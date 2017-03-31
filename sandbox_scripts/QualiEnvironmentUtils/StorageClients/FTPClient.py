@@ -2,7 +2,7 @@
 import ftplib
 import tempfile
 
-import StorageClient
+from StorageClient import *
 from sandbox_scripts.QualiEnvironmentUtils.Sandbox import *
 
 

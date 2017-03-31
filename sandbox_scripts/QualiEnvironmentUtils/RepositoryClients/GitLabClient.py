@@ -1,4 +1,4 @@
-import RepositoryClient
+from RepositoryClient import *
 from sandbox_scripts.QualiEnvironmentUtils.Sandbox import *
 import base64
 try:

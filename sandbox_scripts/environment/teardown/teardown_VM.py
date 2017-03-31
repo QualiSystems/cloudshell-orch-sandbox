@@ -32,7 +32,7 @@ class EnvironmentTeardownVM:
         is_snapshot = False
 
         #if the current reservation was saved as snapshot we look it by reservation_id
-        if saveNRestoreTool.get_storage_client():
+        if saveNRestoreTool.get_storage_manager():
             if saveNRestoreTool.is_snapshot(filename):
                 is_snapshot = True
                 saveNRestoreTool.delete_src_file(filename)
