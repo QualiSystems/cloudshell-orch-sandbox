@@ -1,0 +1,105 @@
+
+<ResourceManagementExportImport xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://schemas.qualisystems.com/ResourceManagement/ExportImportConfigurationSchema.xsd">
+  <Tags>
+    <Tag Name="Editable After Run (System Administrators)" />
+    <Tag Name="Editable After Run (Everyone)" />
+    <Tag Name="Configuration" />
+    <Tag Name="Setting" />
+    <Tag Name="Displayed In Diagram" />
+    <Tag Name="Link Configurations" />
+    <Tag Name="Variable Capability" />
+    <Tag Name="Constant Capability" />
+    <Tag Name="Topology Category" />
+    <Tag Name="Displayed In Route Creation" />
+    <Tag Name="Available For Abstract Resources" />
+    <Tag Name="Displayed In Search Filters" />
+    <Tag Name="Execution Server Selector" />
+    <Tag Name="Monitor Modifications" />
+    <Tag Name="Admin Only" />
+    <Tag Name="Displayed In Insight" />
+  </Tags>
+  <Attributes>
+    <AttributeInfo Name="Storage Port" Type="Numeric" DefaultValue="0" IsReadOnly="false" IsCommand="false">
+      <Tags>
+        <TagName Name="Configuration" />
+        <TagName Name="Setting" />
+      </Tags>
+    </AttributeInfo>
+    <AttributeInfo Name="Storage Network configs Path" Type="String" DefaultValue="" IsReadOnly="false" IsCommand="false">
+      <Tags>
+        <TagName Name="Configuration" />
+        <TagName Name="Setting" />
+      </Tags>
+    </AttributeInfo>
+    <AttributeInfo Name="Storage username" Type="String" DefaultValue="" IsReadOnly="false" IsCommand="false">
+      <Tags>
+        <TagName Name="Configuration" />
+      </Tags>
+    </AttributeInfo>
+    <AttributeInfo Name="Storage password" Type="String" DefaultValue="" IsReadOnly="false" IsCommand="false">
+      <Tags>
+        <TagName Name="Configuration" />
+      </Tags>
+    </AttributeInfo>
+    <AttributeInfo Name="Orch Config file path" Type="String" DefaultValue="" IsReadOnly="false" IsCommand="false">
+      <Tags>
+        <TagName Name="Configuration" />
+      </Tags>
+    </AttributeInfo>
+    <AttributeInfo Name="Orch Disable Load Config" Type="Boolean" DefaultValue="False" IsReadOnly="false" IsCommand="false">
+      <Tags>
+        <TagName Name="Configuration" />
+      </Tags>
+    </AttributeInfo>
+	</Attributes>
+  <Modules>
+  </Modules>
+  <ResourceFamilies>
+    <ResourceFamily Name="Storage server" IsMappableContainer="false" IsMappable="false" IsConnectable="false" IsLicenseCheckRequired="false" IsAllConnectedContainer="false" IsLockedByDefault="false" AcceptsMultipleConnections="false" Description="" SupportsMulticastMapping="false" SupportsLoopbackMapping="false" IsPowerSwitch="false" IsConsoleServer="false" ResourceType="Resource" IsAdminOnly="true" Searchable="true">
+      <AttachedAttributes />
+      <AttributeValues />
+      <Models>
+        <ResourceModel Name="Generic FTP server" Description="" SupportsConcurrentCommands="false">
+          <AttachedAttributes>
+            <AttachedAttribute Name="Storage Port" IsOverridable="true" IsLocal="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute Name="Storage Network configs Path" IsOverridable="true" IsLocal="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute Name="Storage username" IsOverridable="true" IsLocal="true">
+              <AllowedValues />
+            </AttachedAttribute>
+            <AttachedAttribute Name="Storage password" IsOverridable="true" IsLocal="true">
+              <AllowedValues />
+            </AttachedAttribute>
+          </AttachedAttributes>
+          <AttributeValues>
+            <AttributeValue Name="Storage Network configs Path" Value="" />
+            <AttributeValue Name="Storage username" Value="" />
+            <AttributeValue Name="Storage password" Value="" />
+            <AttributeValue Name="Storage Port" Value="21" />
+          </AttributeValues>
+          <ParentModels />
+          <Drivers />
+        </ResourceModel>
+      </Models>
+    </ResourceFamily>
+	<ResourceFamily Name="Pool" IsMappableContainer="false" IsMappable="false" IsConnectable="false" IsLicenseCheckRequired="false" IsAllConnectedContainer="false" IsLockedByDefault="true" AcceptsMultipleConnections="false" Description="" SupportsMulticastMapping="false" SupportsLoopbackMapping="false" IsPowerSwitch="false" IsConsoleServer="false" ResourceType="Resource" IsAdminOnly="true" Searchable="true">
+      <AttachedAttributes />
+      <AttributeValues />
+      <Models>
+        <ResourceModel Name="Config Set Pool" Description="" SupportsConcurrentCommands="false">
+          <ParentModels />
+          <Drivers />
+          <AttachedAttributes />
+          <AttributeValues />
+          <ParentModels />
+          <Drivers />
+       </ResourceModel>
+      </Models>
+    </ResourceFamily>
+  </ResourceFamilies>
+  <DriverDescriptors>
+  </DriverDescriptors>
+</ResourceManagementExportImport>
