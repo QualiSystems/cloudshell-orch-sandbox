@@ -104,15 +104,15 @@ class StorageManager(object):
 
     # ----------------------------------
     # ----------------------------------
-    def create_src_file_on_storage(self,win_path,write_to_output=True):
+    def create_src_file_on_storage(self,win_path,write_to_output=False):
         self.storage_client.create_src_file_on_storage(win_path, write_to_output)
 
     # ----------------------------------
     # ----------------------------------
-    def save_artifact_info(self,saved_artifact_info,env_dir,dest_name,write_to_output=True):
+    def save_artifact_info(self,saved_artifact_info,env_dir,dest_name,write_to_output=False):
         self.storage_client.save_artifact_info(saved_artifact_info,env_dir,dest_name,write_to_output)
 
     # ----------------------------------
     # ----------------------------------
-    def download_artifact_info(self,env_dir,dest_name,write_to_output=True):
-        self.storage_client.download_artifact_info(env_dir, dest_name,write_to_output)
+    def download_artifact_info(self,root_folder,dest_name,write_to_output=False):
+        self.storage_client.download_artifact_info(root_folder, dest_name,write_to_output)

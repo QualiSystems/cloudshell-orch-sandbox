@@ -212,12 +212,10 @@ class FTPClient(StorageClient):
     # ----------------------------------
     # ----------------------------------
 
-    def download_artifact_info(self, file_path, dest_name, write_to_output=True):
+    def download_artifact_info(self, root_folder, dest_name, write_to_output=False):
 
         data = None
-        file_path = self._remove_header(file_path)
-        head, tail = os.path.split(file_path)
-        new_config_path = head + '/' + dest_name
+        new_config_path = root_folder + '/' + dest_name
 
         try:
             tmp_file = tempfile.NamedTemporaryFile(delete=False)
@@ -229,6 +227,7 @@ class FTPClient(StorageClient):
             os.unlink(tmp_file.name)
 
         except:
-            err = 'download artifact info failed '
+            err = 'failed to download artifact info file: ' + new_config_path
+            self.sandbox.report_error(err, raise_error=False, write_to_output_window=write_to_output)
 
         return data

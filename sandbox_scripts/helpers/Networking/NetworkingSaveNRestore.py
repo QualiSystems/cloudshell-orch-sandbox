@@ -1,14 +1,16 @@
 # coding=utf-8
 import csv
 import tempfile
-import json
-import subprocess
+# import json
+# import subprocess
 from multiprocessing.pool import ThreadPool
 from threading import Lock
 
 from sandbox_scripts.QualiEnvironmentUtils.ConfigFileManager import *
 from sandbox_scripts.QualiEnvironmentUtils.ConfigPoolManager import *
-from sandbox_scripts.QualiEnvironmentUtils.StorageManager import StorageManager
+# from sandbox_scripts.QualiEnvironmentUtils.StorageManager import StorageManager
+from sandbox_scripts.helpers.Networking.base_save_restore import *
+from QualiUtils import QualiError
 
 
 class NetworkingSaveRestore(object):
@@ -45,7 +47,7 @@ class NetworkingSaveRestore(object):
     # e.g. tftp://configs/Base/svl290-gg07-sw1_c3850.cfg
     # ----------------------------------
     def load_config(self, config_stage, config_type, restore_method="Override", config_set_name='', ignore_models=None,
-                    write_to_output=True, remove_temp_files = False, in_teardown_mode = False,use_Config_file_path_attr = False):
+                    write_to_output=True, remove_temp_files = False, use_Config_file_path_attr = False):
         """
         Load the configuration from config files on the Blueprint's devices
         :param str config_stage:  The stage of the config e.g Gold, Base
@@ -72,13 +74,13 @@ class NetworkingSaveRestore(object):
         images_path_dict = self._get_images_path_dict(root_path,write_to_output=True)
         self.sandbox.report_info(
             "Loading image and configuration on the devices. This action may take some time",write_to_output_window=True)
-        root_resources = self.sandbox.get_root_resources()
+        root_resources = self.sandbox.get_root_networking_resources
         """:type : list[ResourceBase]"""
         pool = ThreadPool(len(root_resources))
         lock = Lock()
         async_results = [pool.apply_async(self._run_asynch_load,
                                           (resource, images_path_dict, root_path, ignore_models,config_stage, lock,
-                                           in_teardown_mode,use_Config_file_path_attr))
+                                           use_Config_file_path_attr))
                          for resource in root_resources]
 
         pool.close()
@@ -103,18 +105,18 @@ class NetworkingSaveRestore(object):
         root_resources = self.sandbox.get_root_resources()
         """:type : list[ResourceBase]"""
         for resource in root_resources:
-            try:
-                if resource.attribute_exist('Config file path'):
-                    tmp_config_file_path = resource.get_attribute('Config file path')
-                    if tmp_config_file_path != '' and tmp_config_file_path.find('/temp/') > -1:
+            if resource.attribute_exist('Config file path'):
+                tmp_config_file_path = resource.get_attribute('Config file path')
+                if tmp_config_file_path != '' and tmp_config_file_path.find('/temp/') > -1:
+                    try:
                         self.storage_mgr.delete(tmp_config_file_path)
-                    #TODO - clean the attribute
-            except QualiError as qe:
-                self.sandbox.report_info("Failed to delete temp config file " + tmp_config_file_path +
+                        #TODO - clean the attribute
+                    except QualiError as qe:
+                        self.sandbox.report_info("Failed to delete temp config file " + tmp_config_file_path +
                                          "Error is: " + str(qe))
     # ----------------------------------
     # ----------------------------------
-    def _run_asynch_load(self, resource, images_path_dict, root_path, ignore_models, config_stage, lock, in_teardown_mode,
+    def _run_asynch_load(self, resource, images_path_dict, root_path, ignore_models, config_stage, lock,
                          use_Config_file_path_attr):
         message = ""
         #run_status = True
@@ -123,9 +125,6 @@ class NetworkingSaveRestore(object):
         # Check if needs to load the config to the device
         load_config_to_device = self._is_load_config_to_device(resource, ignore_models=ignore_models)
         if load_config_to_device:
-            #if we are in teardown the vm is already down - no need to do anything
-            if in_teardown_mode and resource.is_app():
-                return
 
             health_check_result = resource.health_check(self.sandbox.id)
             if health_check_result == "":
@@ -140,7 +139,7 @@ class NetworkingSaveRestore(object):
                         if resource.has_command('orchestration_restore'):
                             dest_name = resource.name + '_' + resource.model +'_artifact.txt'
                             dest_name = dest_name.replace(' ','-')
-                            saved_artifact_info = self.storage_mgr.download_artifact_info(config_path, dest_name, write_to_output=True)
+                            saved_artifact_info = self.storage_mgr.download_artifact_info(config_path, dest_name)
                             resource.orchestration_restore(self.sandbox.id,config_path,saved_artifact_info)
                         else:
                             resource.load_network_config(self.sandbox.id, config_path, 'running', 'override')
@@ -310,7 +309,7 @@ class NetworkingSaveRestore(object):
             self.sandbox.report_error("Save snapshot failed. " + str(e),
                                       write_to_output_window=write_to_output,raise_error=True)
 
-        root_resources = self.sandbox.get_root_resources()
+        root_resources = self.sandbox.get_root_networking_resources()
         """:type : list[ResourceBase]"""
         pool = ThreadPool(len(root_resources))
         lock = Lock()
@@ -371,21 +370,6 @@ class NetworkingSaveRestore(object):
         save_result.message = message
         return save_result
 
-
-    # ----------------------------------
-    # Is this Sandbox originates from a snapshot Blueprint?
-    # ----------------------------------
-    def is_snapshot(self,fileName = " "):
-        # check if there is a directory with the Blueprint's name under the snapshots dir
-
-        if fileName != " ":
-            env_dir = self.config_files_root + '/Snapshots/' + fileName
-        else:
-            env_dir = self.config_files_root + '/Snapshots/' + self.sandbox.Blueprint_name
-
-        env_dir = env_dir.replace(' ', '_')
-        return self.storage_mgr.dir_exist(env_dir)
-
     # ----------------------------------
     # delete file name on storage
     # ----------------------------------
@@ -422,7 +406,7 @@ class NetworkingSaveRestore(object):
         return True
 
     # ----------------------------------
-    #Are there devices in the reservation that need to be restored
+    # Are there devices in the reservation that need to be restored
     # ----------------------------------
     def is_resources_in_reservation_to_restore(self,ignore_models):
 
@@ -440,18 +424,4 @@ class NetworkingSaveRestore(object):
 
         return False
 
-    # ----------------------------------
-    # ----------------------------------
-    def get_storage_manager(self):
-        return self.storage_mgr
 
-class image_struct:
-    def __init__(self, path, version):
-        self.path = path
-        self.version = version
-
-class load_result_struct:
-    def __init__(self, resource_name):
-        self.run_result = True
-        self.resource_name = resource_name
-        self.message = ""
