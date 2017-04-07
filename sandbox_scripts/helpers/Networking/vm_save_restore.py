@@ -1,5 +1,5 @@
 from sandbox_scripts.helpers.Networking.base_save_restore import *
-from QualiUtils import QualiError
+from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
 from multiprocessing.pool import ThreadPool
 from threading import Lock
 

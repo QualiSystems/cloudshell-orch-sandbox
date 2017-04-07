@@ -10,8 +10,7 @@ from sandbox_scripts.QualiEnvironmentUtils.ConfigFileManager import *
 from sandbox_scripts.QualiEnvironmentUtils.ConfigPoolManager import *
 # from sandbox_scripts.QualiEnvironmentUtils.StorageManager import StorageManager
 from sandbox_scripts.helpers.Networking.base_save_restore import *
-from QualiUtils import QualiError
-
+from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
 
 class NetworkingSaveRestore(object):
     def __init__(self, sandbox):
