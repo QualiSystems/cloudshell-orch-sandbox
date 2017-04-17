@@ -15,35 +15,40 @@ class GitLabClient(RepositoryClient):
         self.url = repository_resource.get_attribute("GitLab URL")
         self.token = repository_resource.get_attribute("GitLab Token")
         self.project_name = repository_resource.get_attribute("GitLab Project Name")
+        self.repository_path = repository_resource.get_attribute("Repository Path")
 
     def download(self, source, destination):
-        #TODO - Implement this function
-        raise Exception("need to implement")
-
-
-'''
-    def RetrieveFileFromGit (GitURL, GitToken, GitProjectName, TemplateName):
-        Git = gitlab.Gitlab(GitURL, GitToken)
-        Gitprojid = 0
-        Gitprojects = ''
+        #print "GitLabClient called!"
+        #print "   " + source
+        #print "   " + destination
+        gl = gitlab.Gitlab(self.url, self.token)
+        projid = 0
+        projects = ''
         try:
-            for project in Git.getall(Git.getprojects):
+            for project in gl.getall(gl.getprojects):
                 #print project['name']
-                if project['name'] == GitProjectName:
-                    Gitprojid = project['id']
+                if project['name'] == self.project_name:
+                    projid = project['id']
                     break
                 else:
-                    Gitprojects += str(project['id']) + '-' + project['name'] + '\n'
+                    projects += str(project['id']) + '-' + project['name'] + '\n'
         except:
-            return 3, "Could not access repository at %s" % GitURL
+            return 4, "ERROR: Could not access repository at %s" % self.url
 
-        if Gitprojid == 0:
-            return 2, "Failed to locate project by name among \n" + Gitprojects
+        if projid == 0:
+            return 3, "ERROR: Failed to locate project by name among \n" + projects
 
         try:
-            tmplt64 = Git.getfile(Gitprojid, TemplateName, 'master')
-            CfgTemplate = base64.b64decode(tmplt64['content']).decode()
-            return 0, CfgTemplate
+            source = self.repository_path + source
+            filebase64 = gl.getfile(projid, source, 'master')
+            filetext = base64.b64decode(filebase64['content']).decode()
         except:
-            return 1, "Failed to retrieve file."
-'''
+            return 2, "ERROR: Failed to retrieve file."
+
+        try:
+            with open(destination,'w') as dest:
+                    dest.write(filetext)
+            print "Downloaded: " + source
+            return 0, "Successfully retrieved file from repository and saved to destination"
+        except:
+            return 1, "ERROR: Retrieved file from repository - failed to save to destination"

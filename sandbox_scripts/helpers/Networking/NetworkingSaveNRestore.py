@@ -25,7 +25,7 @@ class NetworkingSaveRestore(object):
             self.config_files_root = self.storage_mgr.get_configs_root()
         else:
             if self.is_resources_in_reservation_to_restore(ignore_models = None):
-                self.sandbox.report_info("Failed to find a storage server resource (e.g. tftp) in the sandbox. ",
+                self.sandbox.report_info("Failed to find a storage server resource (e.g. ftp) in the sandbox. ",
                                       write_to_output_window=False)
 
     # ----------------------------------
@@ -56,22 +56,21 @@ class NetworkingSaveRestore(object):
         :param list[str] ignore_models: Optional. Models that should be ignored and not load config on the device
         :param bool write_to_output: Optional. should messages be sent to the command output.
         """
-
         root_path = ''
         if config_stage.lower() == 'gold' or config_stage.lower() == 'snapshots':
-            root_path = self.config_files_root + '/' + config_stage + '/' + self.sandbox.Blueprint_name.strip() + '/'
+            #root_path = self.config_files_root + '/' + config_stage + '/' + self.sandbox.Blueprint_name.strip() + '/'
+            root_path = self.config_files_root + '/' + config_stage + '/' + os.environ["environment_name"] + '/'
         elif config_stage.lower() == 'base':
             root_path = self.config_files_root + '/' + config_stage + '/'
+
         if config_set_name != '':
             root_path = root_path + config_set_name.strip() + '/'
 
         root_path = root_path.replace(' ', '_')
-
-
-        #root_path = root_path + 'configs/'
-        images_path_dict = self._get_images_path_dict(root_path,write_to_output=True)
+        self.sandbox.report_info("RootPath: " + root_path,write_to_output_window=False)
+        images_path_dict = self._get_images_path_dict(root_path)
         self.sandbox.report_info(
-            "Loading image and configuration on the devices. This action may take some time",write_to_output_window=True)
+            "Loading image and configuration on the devices. This action may take some time.",write_to_output_window=True)
         root_resources = self.sandbox.get_root_resources()
         """:type : list[ResourceBase]"""
         pool = ThreadPool(len(root_resources))
@@ -92,7 +91,7 @@ class NetworkingSaveRestore(object):
                 self.sandbox.report_error(res.message, raise_error=False)
                 self.sandbox.api_session.SetResourceLiveStatus(res.resource_name, 'Error')
             elif res.message != '':
-                self.sandbox.report_info(res.resource_name + "\n" + res.message)
+                self.sandbox.report_info(res.resource_name + "\n" + res.message,write_to_output_window=True)
         if remove_temp_files:
             self._remove_temp_config_files()
 
@@ -111,7 +110,7 @@ class NetworkingSaveRestore(object):
                     #TODO - clean the attribute
             except QualiError as qe:
                 self.sandbox.report_info("Failed to delete temp config file " + tmp_config_file_path +
-                                         "Error is: " + str(qe))
+                                         "Error is: " + str(qe),write_to_output_window=False)
     # ----------------------------------
     # ----------------------------------
     def _run_asynch_load(self, resource, images_path_dict, root_path, ignore_models, config_stage, lock, in_teardown_mode,
@@ -119,6 +118,7 @@ class NetworkingSaveRestore(object):
         message = ""
         #run_status = True
         saved_artifact_info = None
+        additionalinfo = ''
         load_result = load_result_struct(resource.name)
         # Check if needs to load the config to the device
         load_config_to_device = self._is_load_config_to_device(resource, ignore_models=ignore_models)
@@ -129,10 +129,11 @@ class NetworkingSaveRestore(object):
 
             health_check_result = resource.health_check(self.sandbox.id)
             if health_check_result == "":
+                self.sandbox.report_info(resource.name + " -- Initial Health Check Passed.")
                 try:
-                    config_path = ''
                     with lock:
                         config_path = self._get_concrete_config_file_path(root_path, resource, config_stage, write_to_output=True)
+                        #print "136 " + resource.name + " - " + config_path
                     if use_Config_file_path_attr:
                         resource.set_attribute_value('Config file path', config_path)
                     #TODO - Snapshots currently only restore configuration. We need to restore firmware as well
@@ -140,51 +141,62 @@ class NetworkingSaveRestore(object):
                         if resource.has_command('orchestration_restore'):
                             dest_name = resource.name + '_' + resource.model +'_artifact.txt'
                             dest_name = dest_name.replace(' ','-')
-                            saved_artifact_info = self.storage_mgr.download_artifact_info(config_path, dest_name, write_to_output=True)
+                            saved_artifact_info = self.storage_mgr.download_artifact_info(config_path, dest_name,
+                                                                                          write_to_output=True)
                             resource.orchestration_restore(self.sandbox.id,config_path,saved_artifact_info)
                         else:
-                            resource.load_network_config(self.sandbox.id, config_path, 'running', 'override')
+                            resource.load_network_config(self.sandbox.id, config_path, 'Running', 'Override')
                     else:
                         if len(images_path_dict) > 0:
-                            # check what the FW version is and only load firmware if it's different from what
-                            # currently is on the device
+                            # check what the device FW version
                             image_key = (resource.alias + '_' + resource.model).replace(' ', '_')
                             version = resource.get_version(self.sandbox.id)
+                            self.sandbox.report_info(resource.name + ": current version: " + version,
+                                                write_to_output_window=True)
                             try:
                                 dict_img_version = images_path_dict[image_key].version
+                                self.sandbox.report_info(resource.name + ": FirmwareData specifies version " + dict_img_version)
                             except:
                                 image_key = resource.model.replace(' ', '_')
                                 dict_img_version = images_path_dict[image_key].version
                             # same image version - Only load config (running override)
+                            message += "\nLoading configuration for device: " + resource.name + " from:" + config_path
                             if dict_img_version.lower() == version.lower():
-                                message += "\nLoading configuration for device: " + resource.name + " from:" + config_path
-                                resource.load_network_config(self.sandbox.id, config_path, 'running', 'override')
-                            # Different image - Load config to the startup and load the image
+                                resource.load_network_config(self.sandbox.id, config_path=config_path,
+                                                             config_type='Running',
+                                                             restore_method='Override')
+                            # Different image - Load config to the RUNNING ALSO and load the image
                             else:
-                                message += "\nLoading configuration for device: " + resource.name + " from:" + config_path
-                                resource.load_network_config(self.sandbox.id, config_path, 'startup', 'override')
-
+                                resource.load_network_config(self.sandbox.id, config_path=config_path,
+                                                             config_type='Running',
+                                                             restore_method='Override')
                                 resource_image_path = images_path_dict[image_key].path
                                 if resource_image_path != '':
                                     message += "\nLoading firmware for device: " + resource.name + " from:" + \
                                                resource_image_path
+                                    additionalinfo = " (firmware) "
+                                    self.sandbox.report_info("Config uploaded; Loading firmware on " + resource.name,
+                                                             write_to_output_window=True)
+                                    self.sandbox.report_info("Image: " + resource_image_path, write_to_output_window=True)
                                     resource.load_firmware(self.sandbox.id, resource_image_path)
                         else:
                             message += "\nLoading configuration for device: " + resource.name + " from:" + config_path
-                            resource.load_network_config(self.sandbox.id, config_path, 'running', 'override')
+                            resource.load_network_config(self.sandbox.id, config_path, 'Running', 'Override')
 
                     health_check_result = resource.health_check(self.sandbox.id)
                     if health_check_result != '':
                         raise QualiError(self.sandbox.id, resource.name +
                                          " did not pass health check after loading configuration")
+                    else:
+                        self.sandbox.report_info(resource.name + " -- final Health Check Passed.")
 
                 except QualiError as qe:
                     load_result.run_result = False
-                    err = "\nFailed to load configuration for device " + resource.name + ". " + str(qe)
+                    err = "\nFailed to load configuration " + additionalinfo + " for device " + resource.name + ". " + str(qe)
                     message += err
                 except Exception as ex:
                     load_result.run_result = False
-                    err = "\nFailed to load configuration for device " + resource.name + \
+                    err = "\nFailed to load configuration " + additionalinfo + " for device " + resource.name + \
                           ". Unexpected error: " + str(ex)
                     message += err
             else:
@@ -192,12 +204,13 @@ class NetworkingSaveRestore(object):
                 err = resource.name + " did not pass health check. Configuration will not be loaded to the device.\n" + \
                         "Health check error is: " + health_check_result
                 message +=  err
+
         load_result.message = message
         return load_result
 
     # ----------------------------------
     # ----------------------------------
-    def _get_images_path_dict(self, root_path, write_to_output=True):
+    def _get_images_path_dict(self, root_path):
         """
         Check if there is a need to load firmware on the devices
         If a file named FirmwareData.csv is located under the configs directory -
@@ -207,15 +220,16 @@ class NetworkingSaveRestore(object):
         """
         images_path_dict = dict()
         tmp_firmware_file = tempfile.NamedTemporaryFile(delete=False)
-
         # Check if there is a file pointing to firmware images files in the config directory
         try:
             firmware_data_file = root_path + 'FirmwareData.csv'
+            #print " retrieving " + firmware_data_file
             self.storage_mgr.download(firmware_data_file, tmp_firmware_file.name)
             # Create a dictionary for each resource its image file location
             with open(tmp_firmware_file.name) as csvfile:
                 reader = csv.DictReader(csvfile)
                 for row in reader:
+                    #print row
                     image_data = image_struct(row['Path'],row['Version'])
                     images_path_dict[row['Device']] = image_data
         except:
@@ -228,7 +242,7 @@ class NetworkingSaveRestore(object):
     def _get_concrete_config_file_path(self, root_path, resource, config_stage, write_to_output=False):
         """
         Get the path to a concrete config file. If there is only a template for the config file,
-        create a temp concrete config file, and send its path
+        create a temporary concrete config file, and send its path
         :param str root_path:  The root dir on the tftp where the config files reside
         :param ResourceBase resource:  The resource the file will be created for
         :rtype: str
@@ -257,6 +271,11 @@ class NetworkingSaveRestore(object):
             self.storage_mgr.download(config_path, tmp_template_config_file.name)
             tmp_template_config_file.close()
             os.unlink(tmp_template_config_file.name)
+            #protect against file being empty
+            if os.path.getsize(tmp_template_config_file.name) == 0:
+                os.remove(tmp_template_config_file.name)
+                raise ValueError ("emptyfile")
+
         #if no concrete file, look for a template file
         except:
             try:
@@ -377,7 +396,6 @@ class NetworkingSaveRestore(object):
     # ----------------------------------
     def is_snapshot(self,fileName = " "):
         # check if there is a directory with the Blueprint's name under the snapshots dir
-
         if fileName != " ":
             env_dir = self.config_files_root + '/Snapshots/' + fileName
         else:
@@ -403,10 +421,9 @@ class NetworkingSaveRestore(object):
     # ----------------------------------
     def _is_load_config_to_device(self, resource, ignore_models=None):
         # check if the device is marked for not loading config during
-
         if resource.attribute_exist("Disable Load Config"):
             disable_load_config = resource.get_attribute("Disable Load Config")
-            if disable_load_config:
+            if disable_load_config == "True":
                 return False
 
         if ignore_models:

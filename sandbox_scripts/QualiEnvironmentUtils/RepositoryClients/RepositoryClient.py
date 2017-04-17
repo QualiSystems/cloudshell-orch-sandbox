@@ -9,7 +9,6 @@ class RepositoryClient(object):
         self.sandbox = sandbox
         self.repository_resource = repository_resource
 
-
     @abstractmethod
     def download(self, source, destination):
        raise NotImplementedError('subclasses must override download()!')

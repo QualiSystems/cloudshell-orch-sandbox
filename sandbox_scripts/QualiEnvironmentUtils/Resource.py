@@ -57,7 +57,11 @@ class ResourceBase(object):
         attribute_name = attribute_name.lower()
         for attribute in self.attributes:
             if attribute.Name.lower() == attribute_name:
-                return attribute.Value
+                if attribute.Type == 'Password':
+                    decrypted = self.api_session.DecryptPassword(attribute.Value)
+                    return decrypted.Value
+                else:
+                    return attribute.Value
         raise QualiError(self.name, "Attribute: " + attribute_name + " not found")
 
     # -----------------------------------------
@@ -96,9 +100,9 @@ class ResourceBase(object):
         if self.has_command('health_check'):
             try:
                 # Return a detailed description in case of a failure
-                out = self.execute_command(reservation_id, 'health_check', printOutput=False)#.Output()
+                out = self.execute_command(reservation_id, 'health_check', printOutput=False) #.Output()
                 if out.Output.find(' passed') == -1:
-                    err = "Health check did not pass for device " + self.name + ". " + out
+                    err = "Health check did not pass for device " + self.name + ". "  +out.Output
                     return err
 
             except QualiError as qe:
@@ -110,7 +114,7 @@ class ResourceBase(object):
     # -----------------------------------------
     def load_network_config(self, reservation_id, config_path, config_type, restore_method='Override'):
         """
-        Load config from a configuration file on the device
+        Load config from a configuration file onto the device
         :param str reservation_id:  Reservation id.
         :param config_path:  The path to the config file
         :param config_type:  StartUp or Running
@@ -118,9 +122,32 @@ class ResourceBase(object):
         """
         # Run executeCommand with the restore command and its params (ConfigPath,RestoreMethod)
         try:
-            command_inputs = [InputNameValue('path', str(config_path)),
-                              InputNameValue('restore_method', str(restore_method)),
-                              InputNameValue('configuration_type', str(config_type))]
+            the_path = "undef"
+            the_cfgtype = "undef"
+            the_restoremeth = "undef"
+            for command in self.commands:
+                if command.Name == 'restore':
+                    for parm in command.Parameters:
+                        print "****" + parm.Name + "****"
+                        if parm.Name in "path, src_Path, xx123":
+                            the_path = parm.Name
+                        if parm.Name in "configuration_type, config_type, yy123":
+                            the_cfgtype = parm.Name
+                        if parm.Name in "restore_method, zzz123":
+                            the_restoremeth = parm.Name
+
+            if the_path == "undef" or the_cfgtype == "undef" or the_restoremeth == "undef":
+                raise "Failed to find viable restore command for " + self.name \
+                      + " : " + the_path + ", " + the_cfgtype + ", " + the_restoremeth
+
+        except:
+            raise "Failed building restore command input parm names."
+
+        try:
+            command_inputs = [InputNameValue(the_path, str(config_path)),
+                              InputNameValue(the_cfgtype, str(config_type)),
+                              InputNameValue(the_restoremeth, str(restore_method))]
+            print "resource.py L124 " + self.name + "  configuration_type = " + str(config_type)
 
             if self.attribute_exist('VRF Management Name'):
                 vrf_name = self.get_attribute('VRF Management Name')
@@ -131,38 +158,15 @@ class ResourceBase(object):
                                  commandInputs=command_inputs,
                                  printOutput=True)
 
+        except QualiError as qerror:
+            print "ERROR1: Load config file failed. " + qerror.message
+            print "Path: " + str(config_path)
+            raise QualiError(self.name, "Failed to load configuration: " + qerror.message)
+
         except:
-            try:
-                command_inputs = [InputNameValue('src_Path', str(config_path)),
-                                    InputNameValue('restore_method', str(restore_method)),
-                                    InputNameValue('config_type', str(config_type))]
-
-                if self.attribute_exist('VRF Management Name'):
-                    vrf_name = self.get_attribute('VRF Management Name')
-                    if vrf_name !='':
-                        command_inputs.append(InputNameValue('vrf_management_name', str(vrf_name)))
-
-                self.execute_command(reservation_id, 'Restore',
-                                     commandInputs=command_inputs,
-                                     printOutput=True)
-            except:
-                try:
-                    command_inputs = [InputNameValue('path', str(config_path)),
-                                        InputNameValue('restore_method', str(restore_method)),
-                                        InputNameValue('config_type', str(config_type))]
-
-                    if self.attribute_exist('VRF Management Name'):
-                        vrf_name = self.get_attribute('VRF Management Name')
-                        if vrf_name !='':
-                            command_inputs.append(InputNameValue('vrf', str(vrf_name)))
-
-                    self.execute_command(reservation_id, 'restore',
-                                         commandInputs=command_inputs,
-                                         printOutput=True)
-                except QualiError as qerror:
-                    raise QualiError(self.name, "Failed to load configuration: " + qerror.message)
-                except:
-                    raise QualiError(self.name, "Failed to load configuration. Unexpected error:" + str(sys.exc_info()[0]))
+            print "ERROR2: Load config file failed. "
+            print "Path: " + str(config_path)
+            raise "Failed to load configuration. Unexpected error:" + str(sys.exc_info()[0])
 
     # -----------------------------------------
     # -----------------------------------------
