@@ -53,5 +53,5 @@ class StorageClient(object):
     def save_artifact_info(self,saved_artifact_info,env_dir,dest_name,write_to_output=True):
         raise NotImplementedError('subclasses must override save_artifact_info()!')
     @abstractmethod
-    def download_artifact_info(self,env_dir,dest_name,write_to_output=True):
+    def download_artifact_info(self,root_folder,dest_name,write_to_output=True):
         raise NotImplementedError('subclasses must override download_artifact_info()!')

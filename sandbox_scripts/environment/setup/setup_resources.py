@@ -1,7 +1,7 @@
 # coding=utf-8
 #from sandbox_scripts.helpers.Networking.NetworkingHealthCheck import *
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
-from sandbox_scripts.helpers.Networking.NetworkingSaveNRestore import NetworkingSaveRestore
+from sandbox_scripts.helpers.Networking.save_restore_mgr import SaveRestoreManager
 from sandbox_scripts.QualiEnvironmentUtils.Sandbox import SandboxBase
 from cloudshell.core.logger.qs_logger import get_qs_logger
 from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
@@ -31,7 +31,8 @@ class EnvironmentSetupResources(object):
 
     def execute(self):
         sandbox = SandboxBase(self.reservation_id, self.logger)
-        saveNRestoreTool = NetworkingSaveRestore(sandbox)
+        saveNRestoreTool = SaveRestoreManager(sandbox)
+
         sandbox.report_info('Beginning load configuration for resources')
         try:
             sandbox.clear_all_resources_live_status()

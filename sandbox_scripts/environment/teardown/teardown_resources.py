@@ -1,7 +1,9 @@
 # coding=utf-8
 from cloudshell.core.logger import qs_logger
-
-from sandbox_scripts.helpers.Networking.NetworkingSaveNRestore import *
+from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
+from sandbox_scripts.QualiEnvironmentUtils.Sandbox import SandboxBase
+from sandbox_scripts.helpers.Networking.save_restore_mgr import SaveRestoreManager
+from QualiUtils import QualiError
 
 
 class EnvironmentTeardownResources:
@@ -14,7 +16,7 @@ class EnvironmentTeardownResources:
     #@profileit(scriptName="Teardown")
     def execute(self):
         sandbox = SandboxBase(self.reservation_id, self.logger)
-        saveNRestoreTool = NetworkingSaveRestore(sandbox)
+        saveNRestoreTool = SaveRestoreManager(sandbox)
 
         sandbox.report_info("Beginning load configuration for resources")
         sandbox.clear_all_resources_live_status()

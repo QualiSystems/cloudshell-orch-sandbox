@@ -2,6 +2,7 @@
 import subprocess
 from StorageClient import *
 from sandbox_scripts.QualiEnvironmentUtils.Sandbox import *
+import tempfile
 
 try:
     import tftpy
@@ -282,57 +283,50 @@ class TFTPClient(StorageClient):
 
     # ----------------------------------
     # ----------------------------------
-    def save_artifact_info(self,saved_artifact_info,env_dir,dest_name,write_to_output=True):
+    def save_artifact_info(self,saved_artifact_info,env_dir,dest_name,write_to_output=False):
 
-        #tmpfile = "data.json"
-        tmpfile = "data" + self.sandbox.id + ".json"
+        tmp_file = tempfile.NamedTemporaryFile(delete=False)
         win_path = self._remove_header(env_dir)
         new_config_path = win_path + '/' + dest_name
         new_config_path = new_config_path.replace("\\","/")
 
         try:
 
-            with open(tmpfile, 'w+') as outfile:
+            with open(tmp_file, 'w+') as outfile:
                 json.dump(saved_artifact_info,outfile)
 
-            self.upload(new_config_path,tmpfile)
-            os.remove(tmpfile)
+            self.upload(new_config_path,tmp_file)
+            tmp_file.close()
+            os.unlink(tmp_file.name)
 
         except:
-            err = 'saved artifact info failed '
+            err = 'saved artifact info failed'
             self.sandbox.report_error(err, write_to_output_window=write_to_output)
 
     # ----------------------------------
     # ----------------------------------
 
-    def download_artifact_info(self,env_dir,dest_name,write_to_output=True):
+    def download_artifact_info(self,root_folder,dest_name,write_to_output=False):
 
-       #tmpfile = "data.json"
-        tmpfile = "data" + self.sandbox.id + ".json"
         data = None
-
-        win_path = self._remove_header(env_dir)
-        head, tail = os.path.split(win_path)
-
-        new_config_path = head + '/' + dest_name
+        new_config_path = root_folder + '/' + dest_name
         new_config_path = new_config_path.replace("\\","/")
 
         try:
             # Reading data backm
-
+            tmp_file = tempfile.NamedTemporaryFile(delete=False)
             tftpy.log.propagate = False
             tftpy.log.addHandler(logging.NullHandler())
 
-            self.tftp_client.download(str(new_config_path),tmpfile)
-            #self.download(new_config_path, tmpfile)
-            with open(tmpfile,'r') as outfile:
+            self.tftp_client.download(str(new_config_path),tmp_file)
+            with open(tmp_file,'r') as outfile:
                 data = json.load(outfile)
-            #os.remove(tmpfile)
+
+            tmp_file.close()
+            os.unlink(tmp_file.name)
         except:
-            #if os.path.isfile(tmpfile):
-             #   os.remove(tmpfile)
-            err = 'download artifact info failed '
-           # self.sandbox.report_error(err, write_to_output_window=write_to_output)
+            err = 'failed to download artifact info file: ' + new_config_path
+            self.sandbox.report_error(err, raise_error=False, write_to_output_window=write_to_output)
 
         return data
 

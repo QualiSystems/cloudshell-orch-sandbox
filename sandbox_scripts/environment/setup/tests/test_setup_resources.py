@@ -32,7 +32,7 @@ class SetupResourcesTests(unittest.TestCase):
 
     @patch('cloudshell.helpers.scripts.cloudshell_scripts_helpers.get_api_session')
     @patch('sandbox_scripts.environment.setup.setup_resources.SandboxBase')
-    @patch('sandbox_scripts.environment.setup.setup_resources.NetworkingSaveRestore')
+    @patch('sandbox_scripts.environment.setup.setup_resources.SaveRestoreManager')
     def test_flow_ok_with_snapshots(self, mock_save, mock_sandboxbase, mock_api_session):
 
         mock_save.return_value.is_snapshot.return_value = True
@@ -48,7 +48,7 @@ class SetupResourcesTests(unittest.TestCase):
 
     @patch('cloudshell.helpers.scripts.cloudshell_scripts_helpers.get_api_session')
     @patch('sandbox_scripts.environment.setup.setup_resources.SandboxBase')
-    @patch('sandbox_scripts.environment.setup.setup_resources.NetworkingSaveRestore')
+    @patch('sandbox_scripts.environment.setup.setup_resources.SaveRestoreManager')
     def test_flow_ok_with_gold(self, mock_save, mock_sandboxbase, mock_api_session):
         mock_save.return_value.is_snapshot.return_value = False
         mock_sandboxbase.return_value.get_storage_server_resource.return_value = True
@@ -63,7 +63,7 @@ class SetupResourcesTests(unittest.TestCase):
 
     @patch('cloudshell.helpers.scripts.cloudshell_scripts_helpers.get_api_session')
     @patch('sandbox_scripts.environment.setup.setup_resources.SandboxBase')
-    @patch('sandbox_scripts.environment.setup.setup_resources.NetworkingSaveRestore')
+    @patch('sandbox_scripts.environment.setup.setup_resources.SaveRestoreManager')
     def test_flow_ok_with_no_storage_device(self, mock_save, mock_sandboxbase, mock_api_session):
         mock_sandboxbase.return_value.get_storage_server_resource.return_value = False
         self.setup_script.execute()

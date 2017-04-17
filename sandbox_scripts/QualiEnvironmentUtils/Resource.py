@@ -231,28 +231,25 @@ class ResourceBase(object):
         try:
 
             if self.is_app():
-
                 if artifact_info:
-
-                    json_str = artifact_info
                     for command in self.connected_commands:
                         if 'orchestration_restore' == command.Name:
                             tag = command.Tag
-
+                            json_str = artifact_info
                             self.execute_connected_command(reservation_id, 'orchestration_restore',tag,
                                 commandInputs=[json_str],
                                 printOutput=True)
+                            break
 
             else:
-                if(artifact_info == None):
-                    artifact_info = self.create_artifact_info(config_path)
-                    json_str = json.dumps(artifact_info)
-                else:
-                    json_str = artifact_info
-
                 if self.has_command('orchestration_restore'):
-                    command_inputs = [InputNameValue('saved_details', json_str)]
+                    if(artifact_info == None):
+                        artifact_info = self.create_artifact_info(config_path)
+                        json_str = json.dumps(artifact_info)
+                    else:
+                        json_str = artifact_info
 
+                    command_inputs = [InputNameValue('saved_details', json_str)]
                     self.execute_command(reservation_id, 'orchestration_restore',
                                      commandInputs=command_inputs,
                                      printOutput=True)
@@ -405,38 +402,6 @@ class ResourceBase(object):
         self.api_session.GetResourceLiveStatus(self.name)
 
 
-    # -----------------------------------------
-    # -----------------------------------------
-    def load_Apps_config(self, reservation_id,artifact_info):
-
-        try:
-           command_inputs = [InputNameValue('saved_details', artifact_info)]
-           self.execute_command(reservation_id, 'orchestration_restore',command_inputs,
-                                 printOutput=True)
-        except QualiError as qerror:
-            raise QualiError(self.name, "Failed to load configuration on App: " + qerror.message)
-        except:
-            raise QualiError(self.name, "Failed to load configuration on App. Unexpected error:" + str(sys.exc_info()[0]))
-
-    # -----------------------------------------
-    # -----------------------------------------
-    def save_apps_config(self,reservation_id):
-
-        try:
-            config_name = self.execute_command(reservation_id, 'orchestration_save',
-                                            printOutput=True)
-
-            OrchestrationSavedArtifact = json.load(config_name)
-
-            print "OrchestrationSavedArtifact: " + OrchestrationSavedArtifact
-            return OrchestrationSavedArtifact
-
-            # check the output is the created file name
-
-        except QualiError as qerror:
-            raise QualiError(self.name, "Failed to save configuration: " + qerror.message)
-        except:
-            raise QualiError(self.name, "Failed to save configuration. Unexpected error:" + str(sys.exc_info()[0]))
 
 
     # -----------------------------------------
