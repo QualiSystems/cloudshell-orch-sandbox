@@ -8,20 +8,6 @@ from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
 import os, sys
 
 
-#
-# #
-# # #
-import cloudshell.helpers.scripts.cloudshell_dev_helpers as dev_helpers
-
-dev_helpers.attach_to_cloudshell_as(user="admin", password="dev", domain="Global",
-                                    reservation_id="3eee67cc-ea88-4bae-9c95-8d8b59db1128",
-                                    server_address="svl-dev-quali")
-os.environ["environment_name"] = "Abstract-ALL"
-# # #
-# #
-#
-
-
 class EnvironmentSetupResources(object):
     def __init__(self):
         self.reservation_id = helpers.get_reservation_context_details().id
@@ -32,7 +18,6 @@ class EnvironmentSetupResources(object):
     def execute(self):
         sandbox = SandboxBase(self.reservation_id, self.logger)
         saveNRestoreTool = SaveRestoreManager(sandbox)
-
         sandbox.report_info('Beginning load configuration for resources')
         try:
             sandbox.clear_all_resources_live_status()
@@ -71,10 +56,9 @@ class EnvironmentSetupResources(object):
             #   sandbox.routes_validation()
         except QualiError as qe:
             self.logger.error("Setup failed. " + str(qe))
-        except:
-            self.logger.error("Setup failed. Unexpected error:" + str(sys.exc_info()[0]))
+        except Exception as ex:
+            print str(ex.message)
+            self.logger.error("Setup failed. Unexpected error:" + str(ex.message) + " : " + (sys.exc_info()[0]))
 
 
-x = EnvironmentSetupResources()
-x.execute()
 

@@ -32,23 +32,24 @@ class GitLabClient(RepositoryClient):
                     break
                 else:
                     projects += str(project['id']) + '-' + project['name'] + '\n'
-        except:
-            return 4, "ERROR: Could not access repository at %s" % self.url
+        except Exception as ex:
+            raise QualiError("GitLabClient", "ERROR: Could not access repository at %s" % self.url + " : " + str(ex.message))
 
         if projid == 0:
-            return 3, "ERROR: Failed to locate project by name among \n" + projects
+            raise QualiError("GitLabClient","ERROR: Failed to locate project by name among \n" + projects)
 
         try:
             source = self.repository_path + source
             filebase64 = gl.getfile(projid, source, 'master')
             filetext = base64.b64decode(filebase64['content']).decode()
-        except:
-            return 2, "ERROR: Failed to retrieve file."
+        except Exception as ex:
+            raise QualiError("GitLabClient", "ERROR: Failed to retrieve file, which may be expected for " +
+                             source + " : " + str(ex.message))
 
         try:
             with open(destination,'w') as dest:
                     dest.write(filetext)
             print "Downloaded: " + source
             return 0, "Successfully retrieved file from repository and saved to destination"
-        except:
-            return 1, "ERROR: Retrieved file from repository - failed to save to destination"
+        except Exception as ex:
+            raise QualiError("GitLabClient","ERROR: Retrieved file from repository - failed to save to destination : " + str(ex.message))

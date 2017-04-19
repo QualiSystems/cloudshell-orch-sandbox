@@ -128,12 +128,12 @@ class ResourceBase(object):
             for command in self.commands:
                 if command.Name == 'restore':
                     for parm in command.Parameters:
-                        print "****" + parm.Name + "****"
-                        if parm.Name in "path, src_Path, xx123":
+                        #print "****" + parm.Name + "****"
+                        if parm.Name in "path, src_Path":
                             the_path = parm.Name
-                        if parm.Name in "configuration_type, config_type, yy123":
+                        if parm.Name in "configuration_type, config_type":
                             the_cfgtype = parm.Name
-                        if parm.Name in "restore_method, zzz123":
+                        if parm.Name in "restore_method":
                             the_restoremeth = parm.Name
 
             if the_path == "undef" or the_cfgtype == "undef" or the_restoremeth == "undef":

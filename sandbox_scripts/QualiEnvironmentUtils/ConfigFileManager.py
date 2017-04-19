@@ -63,7 +63,7 @@ class ConfigFileManager:
                 concrete_config_data = concrete_config_data.replace(param, param_val)
 
             # Replacemant of params from types: {Device:ALIAS:Attribute_name}
-            root_resources = self.sandbox.get_root_resources()
+            root_resources = self.sandbox.get_root_networking_resources()
             it = re.finditer(r"\{Device:[^}]*\}", concrete_config_data, flags=re.IGNORECASE)
             for match in it:
                 param = match.group()
@@ -77,7 +77,7 @@ class ConfigFileManager:
                         concrete_config_data = concrete_config_data.replace(param, param_val)
                         break
                 if concrete_name <= ' ':
-                    raise ("did not find concrete device with alias name " + sb_alias)
+                    raise ('did not find concrete device with alias ' + sb_alias + '; likely missing from blueprint.')
 
             return concrete_config_data
         except:

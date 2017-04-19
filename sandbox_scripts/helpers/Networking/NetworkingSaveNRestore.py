@@ -59,18 +59,18 @@ class NetworkingSaveRestore(object):
         """
         root_path = ''
         if config_stage.lower() == 'gold' or config_stage.lower() == 'snapshots':
-            root_path = self.config_files_root + '/' + config_stage + '/' + self.sandbox.Blueprint_name.strip() + '/'
+            root_path = self.config_files_root + '/' + config_stage + '/' + os.environ["environment_name"].strip() + '/'
         elif config_stage.lower() == 'base':
             root_path = self.config_files_root + '/' + config_stage + '/'
         if config_set_name != '':
             root_path = root_path + config_set_name.strip() + '/'
 
         root_path = root_path.replace(' ', '_')
-        self.sandbox.report_info("RootPath: " + root_path,write_to_output_window=False)
+        self.sandbox.report_info("RootPath: " + root_path,write_to_output_window=True)
         images_path_dict = self._get_images_path_dict(root_path)
-        self.sandbox.report_info(
-            "Loading image and configuration on the devices. This action may take some time",write_to_output_window=True)
-        root_resources = self.sandbox.get_root_networking_resources
+        self.sandbox.report_info("\nLoading image and configuration on the devices. This action may take some time",
+                                 write_to_output_window=True)
+        root_resources = self.sandbox.get_root_networking_resources()
         """:type : list[ResourceBase]"""
         pool = ThreadPool(len(root_resources))
         lock = Lock()
@@ -147,7 +147,7 @@ class NetworkingSaveRestore(object):
                             image_key = (resource.alias + '_' + resource.model).replace(' ', '_')
                             version = resource.get_version(self.sandbox.id)
                             self.sandbox.report_info(resource.name + ": current version: " + version,
-                                                write_to_output_window=True)
+                                                write_to_output_window=False)
                             try:
                                 dict_img_version = images_path_dict[image_key].version
                                 self.sandbox.report_info(resource.name + ": FirmwareData specifies version " + dict_img_version)
@@ -163,16 +163,19 @@ class NetworkingSaveRestore(object):
                             # Different image - Load config to the RUNNING ALSO and load the image
                             else:
                                 message += "\nLoading configuration for device: " + resource.name + " from:" + config_path
-                                resource.load_network_config(self.sandbox.id, config_path, 'startup', 'override')
+                                resource.load_network_config(self.sandbox.id, config_path,
+                                                             config_type='Running',
+                                                             restore_method='Override')
 
                                 resource_image_path = images_path_dict[image_key].path
                                 if resource_image_path != '':
-                                    message += "\nLoading firmware for device: " + resource.name + " from:" + \
-                                               resource_image_path
+                                    message += "\nChanging " + resource.name + " firmware from: " + version + \
+                                               " to: " + dict_img_version + " at \n    " + resource_image_path
                                     additionalinfo = " (firmware) "
-                                    self.sandbox.report_info("Config uploaded; Loading firmware on " + resource.name,
+                                    self.sandbox.report_info("Config uploaded; Changing " + resource.name +
+                                                             " firmware from: " + version + " to: " + dict_img_version +
+                                                             " at \n    " + resource_image_path,
                                                              write_to_output_window=True)
-                                    self.sandbox.report_info("Image: " + resource_image_path, write_to_output_window=True)
                                     resource.load_firmware(self.sandbox.id, resource_image_path)
                         else:
                             message += "\nLoading configuration for device: " + resource.name + " from:" + config_path
@@ -265,12 +268,7 @@ class NetworkingSaveRestore(object):
             self.storage_mgr.download(config_path, tmp_template_config_file.name)
             tmp_template_config_file.close()
             os.unlink(tmp_template_config_file.name)
-            #protect against file being empty
-            if os.path.getsize(tmp_template_config_file.name) == 0:
-                os.remove(tmp_template_config_file.name)
-                raise ValueError ("emptyfile")
-
-        #if no concrete file, look for a template file
+        #if no concrete file, delete the look for a template file
         except:
             try:
                 self.storage_mgr.download(tftp_template_config_path, tmp_template_config_file.name)
@@ -300,6 +298,7 @@ class NetworkingSaveRestore(object):
             os.unlink(tmp_concrete_config_file.name)
             # Set the path to the new concrete file
             config_path = concrete_file_path
+            #print tmp_template_config_file.name
 
         return config_path
 
