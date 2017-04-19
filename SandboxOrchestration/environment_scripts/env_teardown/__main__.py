@@ -1,8 +1,4 @@
-from sandbox_scripts.environment.teardown.teardown_script import EnvironmentTeardown
+from cloudshell.sandbox.environment.teardown.teardown_script import *
 
-
-def main():
-    EnvironmentTeardown().execute()
-
-if __name__ == "__main__":
-    main()
+env = EnvironmentTeardown()
+env.execute()

@@ -1,14 +1,15 @@
 from multiprocessing.pool import ThreadPool
 from threading import Lock
 
-from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from cloudshell.core.logger.qs_logger import get_qs_logger
-from remap_child_resources_constants import *
+from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 
-from sandbox_scripts.helpers.resource_helpers import *
-from sandbox_scripts.profiler.env_profiler import profileit
+from cloudshell.sandbox.profiler.env_profiler import profileit
+
+from cloudshell.sandbox.helpers.resource_helpers import *
+from remap_child_resources_constants import *
 
 
 class EnvironmentSetup(object):
@@ -27,7 +28,7 @@ class EnvironmentSetup(object):
         resource_details_cache = {}
 
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                            message='Beginning sandbox setup')
+                                            message='Beginning sandbox setup using remote package')
 
         self._prepare_connectivity(api, self.reservation_id)
 
