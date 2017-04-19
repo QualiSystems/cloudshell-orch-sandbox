@@ -69,6 +69,10 @@ target/
 .idea/workspace.xml
 .idea/dictionaries/
 qpm.ini
+.pypirc
+*/.idea/*
 
 # zip files
 *.zip
+/cloudshell-orch-core/.idea/
+/cloudshell-orch-core/upload.bat

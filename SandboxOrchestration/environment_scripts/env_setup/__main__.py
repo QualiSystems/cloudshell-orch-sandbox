@@ -1,8 +1,4 @@
-from sandbox_scripts.environment.setup.setup_script import EnvironmentSetup
+from cloudshell.sandbox.environment.setup.setup_script import *
 
-
-def main():
-    EnvironmentSetup().execute()
-
-if __name__ == "__main__":
-    main()
+env = EnvironmentSetup()
+env.execute()
