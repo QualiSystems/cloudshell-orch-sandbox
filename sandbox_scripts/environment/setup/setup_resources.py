@@ -57,7 +57,7 @@ class EnvironmentSetupResources(object):
         except QualiError as qe:
             self.logger.error("Setup failed. " + str(qe))
         except Exception as ex:
-            self.logger.error("Setup failed. Unexpected error:" + str(ex.message)
+            self.logger.error("Setup failed. Unexpected error:" + str(ex.message))
 
 
 
