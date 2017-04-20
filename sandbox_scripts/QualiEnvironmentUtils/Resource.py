@@ -5,7 +5,6 @@ from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import *
 from QualiUtils import *
-
 import datetime
 import json
 
@@ -128,16 +127,16 @@ class ResourceBase(object):
             for command in self.commands:
                 if command.Name == 'restore':
                     for parm in command.Parameters:
-                        if parm.Name in "path, src_Path":
+                        if parm.Name in ["path", "src_Path"]:
                             the_path = parm.Name
-                        if parm.Name in "configuration_type, config_type":
+                        if parm.Name in ["configuration_type","config_type"]:
                             the_cfgtype = parm.Name
-                        if parm.Name in "restore_method":
+                        if parm.Name in ["restore_method"]:
                             the_restoremeth = parm.Name
 
             if the_path == "undef" or the_cfgtype == "undef" or the_restoremeth == "undef":
-                raise "Failed to find viable restore command for " + self.name \
-                      + " : " + the_path + ", " + the_cfgtype + ", " + the_restoremeth
+                raise QualiError(self.name, "Failed to find viable restore command for " + self.name \
+                      + " : " + the_path + ", " + the_cfgtype + ", " + the_restoremeth)
 
         except QualiError as qerror:
             raise QualiError(self.name, "Failed building restore command input parm names." + qerror.message)
