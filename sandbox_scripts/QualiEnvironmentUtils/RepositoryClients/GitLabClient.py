@@ -1,12 +1,18 @@
 from RepositoryClient import *
 from sandbox_scripts.QualiEnvironmentUtils.Sandbox import *
 import base64
+import pip
 
 try:
     import gitlab
     imported_gitlab = True
-except Exception as e:
-    imported_gitlab = False
+except:
+    try:
+        pip.main(["install","python-gitlab"])
+        import gitlab
+    except:
+        imported_gitlab = False
+
 
 class GitLabClient(RepositoryClient):
     # ----------------------------------
