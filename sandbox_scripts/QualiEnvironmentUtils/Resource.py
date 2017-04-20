@@ -128,7 +128,6 @@ class ResourceBase(object):
             for command in self.commands:
                 if command.Name == 'restore':
                     for parm in command.Parameters:
-                        #print "****" + parm.Name + "****"
                         if parm.Name in "path, src_Path":
                             the_path = parm.Name
                         if parm.Name in "configuration_type, config_type":
@@ -140,14 +139,13 @@ class ResourceBase(object):
                 raise "Failed to find viable restore command for " + self.name \
                       + " : " + the_path + ", " + the_cfgtype + ", " + the_restoremeth
 
-        except:
-            raise "Failed building restore command input parm names."
+        except QualiError as qerror:
+            raise QualiError(self.name, "Failed building restore command input parm names." + qerror.message)
 
         try:
             command_inputs = [InputNameValue(the_path, str(config_path)),
                               InputNameValue(the_cfgtype, str(config_type)),
                               InputNameValue(the_restoremeth, str(restore_method))]
-            print "resource.py L124 " + self.name + "  configuration_type = " + str(config_type)
 
             if self.attribute_exist('VRF Management Name'):
                 vrf_name = self.get_attribute('VRF Management Name')
@@ -159,13 +157,9 @@ class ResourceBase(object):
                                  printOutput=True)
 
         except QualiError as qerror:
-            print "ERROR1: Load config file failed. " + qerror.message
-            print "Path: " + str(config_path)
             raise QualiError(self.name, "Failed to load configuration: " + qerror.message)
 
         except:
-            print "ERROR2: Load config file failed. "
-            print "Path: " + str(config_path)
             raise "Failed to load configuration. Unexpected error:" + str(sys.exc_info()[0])
 
     # -----------------------------------------
