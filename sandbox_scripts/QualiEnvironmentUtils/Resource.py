@@ -451,5 +451,5 @@ class ResourceBase(object):
             return  version
         except QualiError as qerror:
             raise QualiError(self.name, "Failed to get the version: " + qerror.message)
-        except:
-            raise QualiError(self.name, "Failed to get the version. Unexpected error:" + str(sys.exc_info()[0]))
+        except Exception as ex:
+            raise QualiError(self.name, "Failed to get the version. Unexpected error:" + str(ex.message))
