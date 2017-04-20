@@ -13,7 +13,6 @@ class SaveRestoreManager(object):
     def load_config(self, config_stage, config_type, restore_method="Override", config_set_name='', ignore_models=None,
                     write_to_output=True, remove_temp_files = False, in_teardown_mode = False,use_Config_file_path_attr = False):
         #TODO:parallel both vms and resources
-        print "L16 save_restore_mgr.py"
         self.networking_save_restore.load_config(config_stage=config_stage,
                                                  config_type=config_type,
                                                  restore_method=restore_method,
