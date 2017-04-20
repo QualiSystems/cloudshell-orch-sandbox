@@ -16,8 +16,15 @@ class TFTPClient(StorageClient):
     # ----------------------------------
     def __init__(self, sandbox, storage_resource):
         super(TFTPClient,self).__init__(sandbox, storage_resource)
-        if imported_tftpy == False:
-            self.sandbox.report_error('TFTPY lib was not installed', write_to_output_window=True)
+        try:
+            import tftpy
+        except:
+            try:
+                import pip
+                pip.main(['install','tftpy'])
+                import tftpy
+            except:
+                self.sandbox.report_error('tftpy lib was not installed', write_to_output_window=True)
 
         self.username = storage_resource.get_attribute("Storage username")
         self.password = storage_resource.get_attribute("Storage password")
