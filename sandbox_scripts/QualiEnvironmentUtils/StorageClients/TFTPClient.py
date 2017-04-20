@@ -3,12 +3,17 @@ import subprocess
 from StorageClient import *
 from sandbox_scripts.QualiEnvironmentUtils.Sandbox import *
 import tempfile
+import pip
 
 try:
     import tftpy
     imported_tftpy = True
-except Exception as e:
-    imported_tftpy = False
+except:
+    try:
+        pip.main(["install","tftpy"])
+        import tftpy
+    except:
+        imported_tftpy = False
 
 
 class TFTPClient(StorageClient):
