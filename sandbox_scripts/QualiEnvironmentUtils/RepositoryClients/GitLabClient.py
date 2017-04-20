@@ -8,7 +8,7 @@ try:
     imported_gitlab = True
 except:
     try:
-        pip.main(["install","python-gitlab"])
+        pip.main(["install","pyapi-gitlab"])
         import gitlab
     except:
         imported_gitlab = False
