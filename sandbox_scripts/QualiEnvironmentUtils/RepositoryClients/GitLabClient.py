@@ -1,19 +1,20 @@
 from RepositoryClient import *
 from sandbox_scripts.QualiEnvironmentUtils.Sandbox import *
 import base64
-import pip
-try:
-    import gitlab
-except:
-    pip.main(['install','gitlab'])
-    import gitlab
 
 
 class GitLabClient(RepositoryClient):
     def __init__(self, sandbox,repository_resource ):
         super(GitLabClient,self).__init__(sandbox, repository_resource)
-        if imported_gitlab == False:
-            self.sandbox.report_error('gitlab lib was not installed', write_to_output_window=True)
+        try:
+            import gitlab
+        except:
+            try:
+                import pip
+                pip.main(['install','gitlab'])
+                import gitlab
+            except:
+                self.sandbox.report_error('gitlab lib was not installed', write_to_output_window=True)
         self.url = repository_resource.get_attribute("GitLab URL")
         self.token = repository_resource.get_attribute("GitLab Token")
         self.project_name = repository_resource.get_attribute("GitLab Project Name")
