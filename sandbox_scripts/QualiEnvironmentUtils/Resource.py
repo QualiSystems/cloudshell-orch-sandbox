@@ -349,7 +349,10 @@ class ResourceBase(object):
         if self.connected_commands.__sizeof__() > 0:
             # Run executeCommand with the restore command and its params (ConfigPath,RestoreMethod)
             try:
-               return self.api_session.ExecuteResourceConnectedCommand(reservation_id,self.name,commandName=commandName,commandTag=tag,parameterValues = commandInputs)
+               return self.api_session.ExecuteResourceConnectedCommand(reservation_id,self.name,
+                                                                       commandName=commandName,
+                                                                       commandTag=tag,
+                                                                       parameterValues = commandInputs)
 
             except CloudShellAPIError as error:
                 raise QualiError(self.name, error.message)
