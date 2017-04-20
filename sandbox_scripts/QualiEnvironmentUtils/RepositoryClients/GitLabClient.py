@@ -11,7 +11,7 @@ class GitLabClient(RepositoryClient):
         except:
             try:
                 import pip
-                pip.main(['install','gitlab'])
+                pip.main(['install','python-gitlab'])
                 import gitlab
             except:
                 self.sandbox.report_error('gitlab lib was not installed', write_to_output_window=True)
