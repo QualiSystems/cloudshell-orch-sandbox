@@ -129,7 +129,7 @@ class SandboxBase(object):
         # Loop over all devices in the sandbox and add to a dictionary all root devices of VM type:
         for resource in resources:
             #resource_details = self.api_session.GetResourceDetails(resource.Name)
-            if hasattr(resource.VmDetails,'UID') and resource.VmDetails.UID:
+            if resource.VmDetails and hasattr(resource.VmDetails,'UID') and resource.VmDetails.UID:
                 split_name = resource.Name.split('/')
                 root_resources_names_dict[split_name[0]] = 1
                 root_resources.append(ResourceBase(resource.Name, ''))
@@ -150,7 +150,7 @@ class SandboxBase(object):
         topo_resources = details.ReservationDescription.TopologiesReservedResources
         # Loop over all devices in the sandbox and add to a dictionary all root devices of type networking devices:
         for resource in resources:
-            if not(hasattr(resource.VmDetails,'UID') and resource.VmDetails.UID):
+            if not(resource.VmDetails and hasattr(resource.VmDetails,'UID') and resource.VmDetails.UID):
                 split_name = resource.Name.split('/')
                 root_resources_names_dict[split_name[0]] = 1
 
