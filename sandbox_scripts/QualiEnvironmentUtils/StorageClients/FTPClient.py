@@ -70,15 +70,17 @@ class FTPClient(StorageClient):
             file_idx=destination.rfind('/')
             destination_dir = destination[:(file_idx-len(destination))]
             destination_dir = self._remove_header(destination_dir)
+            destination_file = destination[file_idx+1:]
             #destination_dir = destination_dir.replace('//','/')
             self.ftp.cwd(destination_dir)
-            destination_file =destination[file_idx+1:]
             myfile = open(source, 'r')
             self.ftp.storlines('STOR ' + destination_file, myfile)
             myfile.close()
+            self.sandbox.report_info("Successfully uploaded " + source + " to " + destination_file)
         except Exception as e:
-            self.sandbox.report_error("Failed to upload file " + myfile + " to " + destination_file +
+            self.sandbox.report_error("Failed to upload file " + source + " to " + destination_file +
                                       " on  the FTP server. Error is: " + str(e), raise_error=True)
+            print "Failed to upload file " + source + " to " + destination_file + " on  the FTP server. Error is: " + str(e)
 
 
     # ----------------------------------
@@ -96,8 +98,9 @@ class FTPClient(StorageClient):
     # ----------------------------------
     # ----------------------------------
     def _remove_header(self, path):
-        #path = path.replace('ftp://' + self.username + ':' + self.password + '@' + self.address +"/",'')
-        path = path.replace('ftp://' + self.username + ':' + self.password + '@' + self.address ,'')
+        # Jim: need the line with '/' added to replace - it was set to the other line!
+        path = path.replace('ftp://' + self.username + ':' + self.password + '@' + self.address +"/",'')
+        #path = path.replace('ftp://' + self.username + ':' + self.password + '@' + self.address,'')
         path = path.replace(' ', '_')
         return path
 

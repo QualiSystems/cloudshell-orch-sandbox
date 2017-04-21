@@ -7,6 +7,7 @@ from cloudshell.core.logger.qs_logger import get_qs_logger
 from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
 import os, sys
 
+
 class EnvironmentSetupResources(object):
     def __init__(self):
         self.reservation_id = helpers.get_reservation_context_details().id
@@ -17,9 +18,7 @@ class EnvironmentSetupResources(object):
     def execute(self):
         sandbox = SandboxBase(self.reservation_id, self.logger)
         saveNRestoreTool = SaveRestoreManager(sandbox)
-
         sandbox.report_info('Beginning load configuration for resources')
-
         try:
             sandbox.clear_all_resources_live_status()
             if sandbox.get_storage_server_resource():
@@ -29,13 +28,14 @@ class EnvironmentSetupResources(object):
                     config_set_name = os.environ['Set Name']
                 except:
                     pass
-                ignore_models=['Generic TFTP server', 'Config Set Pool','Generic FTP server','netscout switch 3912']
+                #Consider an ignore family capability? This list gets to be a maint issue...?
+                ignore_models=['Generic TFTP server', 'Config Set Pool', 'Generic FTP server',
+                               'netscout switch 3912', 'Subnet-28', 'Subnet-30', 'GitLab']
 
                 if saveNRestoreTool.get_storage_manager():
                     if saveNRestoreTool.is_snapshot():
                         saveNRestoreTool.load_config(config_stage='Snapshots', config_type='Running',
                                                      ignore_models=ignore_models)
-
                     else:
                         saveNRestoreTool.load_config(config_stage='Gold', config_type='Running',
                                                  ignore_models=ignore_models,
@@ -56,5 +56,8 @@ class EnvironmentSetupResources(object):
             #   sandbox.routes_validation()
         except QualiError as qe:
             self.logger.error("Setup failed. " + str(qe))
-        except:
-            self.logger.error("Setup failed. Unexpected error:" + str(sys.exc_info()[0]))
+        except Exception as ex:
+            self.logger.error("Setup failed. Unexpected error:" + str(ex.message))
+
+
+

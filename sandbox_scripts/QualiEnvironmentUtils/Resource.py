@@ -5,7 +5,6 @@ from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import *
 from QualiUtils import *
-
 import datetime
 import json
 
@@ -57,7 +56,11 @@ class ResourceBase(object):
         attribute_name = attribute_name.lower()
         for attribute in self.attributes:
             if attribute.Name.lower() == attribute_name:
-                return attribute.Value
+                if attribute.Type == 'Password':
+                    decrypted = self.api_session.DecryptPassword(attribute.Value)
+                    return decrypted.Value
+                else:
+                    return attribute.Value
         raise QualiError(self.name, "Attribute: " + attribute_name + " not found")
 
     # -----------------------------------------
@@ -96,9 +99,9 @@ class ResourceBase(object):
         if self.has_command('health_check'):
             try:
                 # Return a detailed description in case of a failure
-                out = self.execute_command(reservation_id, 'health_check', printOutput=False)#.Output()
+                out = self.execute_command(reservation_id, 'health_check', printOutput=False) #.Output()
                 if out.Output.find(' passed') == -1:
-                    err = "Health check did not pass for device " + self.name + ". " + out
+                    err = "Health check did not pass for device " + self.name + ". "  +out.Output
                     return err
 
             except QualiError as qe:
@@ -110,7 +113,7 @@ class ResourceBase(object):
     # -----------------------------------------
     def load_network_config(self, reservation_id, config_path, config_type, restore_method='Override'):
         """
-        Load config from a configuration file on the device
+        Load config from a configuration file onto the device
         :param str reservation_id:  Reservation id.
         :param config_path:  The path to the config file
         :param config_type:  StartUp or Running
@@ -118,9 +121,30 @@ class ResourceBase(object):
         """
         # Run executeCommand with the restore command and its params (ConfigPath,RestoreMethod)
         try:
-            command_inputs = [InputNameValue('path', str(config_path)),
-                              InputNameValue('restore_method', str(restore_method)),
-                              InputNameValue('configuration_type', str(config_type))]
+            the_path = "undef"
+            the_cfgtype = "undef"
+            the_restoremeth = "undef"
+            for command in self.commands:
+                if command.Name == 'restore':
+                    for parm in command.Parameters:
+                        if parm.Name in ["path", "src_Path"]:
+                            the_path = parm.Name
+                        if parm.Name in ["configuration_type","config_type"]:
+                            the_cfgtype = parm.Name
+                        if parm.Name in ["restore_method"]:
+                            the_restoremeth = parm.Name
+
+            if the_path == "undef" or the_cfgtype == "undef" or the_restoremeth == "undef":
+                raise QualiError(self.name, "Failed to find viable restore command for " + self.name \
+                      + " : " + the_path + ", " + the_cfgtype + ", " + the_restoremeth)
+
+        except QualiError as qerror:
+            raise QualiError(self.name, "Failed building restore command input parm names." + qerror.message)
+
+        try:
+            command_inputs = [InputNameValue(the_path, str(config_path)),
+                              InputNameValue(the_cfgtype, str(config_type)),
+                              InputNameValue(the_restoremeth, str(restore_method))]
 
             if self.attribute_exist('VRF Management Name'):
                 vrf_name = self.get_attribute('VRF Management Name')
@@ -131,38 +155,11 @@ class ResourceBase(object):
                                  commandInputs=command_inputs,
                                  printOutput=True)
 
+        except QualiError as qerror:
+            raise QualiError(self.name, "Failed to load configuration: " + qerror.message)
+
         except:
-            try:
-                command_inputs = [InputNameValue('src_Path', str(config_path)),
-                                    InputNameValue('restore_method', str(restore_method)),
-                                    InputNameValue('config_type', str(config_type))]
-
-                if self.attribute_exist('VRF Management Name'):
-                    vrf_name = self.get_attribute('VRF Management Name')
-                    if vrf_name !='':
-                        command_inputs.append(InputNameValue('vrf_management_name', str(vrf_name)))
-
-                self.execute_command(reservation_id, 'Restore',
-                                     commandInputs=command_inputs,
-                                     printOutput=True)
-            except:
-                try:
-                    command_inputs = [InputNameValue('path', str(config_path)),
-                                        InputNameValue('restore_method', str(restore_method)),
-                                        InputNameValue('config_type', str(config_type))]
-
-                    if self.attribute_exist('VRF Management Name'):
-                        vrf_name = self.get_attribute('VRF Management Name')
-                        if vrf_name !='':
-                            command_inputs.append(InputNameValue('vrf', str(vrf_name)))
-
-                    self.execute_command(reservation_id, 'restore',
-                                         commandInputs=command_inputs,
-                                         printOutput=True)
-                except QualiError as qerror:
-                    raise QualiError(self.name, "Failed to load configuration: " + qerror.message)
-                except:
-                    raise QualiError(self.name, "Failed to load configuration. Unexpected error:" + str(sys.exc_info()[0]))
+            raise "Failed to load configuration. Unexpected error:" + str(sys.exc_info()[0])
 
     # -----------------------------------------
     # -----------------------------------------
@@ -351,7 +348,10 @@ class ResourceBase(object):
         if self.connected_commands.__sizeof__() > 0:
             # Run executeCommand with the restore command and its params (ConfigPath,RestoreMethod)
             try:
-               return self.api_session.ExecuteResourceConnectedCommand(reservation_id,self.name,commandName=commandName,commandTag=tag,parameterValues = commandInputs)
+               return self.api_session.ExecuteResourceConnectedCommand(reservation_id,self.name,
+                                                                       commandName=commandName,
+                                                                       commandTag=tag,
+                                                                       parameterValues = commandInputs)
 
             except CloudShellAPIError as error:
                 raise QualiError(self.name, error.message)
@@ -450,5 +450,5 @@ class ResourceBase(object):
             return  version
         except QualiError as qerror:
             raise QualiError(self.name, "Failed to get the version: " + qerror.message)
-        except:
-            raise QualiError(self.name, "Failed to get the version. Unexpected error:" + str(sys.exc_info()[0]))
+        except Exception as ex:
+            raise QualiError(self.name, "Failed to get the version. Unexpected error:" + str(ex.message))

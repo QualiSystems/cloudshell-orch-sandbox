@@ -1,49 +1,64 @@
 from RepositoryClient import *
 from sandbox_scripts.QualiEnvironmentUtils.Sandbox import *
 import base64
+import pip
+
 try:
     import gitlab
     imported_gitlab = True
-except Exception as e:
-    imported_gitlab = False
+except:
+    try:
+        pip.main(["install","pyapi-gitlab"])
+        import gitlab
+    except:
+        imported_gitlab = False
+
 
 class GitLabClient(RepositoryClient):
+    # ----------------------------------
+    # ----------------------------------
     def __init__(self, sandbox,repository_resource ):
         super(GitLabClient,self).__init__(sandbox, repository_resource)
         if imported_gitlab == False:
-            self.sandbox.report_error('gitlab lib was not installed', write_to_output_window=True)
+            self.sandbox.report_error('gitlab lib was not found', write_to_output_window=True)
         self.url = repository_resource.get_attribute("GitLab URL")
         self.token = repository_resource.get_attribute("GitLab Token")
         self.project_name = repository_resource.get_attribute("GitLab Project Name")
+        self.repository_path = repository_resource.get_attribute("Repository Path")
 
+    # ----------------------------------
+    # ----------------------------------
     def download(self, source, destination):
-        #TODO - Implement this function
-        raise Exception("need to implement")
 
-
-'''
-    def RetrieveFileFromGit (GitURL, GitToken, GitProjectName, TemplateName):
-        Git = gitlab.Gitlab(GitURL, GitToken)
-        Gitprojid = 0
-        Gitprojects = ''
+        gl = gitlab.Gitlab(self.url, self.token)
+        projid = 0
+        projects = ''
         try:
-            for project in Git.getall(Git.getprojects):
+            for project in gl.getall(gl.getprojects):
                 #print project['name']
-                if project['name'] == GitProjectName:
-                    Gitprojid = project['id']
+                if project['name'] == self.project_name:
+                    projid = project['id']
                     break
                 else:
-                    Gitprojects += str(project['id']) + '-' + project['name'] + '\n'
-        except:
-            return 3, "Could not access repository at %s" % GitURL
+                    projects += str(project['id']) + '-' + project['name'] + '\n'
+        except Exception as ex:
+            raise QualiError("GitLabClient", "ERROR: Could not access repository at %s" % self.url + " : " + str(ex.message))
 
-        if Gitprojid == 0:
-            return 2, "Failed to locate project by name among \n" + Gitprojects
+        if projid == 0:
+            raise QualiError("GitLabClient","ERROR: Failed to locate project by name among \n" + projects)
 
         try:
-            tmplt64 = Git.getfile(Gitprojid, TemplateName, 'master')
-            CfgTemplate = base64.b64decode(tmplt64['content']).decode()
-            return 0, CfgTemplate
-        except:
-            return 1, "Failed to retrieve file."
-'''
+            source = self.repository_path + source
+            filebase64 = gl.getfile(projid, source, 'master')
+            filetext = base64.b64decode(filebase64['content']).decode()
+        except Exception as ex:
+            raise QualiError("GitLabClient", "ERROR: Failed to retrieve file, which may be expected for " +
+                             source + " : " + str(ex.message))
+
+        try:
+            with open(destination,'w') as dest:
+                    dest.write(filetext)
+            print "Downloaded: " + source
+            return 0, "Successfully retrieved file from repository and saved to destination"
+        except Exception as ex:
+            raise QualiError("GitLabClient","ERROR: Retrieved file from repository - failed to save to destination : " + str(ex.message))

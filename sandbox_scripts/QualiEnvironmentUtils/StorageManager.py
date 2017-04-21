@@ -41,8 +41,8 @@ class StorageManager(object):
     # ----------------------------------
     # ----------------------------------
     def get_configs_root(self):
-       self.storage_client.get_configs_root()
-
+        cr = self.storage_client.get_configs_root()
+        return cr
 
     # ----------------------------------
     # ----------------------------------
@@ -67,7 +67,6 @@ class StorageManager(object):
         #TODO download from git if exists in topo
         if self.repository_client is not None:
             #change the path header to git   from ftp...
-
             repo_path = source.replace(self.storage_client.get_configs_root(),'')
             # download from git directly to destination
             self.repository_client.download(repo_path, destination)

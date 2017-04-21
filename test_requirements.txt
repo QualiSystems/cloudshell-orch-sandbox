@@ -5,4 +5,4 @@ mock
 jsonpickle
 nose-exclude
 coveralls
-
+pyapi-gitlab
