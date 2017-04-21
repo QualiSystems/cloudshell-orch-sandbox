@@ -32,7 +32,7 @@ class EnvironmentTeardownVM:
         is_snapshot = False
 
         #if the current reservation was saved as snapshot we look it by reservation_id
-        if saveNRestoreTool.get_storage_client():
+        if saveNRestoreTool.get_storage_manager():
             if saveNRestoreTool.is_snapshot(filename):
                 is_snapshot = True
                 saveNRestoreTool.delete_src_file(filename)
@@ -67,7 +67,7 @@ class EnvironmentTeardownVM:
         for resource in resources:
             resource_details = self.sandbox.api_session.GetResourceDetails(resource.Name)
             vm_details = resource_details.VmDetails
-            if hasattr(vm_details, "UID"):
+            if vm_details and hasattr(vm_details, "UID") and vm_details.UID:
                 result_obj = pool.apply_async(self._power_off_or_delete_deployed_app,
                                     (resource_details, lock, message_status,to_delete))
                 async_results.append(result_obj)

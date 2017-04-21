@@ -114,6 +114,57 @@ class SandboxBase(object):
 
         return root_resources
 
+
+    # ----------------------------------
+    # ----------------------------------
+    def get_root_vm_resources(self):
+        """
+            Get the root resources of vm type
+            :rtype: list[ResourceBase]
+        """
+        root_resources = []
+        root_resources_names_dict = {}
+        details = self.get_details()
+        resources = details.ReservationDescription.Resources
+        # Loop over all devices in the sandbox and add to a dictionary all root devices of VM type:
+        for resource in resources:
+            #resource_details = self.api_session.GetResourceDetails(resource.Name)
+            if resource.VmDetails and hasattr(resource.VmDetails,'UID') and resource.VmDetails.UID:
+                split_name = resource.Name.split('/')
+                root_resources_names_dict[split_name[0]] = 1
+                root_resources.append(ResourceBase(resource.Name, ''))
+
+        return root_resources
+
+    # ----------------------------------
+    # ----------------------------------
+    def get_root_networking_resources(self):
+        """
+            Get the root resources of networking type
+            :rtype: list[ResourceBase]
+        """
+        root_resources = []
+        root_resources_names_dict = {}
+        details = self.get_details()
+        resources = details.ReservationDescription.Resources
+        topo_resources = details.ReservationDescription.TopologiesReservedResources
+        # Loop over all devices in the sandbox and add to a dictionary all root devices of type networking devices:
+        for resource in resources:
+            if not(resource.VmDetails and hasattr(resource.VmDetails,'UID') and resource.VmDetails.UID):
+                split_name = resource.Name.split('/')
+                root_resources_names_dict[split_name[0]] = 1
+
+        # instantiate a resource object for each root device
+        for root_resource_name in root_resources_names_dict.keys():
+            root_resource_alias = ''
+            for topo_resource in topo_resources:
+                if topo_resource.Name == root_resource_name:
+                    root_resource_alias = topo_resource.Alias
+                    break
+            root_resources.append(ResourceBase(root_resource_name, root_resource_alias))
+
+        return root_resources
+
     # ----------------------------------
     # ----------------------------------
     def clear_all_resources_live_status(self):
@@ -296,6 +347,16 @@ class SandboxBase(object):
         root_resources = self.get_root_resources()
         for resource in root_resources:
             if resource.details.ResourceFamilyName.lower() == 'storage server':
+                return resource
+        return None
+
+    # -----------------------------------------
+    # Return the repositroy resource of the sandbox (e.g. gitlab), if found
+    # -----------------------------------------
+    def get_repository_server_resource(self):
+        root_resources = self.get_root_resources()
+        for resource in root_resources:
+            if resource.details.ResourceFamilyName.lower() == 'repository':
                 return resource
         return None
 

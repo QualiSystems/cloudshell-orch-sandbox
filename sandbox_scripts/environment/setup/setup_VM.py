@@ -20,7 +20,7 @@ class EnvironmentSetupVM(object):
 
         #TODO: don't use networking save and restore to figure if it's a snapshot setup
         saveNRestoreTool = NetworkingSaveRestore(self.sandbox)
-        if saveNRestoreTool.get_storage_client():
+        if saveNRestoreTool.get_storage_manager():
             if saveNRestoreTool.is_snapshot():
                 self.is_snapshot = True
 
@@ -76,7 +76,7 @@ class EnvironmentSetupVM(object):
         resource_details = self.sandbox.api_session.GetResourceDetails(deployed_app_name)
         vm_details = resource_details.VmDetails
 
-        if not hasattr(vm_details, "UID"):
+        if not(vm_details and hasattr(vm_details, "UID") and vm_details.UID):
             #self.logger.debug("Resource {0} is not a app, nothing to do with it".format(deployed_app_name))
             return True, ""
 
