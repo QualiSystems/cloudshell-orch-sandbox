@@ -1,0 +1,13 @@
+[run]
+omit =
+        *__init__*
+        */profiler/*
+        */tests/*
+        */remap_child_resources_constants.py
+
+[report]
+omit =
+        *__init__*
+        */profiler/*
+        */tests/*
+        */remap_child_resources_constants.py
