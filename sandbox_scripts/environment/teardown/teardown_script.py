@@ -88,10 +88,9 @@ class EnvironmentTeardown:
         }
 
         for resource in resources:
-            resource_details = api.GetResourceDetails(resource.Name)
-            if resource_details.VmDetails:
+            if resource.VmDetails:
                 result_obj = pool.apply_async(self._power_off_or_delete_deployed_app,
-                                              (api, resource_details, lock, message_status))
+                                              (api, resource, lock, message_status))
                 async_results.append(result_obj)
 
         pool.close()
