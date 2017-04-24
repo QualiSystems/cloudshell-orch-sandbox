@@ -1,9 +1,9 @@
 
 ## Overview
-The regression repository contains packages of blueprints that can be imported into .DO and used for regression tests
-A dummy router driver was created to simulate the behavior of a network device
-The infra package contains infrastructure resources used by the orchestration e.g FTP resource,vCenter...
-Other packages contain different use cases for the orchestration and there is a description in blueprint's description
+The regression repository contains packages of blueprints that can be imported into .DO and used for regression tests.  
+A dummy router driver was created to simulate the behavior of a network device.  
+The infra package contains infrastructure resources used by the orchestration e.g FTP resource,vCenter...  
+Other packages contain different use cases for the orchestration and there is a description in blueprint's description  
 
 ### Dummy router
 This drivers is used for simulating a network device. On top of the standard functionality offered by a networking device driver, the following methods were added to influence on the expected behavior of the driver:
