@@ -155,30 +155,32 @@ class NetworkingSaveRestore(object):
                                 image_key = resource.model.replace(' ', '_')
                                 dict_img_version = images_path_dict[image_key].version
                             # same image version - Only load config (running override)
-                            message += "\nLoading configuration for device: " + resource.name + " from:" + config_path
+                            message += "\nLoading configuration for device: " + resource.name + " from: " + config_path
                             if dict_img_version.lower() == version.lower():
                                 resource.load_network_config(self.sandbox.id, config_path=config_path,
                                                              config_type='Running',
                                                              restore_method='Override')
+                                self.sandbox.report_info(resource.name + ": Config uploaded.")
                             # Different image - Load config to the RUNNING ALSO and load the image
                             else:
-                                message += "\nLoading configuration for device: " + resource.name + " from:" + config_path
+                                message += "\nLoading configuration for device: " + resource.name + " from:\n    " + config_path
                                 resource.load_network_config(self.sandbox.id, config_path,
                                                              config_type='Running',
                                                              restore_method='Override')
 
+                                self.sandbox.report_info("Config uploaded for " + resource.name, write_to_output_window=True)
                                 resource_image_path = images_path_dict[image_key].path
                                 if resource_image_path != '':
                                     message += "\nChanging " + resource.name + " firmware from: " + version + \
                                                " to: " + dict_img_version + " at \n    " + resource_image_path
                                     additionalinfo = " (firmware) "
-                                    self.sandbox.report_info("Config uploaded; Changing " + resource.name +
-                                                             " firmware from: " + version + " to: " + dict_img_version +
+                                    self.sandbox.report_info(resource.name + ": Changing firmware from: " +
+                                                             version + " to: " + dict_img_version +
                                                              " at \n    " + resource_image_path,
                                                              write_to_output_window=True)
                                     resource.load_firmware(self.sandbox.id, resource_image_path)
                         else:
-                            message += "\nLoading configuration for device: " + resource.name + " from:" + config_path
+                            message += "\nLoading configuration for device: " + resource.name + " from:\n    " + config_path
                             resource.load_network_config(self.sandbox.id, config_path, 'Running', 'Override')
 
                     health_check_result = resource.health_check(self.sandbox.id)
