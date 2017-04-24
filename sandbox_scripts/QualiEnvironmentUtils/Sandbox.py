@@ -2,6 +2,8 @@
 from Resource import *
 from cloudshell.core.logger.qs_logger import *
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
+from cloudshell.api.cloudshell_api import *
+from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from os.path import *
 
 
@@ -395,7 +397,7 @@ class SandboxBase(object):
         if not apps or (len(apps) == 1 and not apps[0].Name):
             self.report_info("No apps found in reservation {0}".format(self.reservation_id))
             self.api_session.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                                     message='No apps in reservation')
+                                                             message='No apps in reservation')
             return False
 
         return True
@@ -410,8 +412,11 @@ class SandboxBase(object):
         for resource in root_resources:
             if resource.is_app():
                 deployed_app_name = resource.name
-                self.api_session.WriteMessageToReservationOutput(reservationId=self.id,
+                if write_to_output:
+                    self.api_session.WriteMessageToReservationOutput(reservationId=self.id,
                                                                      message='Power on Apps again')
+                    write_to_output = False # to prevent more prints
+
                 self.api_session.ExecuteResourceConnectedCommand(self.id, deployed_app_name, "PowerOn", "power")
 
 

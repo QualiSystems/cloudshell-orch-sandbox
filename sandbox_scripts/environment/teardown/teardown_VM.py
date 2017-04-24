@@ -1,6 +1,3 @@
-from multiprocessing.pool import ThreadPool
-from threading import Lock
-
 from cloudshell.core.logger import qs_logger
 
 from sandbox_scripts.helpers.Networking.NetworkingSaveNRestore import *

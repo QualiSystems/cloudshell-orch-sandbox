@@ -1,14 +1,11 @@
 # coding=utf-8
 import csv
 import tempfile
-# import json
-# import subprocess
 from multiprocessing.pool import ThreadPool
 from threading import Lock
 
 from sandbox_scripts.QualiEnvironmentUtils.ConfigFileManager import *
 from sandbox_scripts.QualiEnvironmentUtils.ConfigPoolManager import *
-# from sandbox_scripts.QualiEnvironmentUtils.StorageManager import StorageManager
 from sandbox_scripts.helpers.Networking.base_save_restore import *
 from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
 
@@ -90,7 +87,7 @@ class NetworkingSaveRestore(object):
                 self.sandbox.report_error(res.message, raise_error=False)
                 self.sandbox.api_session.SetResourceLiveStatus(res.resource_name, 'Error')
             elif res.message != '':
-                self.sandbox.report_info(res.resource_name + "\n" + res.message,write_to_output_window=True)
+                self.sandbox.report_info(res.resource_name + "\n" + res.message, write_to_output_window=True)
         if remove_temp_files:
             self._remove_temp_config_files()
 

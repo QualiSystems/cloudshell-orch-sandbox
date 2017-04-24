@@ -3,7 +3,7 @@ from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from sandbox_scripts.QualiEnvironmentUtils.Sandbox import SandboxBase
 from sandbox_scripts.helpers.Networking.save_restore_mgr import SaveRestoreManager
 from cloudshell.core.logger.qs_logger import get_qs_logger
-from QualiUtils import QualiError
+from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
 
 
 class EnvironmentSaveSnapshot:
@@ -14,7 +14,6 @@ class EnvironmentSaveSnapshot:
                                     log_category='EnvironmentCommands')
 
 
-   # @profileit(scriptName='SaveSnapshot')
     def execute(self):
         sandbox = SandboxBase(self.reservation_id, self.logger)
         saveNRestoreTool = SaveRestoreManager(sandbox)
