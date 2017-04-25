@@ -209,7 +209,7 @@ class SetupCommon(object):
             api.WriteMessageToReservationOutput(
                 reservationId=reservation_id,
                 message='No resources to power on')
-            SetupCommon._validate_all_apps_deployed(deploy_results)
+            SetupCommon.validate_all_apps_deployed(deploy_results)
             return
 
         pool = ThreadPool(len(resources))
@@ -231,8 +231,8 @@ class SetupCommon(object):
             if not res[0]:
                 raise Exception("Sandbox is Active with Errors - " + res[1])
 
-        SetupCommon._validate_all_apps_deployed(deploy_results=deploy_results,
-                                                logger=logger)
+        SetupCommon.validate_all_apps_deployed(deploy_results=deploy_results,
+                                               logger=logger)
 
     @staticmethod
     def configure_apps(api, reservation_id, logger):
@@ -274,7 +274,7 @@ class SetupCommon(object):
             raise
 
     @staticmethod
-    def _validate_all_apps_deployed(deploy_results, logger):
+    def validate_all_apps_deployed(deploy_results, logger):
         logger.info("validating apps deployment results")
         if deploy_results is not None:
             for deploy_res in deploy_results.ResultItems:
