@@ -2,7 +2,6 @@
 from Resource import *
 from cloudshell.core.logger.qs_logger import *
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
-from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from os.path import *
 
@@ -372,15 +371,14 @@ class SandboxBase(object):
                 return resource
         return None
 
-
     # -----------------------------------------
     # Return the pool Apps of the sandbox, if found
     #  -----------------------------------------
     def get_Apps_resources(self):
         """
-			Get the Apps resources
-			:rtype: list[ReservationAppResource]
-		"""
+        Get the Apps resources
+        :rtype: list[ReservationAppResource]
+        """
         details = self.get_details()
         apps_resources = details.ReservationDescription.Apps
 
