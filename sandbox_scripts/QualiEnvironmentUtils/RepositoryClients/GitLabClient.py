@@ -4,8 +4,8 @@ import base64
 import pip
 
 try:
-    import gitlab
     imported_gitlab = True
+    import gitlab
 except:
     try:
         pip.main(["install","pyapi-gitlab"])
