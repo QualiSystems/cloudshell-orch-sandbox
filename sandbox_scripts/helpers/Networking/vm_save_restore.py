@@ -284,3 +284,14 @@ class VMsSaveRestore(BaseSaveRestore):
             config_path = concrete_file_path
 
         return config_path
+
+
+    # ----------------------------------
+    # delete file name on storage
+    # ----------------------------------
+    def delete_src_file(self,fileName):
+
+        env_dir = self.config_files_root + '/Snapshots/' + fileName
+        env_dir = env_dir.replace(' ', '_')
+        self.storage_mgr.delete(env_dir)
+
