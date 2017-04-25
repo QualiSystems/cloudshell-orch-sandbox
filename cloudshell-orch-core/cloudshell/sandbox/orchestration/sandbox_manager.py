@@ -1,4 +1,6 @@
 from multiprocessing.pool import ThreadPool
+
+import sys
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from cloudshell.core.logger.qs_logger import get_qs_logger
 
@@ -7,16 +9,14 @@ from cloudshell.sandbox.profiler.env_profiler import profileit
 
 
 class SandboxManager(object):
-    NO_DRIVER_ERR = "129"
-    DRIVER_FUNCTION_ERROR = "151"
 
-    def __init__(self, default_provisioning=True, default_connectivity=True, configuration_process=True):
+    def __init__(self, default_provisioning=True, default_connectivity=True, default_configuration=True):
         self._resource_details_cache = {}
         self.api = helpers.get_api_session()
 
         self._enable_default_provisioning = default_provisioning
         self._enable_default_connectivity = default_connectivity
-        self._enable_default_configuration = configuration_process
+        self._enable_default_configuration = default_configuration
 
         self._provisioning_functions = []  # provisioning steps, function step name, resources
         self._connectivity_functions = []
@@ -113,9 +113,10 @@ class SandboxManager(object):
         try:
             func()
             # if (step not ended --> end all steps)
-        except:
+        except Exception as exc:
             execution_failed = 1
-            self._logger.error("Error executing function {0}. detaild error".format(func.__name__))
+            print exc
+            self._logger.error("Error executing function {0}. detaild error: {1}".format(func.__name__, str(exc)))
         return execution_failed
 
     def get_api(self):
@@ -142,14 +143,14 @@ class SandboxManager(object):
         ## validate parallel results
         for async_result in async_results:
             result = async_result.get()
-            self._logger.info("function Result: {0}. ".format(result))
             if result == 1: #failed to execute step
-                raise Exception("Sandbox is Active with Errors")
+                self.api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                                         message='<font color="red">Error occurred during sandbox provisioning, see full activity feed for more information.</font>')
+                sys.exit(-1)
 
 
         for function in self._after_provisioning:
             self._execute_step(function)
-
         # API.StageEnded(provisioning)
 
 
@@ -186,7 +187,7 @@ class SandboxManager(object):
 
             #  API.StageEnded(provisioning)
 
-        self._logger.info("Setup for reservation {0} completed".format(self.reservation_id))
+        self._logger.info("Setup for sandbox {0} completed".format(self.reservation_id))
 
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                             message='Sandbox setup finished successfully')

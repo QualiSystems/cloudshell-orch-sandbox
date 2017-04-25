@@ -9,6 +9,8 @@ from remap_child_resources_constants import *
 
 
 class SetupCommon(object):
+    NO_DRIVER_ERR = "129"
+    DRIVER_FUNCTION_ERROR = "151"
 
     #
     # @profileit(scriptName='Setup')
