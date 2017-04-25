@@ -107,7 +107,7 @@ class SetupVMTests(unittest.TestCase):
 
         mock_sandboxbase.return_value.api_session.GetResourceDetails.side_effect = resource_details_mock_side_effect
 
-        mock_save.return_value.is_snapshot.return_value = True
+        mock_save.return_value.is_snapshot.return_value = False
 
         self.setup_script.execute()
 

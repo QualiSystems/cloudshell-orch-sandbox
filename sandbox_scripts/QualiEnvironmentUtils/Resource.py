@@ -49,19 +49,18 @@ class ResourceBase(object):
                 return True
         return False
 
-
     # -----------------------------------------
     # -----------------------------------------
     def get_attribute(self, attribute_name):
-        attribute_name = attribute_name.lower()
+        attribute_name_lower = attribute_name.lower()
         for attribute in self.attributes:
-            if attribute.Name.lower() == attribute_name:
+            if attribute.Name.lower() == attribute_name_lower:
                 if attribute.Type == 'Password':
                     decrypted = self.api_session.DecryptPassword(attribute.Value)
                     return decrypted.Value
                 else:
                     return attribute.Value
-        raise QualiError(self.name, "Attribute: " + attribute_name + " not found")
+        raise QualiError(self.name, "Attribute: '" + attribute_name + "' not found")
 
     # -----------------------------------------
     # -----------------------------------------
@@ -70,7 +69,7 @@ class ResourceBase(object):
             self.api_session.SetAttributeValue(resourceFullPath=self.name, attributeName=attribute_name,
                                                attributeValue=attribute_value)
         except CloudShellAPIError as error:
-            raise QualiError(self.name, "Attribute: " + attribute_name + " not found. " + error.message)
+            raise QualiError(self.name, "Failed to set attribute: '" + attribute_name + "'. " + error.message)
 
     # -----------------------------------------
     # implement the command to get the neighbors and their ports
@@ -99,9 +98,9 @@ class ResourceBase(object):
         if self.has_command('health_check'):
             try:
                 # Return a detailed description in case of a failure
-                out = self.execute_command(reservation_id, 'health_check', printOutput=False) #.Output()
+                out = self.execute_command(reservation_id, 'health_check', printOutput=False)
                 if out.Output.find(' passed') == -1:
-                    err = "Health check did not pass for device " + self.name + ". "  +out.Output
+                    err = "Health check did not pass for device " + self.name + ". " + out.Output
                     return err
 
             except QualiError as qe:
@@ -320,7 +319,7 @@ class ResourceBase(object):
         :rtype: CommandExecutionCompletedResultInfo
         """
         # check the command exists on the device
-        if self.commands.__sizeof__() > 0:
+        if len(self.commands) > 0:
             # Run executeCommand with the restore command and its params (ConfigPath,RestoreMethod)
             try:
                 return self.api_session.ExecuteCommand(reservation_id, self.name, 'Resource', commandName,
@@ -345,7 +344,7 @@ class ResourceBase(object):
         :rtype: CommandExecutionCompletedResultInfo
         """
         # check the command exists on the device
-        if self.connected_commands.__sizeof__() > 0:
+        if len(self.connected_commands) > 0:
             # Run executeCommand with the restore command and its params (ConfigPath,RestoreMethod)
             try:
                return self.api_session.ExecuteResourceConnectedCommand(reservation_id,self.name,
@@ -361,8 +360,10 @@ class ResourceBase(object):
     # -----------------------------------------
     # -----------------------------------------
     def set_address(self, address):
-        self.api_session.UpdateResourceAddress(resourceFullPath=self.name, resourceAddress=address)
-
+        try:
+            self.api_session.UpdateResourceAddress(resourceFullPath=self.name, resourceAddress=address)
+        except CloudShellAPIError as error:
+            raise QualiError(self.name, error.message)
 
     # -----------------------------------------
     # -----------------------------------------
@@ -389,16 +390,19 @@ class ResourceBase(object):
 
     # -----------------------------------------
     # -----------------------------------------
-    def set_live_status(self,live_status_name, additional_info=''):
-        self.api_session.SetResourceLiveStatus(self.name,live_status_name, additional_info)
+    def set_live_status(self, live_status_name, additional_info=''):
+        try:
+            self.api_session.SetResourceLiveStatus(self.name, live_status_name, additional_info)
+        except CloudShellAPIError as error:
+            raise QualiError(self.name, error.message)
 
     # -----------------------------------------
     # -----------------------------------------
     def get_live_status(self):
-        self.api_session.GetResourceLiveStatus(self.name)
-
-
-
+        try:
+            self.api_session.GetResourceLiveStatus(self.name)
+        except CloudShellAPIError as error:
+            raise QualiError(self.name, error.message)
 
     # -----------------------------------------
     # -----------------------------------------
@@ -428,9 +432,10 @@ class ResourceBase(object):
     # -----------------------------------------
     def is_app(self):
         try:
-            if self.details.VmDetails.UID:
+            if self.details.VmDetails is not None and \
+                    hasattr(self.details.VmDetails, 'UID') and \
+                    self.details.VmDetails.UID:
                 return True
-
         except:
             return False
 
@@ -445,9 +450,9 @@ class ResourceBase(object):
         # Run executeCommand with the update_firmware command and its params (ConfigPath,RestoreMethod)
         try:
             version = self.execute_command(reservation_id, 'get_version',
-                                 printOutput=False).Output
+                                           printOutput=False).Output
             version = version.replace('\r\n', '')
-            return  version
+            return version
         except QualiError as qerror:
             raise QualiError(self.name, "Failed to get the version: " + qerror.message)
         except Exception as ex:
