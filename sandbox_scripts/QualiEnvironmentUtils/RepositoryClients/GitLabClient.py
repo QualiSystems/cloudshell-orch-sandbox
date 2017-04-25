@@ -58,7 +58,6 @@ class GitLabClient(RepositoryClient):
         try:
             with open(destination,'w') as dest:
                     dest.write(filetext)
-            print "Downloaded: " + source
             return 0, "Successfully retrieved file from repository and saved to destination"
         except Exception as ex:
             raise QualiError("GitLabClient","ERROR: Retrieved file from repository - failed to save to destination : " + str(ex.message))
