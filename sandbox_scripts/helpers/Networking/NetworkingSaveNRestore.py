@@ -57,9 +57,10 @@ class NetworkingSaveRestore(object):
         :param list[str] ignore_models: Optional. Models that should be ignored and not load config on the device
         :param bool write_to_output: Optional. should messages be sent to the command output.
         """
+        #self.sandbox.report_info(str(os.environ),write_to_output_window=False)
         root_path = ''
         if config_stage.lower() == 'gold' or config_stage.lower() == 'snapshots':
-            root_path = self.config_files_root + '/' + config_stage + '/' + os.environ["environment_name"].strip() + '/'
+            root_path = self.config_files_root + '/' + config_stage + '/' + self.sandbox.Blueprint_name + '/'
         elif config_stage.lower() == 'base':
             root_path = self.config_files_root + '/' + config_stage + '/'
         if config_set_name != '':
@@ -123,6 +124,7 @@ class NetworkingSaveRestore(object):
         load_config_to_device = self._is_load_config_to_device(resource, ignore_models=ignore_models)
         if load_config_to_device:
 
+            self.sandbox.report_info(resource.name + " starting health check", write_to_output_window=True)
             health_check_result = resource.health_check(self.sandbox.id)
             if health_check_result == "":
                 self.sandbox.report_info(resource.name + " -- Initial Health Check Passed.")
@@ -155,30 +157,30 @@ class NetworkingSaveRestore(object):
                                 image_key = resource.model.replace(' ', '_')
                                 dict_img_version = images_path_dict[image_key].version
                             # same image version - Only load config (running override)
-                            message += "\nLoading configuration for device: " + resource.name + " from:" + config_path
+                            message += "\n" + resource.name + ": loading configuration from: " + config_path
                             if dict_img_version.lower() == version.lower():
                                 resource.load_network_config(self.sandbox.id, config_path=config_path,
                                                              config_type='Running',
                                                              restore_method='Override')
                             # Different image - Load config to the RUNNING ALSO and load the image
                             else:
-                                message += "\nLoading configuration for device: " + resource.name + " from:" + config_path
+                                message += "\n" + resource.name + ": loading configuration from:" + config_path
                                 resource.load_network_config(self.sandbox.id, config_path,
                                                              config_type='Running',
                                                              restore_method='Override')
 
                                 resource_image_path = images_path_dict[image_key].path
                                 if resource_image_path != '':
-                                    message += "\nChanging " + resource.name + " firmware from: " + version + \
+                                    message += "\n" + resource.name + ": changing firmware from: " + version + \
                                                " to: " + dict_img_version + " at \n    " + resource_image_path
                                     additionalinfo = " (firmware) "
-                                    self.sandbox.report_info("Config uploaded; Changing " + resource.name +
-                                                             " firmware from: " + version + " to: " + dict_img_version +
-                                                             " at \n    " + resource_image_path,
+                                    self.sandbox.report_info(resource.name + " changing firmware from: " + version +
+                                                             " to: " + dict_img_version + " at \n    " +
+                                                             resource_image_path,
                                                              write_to_output_window=True)
                                     resource.load_firmware(self.sandbox.id, resource_image_path)
                         else:
-                            message += "\nLoading configuration for device: " + resource.name + " from:" + config_path
+                            message += "\n" + resource.name + ": loading config from:" + config_path
                             resource.load_network_config(self.sandbox.id, config_path, 'Running', 'Override')
 
                     health_check_result = resource.health_check(self.sandbox.id)
@@ -198,6 +200,7 @@ class NetworkingSaveRestore(object):
                           ". Unexpected error: " + str(ex)
                     message += err
             else:
+                self.sandbox.report_info(resource.name + " health check failed.", write_to_output_window=True)
                 load_result.run_result = False
                 err = resource.name + " did not pass health check. Configuration will not be loaded to the device.\n" + \
                         "Health check error is: " + health_check_result
@@ -382,7 +385,7 @@ class NetworkingSaveRestore(object):
 
         save_result.message = message
         return save_result
-
+    '''
     # ----------------------------------
     # delete file name on storage
     # ----------------------------------
@@ -391,7 +394,7 @@ class NetworkingSaveRestore(object):
         env_dir = self.config_files_root + '/Snapshots/' + fileName
         env_dir = env_dir.replace(' ', '_')
         self.storage_mgr.delete(env_dir)
-
+    '''
     # ----------------------------------
     # Check if need to load configuration to the given device
     # A device should not be in the ignored models list,
