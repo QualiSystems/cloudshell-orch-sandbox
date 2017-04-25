@@ -20,9 +20,9 @@ class SandboxBase(object):
             """:type : logging.Logger"""
             self.api_session = helpers.get_api_session()
             self.id = reservation_id
-
             self.Blueprint_name = helpers.get_reservation_context_details().environment_name
-
+            if self.Blueprint_name == '':
+                raise QualiError("Blueprint name empty (from env name)")
 
             full_path = None
             tp = self.api_session.GetActiveTopologyNames()
