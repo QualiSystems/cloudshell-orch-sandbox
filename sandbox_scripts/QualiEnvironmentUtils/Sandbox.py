@@ -3,7 +3,7 @@ from Resource import *
 from cloudshell.core.logger.qs_logger import *
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from os.path import *
-
+from time import gmtime, strftime
 
 SEVERITY_INFO = 20
 SEVERITY_ERROR = 40
@@ -173,7 +173,8 @@ class SandboxBase(object):
         """
         root_resources = self.get_root_resources()
         for resource in root_resources:
-            self.api_session.SetResourceLiveStatus(resource.name, '')
+            self.api_session.SetResourceLiveStatus(resource.name, liveStatusName="Info",
+                                                   additionalInfo='status cleared ' + strftime("%H:%M:%S", gmtime()))
 
     # ----------------------------------
     # ----------------------------------
