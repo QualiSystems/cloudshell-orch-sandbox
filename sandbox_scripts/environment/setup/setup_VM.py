@@ -87,20 +87,20 @@ class EnvironmentSetupVM(object):
         try:
             self._power_on(deployed_app_name, power_on, lock, message_status)
         except Exception as exc:
-            self.logger.error("Error powering on deployed app {0} in reservation {1}. Error: {2}"
+            self.logger.error("Error powering on deployed app '{0}' in reservation '{1}'. Error: {2}"
                               .format(deployed_app_name, self.reservation_id, str(exc)))
-            return False, "Error powering on deployed app {0}".format(deployed_app_name)
+            return False, "Error powering on deployed app '{0}'".format(deployed_app_name)
 
         try:
             if wait_for_ip.lower() == "true":
                 self._wait_for_ip(deployed_app_name, lock, message_status)
             else:
-                self.logger.info("Wait For IP is off for deployed app {0} in reservation {1}"
+                self.logger.info("Wait For IP is off for deployed app '{0}' in reservation '{1}'"
                                  .format(deployed_app_name, self.reservation_id))
         except Exception as exc:
-            self.logger.error("Error refreshing IP on deployed app {0} in reservation {1}. Error: {2}"
+            self.logger.error("Error refreshing IP on deployed app '{0}' in reservation '{1}'. Error: {2}"
                               .format(deployed_app_name, self.reservation_id, str(exc)))
-            return False, "Error refreshing IP deployed app {0}. Error: {1}".format(deployed_app_name, exc.message)
+            return False, "Error refreshing IP deployed app '{0}'. Error: {1}".format(deployed_app_name, exc.message)
 
         return True, ""
 
@@ -113,7 +113,7 @@ class EnvironmentSetupVM(object):
                     self.sandbox.report_info(message='Waiting for apps IP addresses, this may take a while...',
                                              write_to_output_window=True)
 
-        self.logger.info("Executing 'Refresh IP' on deployed app {0} in reservation {1}"
+        self.logger.info("Executing 'Refresh IP' on deployed app '{0}' in reservation '{1}'"
                          .format(deployed_app_name, self.reservation_id))
 
         with lock:
@@ -131,9 +131,9 @@ class EnvironmentSetupVM(object):
                     message_status['power_on'] = True
                     self.sandbox.report_info('Apps are powering on... ')
 
-                self.sandbox.report_info(message="Executing 'Power On' on deployed app {0} "
+                self.sandbox.report_info(message="Executing 'Power On' on deployed app '{0}' "
                                          .format(deployed_app_name),
-                                         log_message="Executing 'Power On' on deployed app {0} in reservation {1}"
+                                         log_message="Executing 'Power On' on deployed app '{0}' in reservation '{1}'"
                                          .format(deployed_app_name, self.reservation_id),
                                          write_to_output_window=True)
 

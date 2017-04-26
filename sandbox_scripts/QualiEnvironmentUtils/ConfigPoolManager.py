@@ -1,5 +1,7 @@
 # coding=utf-8
-from sandbox_scripts.QualiEnvironmentUtils.Sandbox import *
+from sandbox_scripts.QualiEnvironmentUtils.Sandbox import SandboxBase
+from sandbox_scripts.QualiEnvironmentUtils.Resource import ResourceBase
+from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
 import re
 
 
@@ -63,9 +65,7 @@ class ConfigPoolManager(object):
         for resource_from_pool in self.pool_resource.details.ChildResources:
             split_name = resource_from_pool.Name.split('/')
             name_of_resource_from_pool = split_name[len(split_name)-1]
-            #resource_attributes_dict = dict()
             for attribute in resource_from_pool.ResourceAttributes:
                 resource_dict_key = str('{ConfigPool:' + name_of_resource_from_pool + ':' + attribute.Name + '}').lower()
-                #resource_attributes_dict[resource_dict_key] = attribute.Value
                 pool_data_dict[resource_dict_key] = attribute.Value
         return pool_data_dict

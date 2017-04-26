@@ -22,6 +22,7 @@ resContext = '''{"id":"5487c6ce-d0b3-43e9-8ee7-e27af8406905",
 conContext = '''{"serverAddress": "localhost",
 "adminAuthToken": "anAdminToken"}'''
 
+
 class SetupVMTests(unittest.TestCase):
 
     @patch('sandbox_scripts.environment.setup.setup_VM.get_qs_logger')
@@ -113,19 +114,19 @@ class SetupVMTests(unittest.TestCase):
 
         report_info_calls = [call('Beginning VMs power on'),
                              call('Apps are powering on... '),
-                             call(log_message="Executing 'Power On' on deployed app r2 in reservation "
-                                              "5487c6ce-d0b3-43e9-8ee7-e27af8406905",
-                                  message="Executing 'Power On' on deployed app r2 ", write_to_output_window=True)]
+                             call(log_message="Executing 'Power On' on deployed app 'r2' in reservation "
+                                              "'5487c6ce-d0b3-43e9-8ee7-e27af8406905'",
+                                  message="Executing 'Power On' on deployed app 'r2' ", write_to_output_window=True)]
         mock_sandboxbase.return_value.report_info.assert_has_calls(report_info_calls)
 
         logger_debug_calls = [call("Resource r2 is a static app")]
         self.setup_script.logger.debug.assert_has_calls(logger_debug_calls)
 
-        logger_info_calls = [call('Wait For IP is off for deployed app r2 in '
-                                  'reservation 5487c6ce-d0b3-43e9-8ee7-e27af8406905')]
+        logger_info_calls = [call("Wait For IP is off for deployed app 'r2' in reservation "
+                                  "'5487c6ce-d0b3-43e9-8ee7-e27af8406905'")]
         self.setup_script.logger.info.assert_has_calls(logger_info_calls)
 
-        api_calls = [call(u'5487c6ce-d0b3-43e9-8ee7-e27af8406905', 'r2', 'PowerOn', 'power')]
+        api_calls = [call('5487c6ce-d0b3-43e9-8ee7-e27af8406905', 'r2', 'PowerOn', 'power')]
         mock_sandboxbase.return_value.api_session.ExecuteResourceConnectedCommand.assert_has_calls(api_calls)
 
 
@@ -159,15 +160,15 @@ class SetupVMTests(unittest.TestCase):
 
         report_info_calls = [call('Beginning VMs power on'),
                              call('Apps are powering on... '),
-                             call(log_message="Executing 'Power On' on deployed app r2 in reservation "
-                                              "5487c6ce-d0b3-43e9-8ee7-e27af8406905",
-                                  message="Executing 'Power On' on deployed app r2 ", write_to_output_window=True),
+                             call(log_message="Executing 'Power On' on deployed app 'r2' in reservation "
+                                              "'5487c6ce-d0b3-43e9-8ee7-e27af8406905'",
+                                  message="Executing 'Power On' on deployed app 'r2' ", write_to_output_window=True),
                              call(message='Waiting for apps IP addresses, this may take a while...',
                                   write_to_output_window=True)]
         mock_sandboxbase.return_value.report_info.assert_has_calls(report_info_calls)
 
-        api_calls = [call(u'5487c6ce-d0b3-43e9-8ee7-e27af8406905', 'r2', 'PowerOn', 'power'),
-                     call(u'5487c6ce-d0b3-43e9-8ee7-e27af8406905', 'r2', 'remote_refresh_ip', 'remote_connectivity')]
+        api_calls = [call('5487c6ce-d0b3-43e9-8ee7-e27af8406905', 'r2', 'PowerOn', 'power'),
+                     call('5487c6ce-d0b3-43e9-8ee7-e27af8406905', 'r2', 'remote_refresh_ip', 'remote_connectivity')]
         mock_sandboxbase.return_value.api_session.ExecuteResourceConnectedCommand.assert_has_calls(api_calls)
 
 

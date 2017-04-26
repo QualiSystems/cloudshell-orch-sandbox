@@ -393,9 +393,9 @@ class SandboxBase(object):
         apps = details.ReservationDescription.App
 
         if not apps or (len(apps) == 1 and not apps[0].Name):
-            self.report_info("No apps found in reservation {0}".format(self.reservation_id))
-            self.api_session.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                             message='No apps in reservation')
+            self.report_info(message='No apps in reservation',
+                             log_message="No apps found in reservation {0}".format(self.reservation_id),
+                             write_to_output_window=True)
             return False
 
         return True
@@ -411,9 +411,8 @@ class SandboxBase(object):
             if resource.is_app():
                 deployed_app_name = resource.name
                 if write_to_output:
-                    self.api_session.WriteMessageToReservationOutput(reservationId=self.id,
-                                                                     message='Power on Apps again')
-                    write_to_output = False # to prevent more prints
+                    self.report_info(message='Power on Apps again', write_to_output_window=True)
+                    write_to_output = False  # to prevent more prints
 
                 self.api_session.ExecuteResourceConnectedCommand(self.id, deployed_app_name, "PowerOn", "power")
 
