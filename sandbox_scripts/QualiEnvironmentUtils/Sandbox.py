@@ -4,6 +4,10 @@ from cloudshell.core.logger.qs_logger import *
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from os.path import *
 from time import gmtime, strftime
+import smtplib
+import socket
+from email.mime.text import MIMEText
+
 
 SEVERITY_INFO = 20
 SEVERITY_ERROR = 40
@@ -20,6 +24,7 @@ class SandboxBase(object):
             """:type : logging.Logger"""
             self.api_session = helpers.get_api_session()
             self.id = reservation_id
+            self.owner = helpers.get_reservation_context_details().owner_user
             self.Blueprint_name = helpers.get_reservation_context_details().environment_name
             if self.Blueprint_name == '':
                 raise QualiError("Blueprint name empty (from env name)")
@@ -61,11 +66,24 @@ class SandboxBase(object):
         :param bool raise_error:  Do you want to throw an exception
         :param bool write_to_output_window:  Would you like to write the message to the output window
         """
+
+        emailresult = ''
+        if raise_error:
+            emailOwner = False
+            emailSubject = str(self.Blueprint_name) + ' / ' + str(self.owner)
+            emailBody = "Sandbox: " + str(self.Blueprint_name) + "\n" + \
+                        "Owner: " + str(self.owner) + "\n\n"
+            if log_message:
+                emailBody += "LogMsg: " + log_message + "\n\n"
+            if error_message:
+                emailBody += "ErrMsg: " + error_message + "\n\n"
+            emailresult = self.emailalert(emailSubject, emailBody, owner=self.owner, ishtml=False, emailOwner=emailOwner)
+
         if self._logger:
             if log_message:
-                self._logger.error(log_message)
+                self._logger.error(emailresult + "\n" + log_message)
             else:
-                self._logger.error(error_message)
+                self._logger.error(emailresult + "\n" + error_message)
         if write_to_output_window:
             self._write_message_to_output(error_message, SEVERITY_ERROR)
         if raise_error:
@@ -86,6 +104,48 @@ class SandboxBase(object):
                 self._logger.info(message)
         if write_to_output_window:
             self._write_message_to_output(message, SEVERITY_INFO)
+
+    # ----------------------------------
+    def emailalert(self, subject, body, owner, ishtml=False, emailOwner=False):
+        globalsresource = self.get_config_set_pool_resource()
+        host = str(globalsresource.get_attribute("ConfigPool_SMTP_Server"))
+        port = str(globalsresource.get_attribute("ConfigPool_SMTP_port"))
+        emailfrom = str(globalsresource.get_attribute("ConfigPool_SMTP_from"))
+        emailto = emailfrom
+        emailcc = ''
+        emailbcc = ''
+
+        if emailOwner:
+            try:
+                emailto = str(self.api_session.GetUserDetails(owner).Email)
+                emailbcc = emailfrom
+                body += "----\n A copy of this email was also sent to our support staff."
+            except:
+                emailbcc = ''
+                emailto = emailfrom
+
+        try:
+            if ishtml:
+                emsg = MIMEText(body + '\n\n', 'html')
+            else:
+                emsg = MIMEText(body + '\n\n', 'plain')
+
+            emsg['Subject'] = subject
+            emsg['From'] = emailfrom
+            emsg['To'] = ",".join([emailto])
+            emsg['CC'] = ""
+            emsg.preamble = subject
+            tolist = emailto.split(",") + emailcc.split(",") + emailbcc.split(",")
+            mailer = smtplib.SMTP(host=host, port=port)
+            mailer.sendmail(emailfrom, tolist, emsg.as_string())
+            return "Emailed OK"
+
+        except smtplib.SMTPException as e:
+            # cannot post again as error or we could be in a loop!
+            return ("ERROR Failed to send email, %s" % str(e))
+        except:
+            # cannot post again as error or we could be in a loop!
+            return "ERROR Failed to send email"
 
     # ----------------------------------
     def get_root_resources(self):
