@@ -73,27 +73,30 @@ class NetworkingSaveRestore(object):
                                  write_to_output_window=True)
         root_resources = self.sandbox.get_root_networking_resources()
         """:type : list[ResourceBase]"""
-        pool = ThreadPool(len(root_resources))
-        lock = Lock()
-        async_results = [pool.apply_async(self._run_asynch_load,
-                                          (resource, images_path_dict, root_path, ignore_models,config_stage, lock,
-                                           use_Config_file_path_attr))
-                         for resource in root_resources]
+        if len(root_resources) > 0:
+            pool = ThreadPool(len(root_resources))
+            lock = Lock()
+            async_results = [pool.apply_async(self._run_asynch_load,
+                                              (resource, images_path_dict, root_path, ignore_models,config_stage, lock,
+                                               use_Config_file_path_attr))
+                             for resource in root_resources]
 
-        pool.close()
-        pool.join()
-        for async_result in async_results:
-            res = async_result.get()
-            """:type : load_result_struct"""
-            if not res.run_result:
-                err = "Failed to load configuration on device " + res.resource_name
-                self.sandbox.report_error(err, write_to_output_window=write_to_output, raise_error=False)
-                self.sandbox.report_error(res.message, raise_error=False)
-                self.sandbox.api_session.SetResourceLiveStatus(res.resource_name, 'Error')
-            elif res.message != '':
-                self.sandbox.report_info(res.resource_name + "\n" + res.message,write_to_output_window=True)
-        if remove_temp_files:
-            self._remove_temp_config_files()
+            pool.close()
+            pool.join()
+            for async_result in async_results:
+                res = async_result.get()
+                """:type : load_result_struct"""
+                if not res.run_result:
+                    err = "Failed to load configuration on device " + res.resource_name
+                    self.sandbox.report_error(err, write_to_output_window=write_to_output, raise_error=False)
+                    self.sandbox.report_error(res.message, raise_error=False)
+                    self.sandbox.api_session.SetResourceLiveStatus(res.resource_name, 'Error')
+                elif res.message != '':
+                    self.sandbox.report_info(res.resource_name + "\n" + res.message,write_to_output_window=True)
+            if remove_temp_files:
+                self._remove_temp_config_files()
+        else:
+            self.sandbox.report_info("No networking resources found to process.")
 
 
     # ----------------------------------
