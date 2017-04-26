@@ -12,48 +12,6 @@ class SetupCommon(object):
     NO_DRIVER_ERR = "129"
     DRIVER_FUNCTION_ERROR = "151"
 
-    #
-    # @profileit(scriptName='Setup')
-    # def execute(self):
-    #     api = helpers.get_api_session()
-    #     resource_details_cache = {}
-    #
-    #     api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-    #                                         message='Beginning sandbox setup using remote package')
-    #
-    #     self.prepare_connectivity(api, self.reservation_id)
-    #
-    #     reservation_details = api.GetReservationDetails(self.reservation_id)
-    #
-    #
-    #     deploy_result = self.deploy_apps_in_reservation(api=api,
-    #                                                      reservation_details=reservation_details)
-    #
-    #     self.try_exeucte_autoload(api=api,
-    #                                deploy_result=deploy_result,
-    #                                resource_details_cache=resource_details_cache)
-    #
-    #     # refresh reservation_details after app deployment if any deployed apps
-    #     if deploy_result and deploy_result.ResultItems:
-    #         reservation_details = api.GetReservationDetails(self.reservation_id)
-    #
-    #     self.connect_all_routes_in_reservation(api=api,
-    #                                             reservation_details=reservation_details,
-    #                                             reservation_id=self.reservation_id,
-    #                                             resource_details_cache=resource_details_cache)
-    #
-    #     self.run_async_power_on_refresh_ip(api=api,
-    #                                         reservation_details=reservation_details,
-    #                                         deploy_results=deploy_result,
-    #                                         resource_details_cache=resource_details_cache,
-    #                                         reservation_id=self.reservation_id)
-    #
-    #     self.configure_apps(api=api, reservation_id=self.reservation_id)
-    #
-    #     self.logger.info("Setup for reservation {0} completed".format(self.reservation_id))
-    #     api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-    #                                         message='Sandbox setup finished successfully')
-
     @staticmethod
     def prepare_connectivity(api, reservation_id, logger):
         """

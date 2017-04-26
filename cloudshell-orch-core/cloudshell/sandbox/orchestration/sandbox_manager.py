@@ -6,6 +6,7 @@ from cloudshell.core.logger.qs_logger import get_qs_logger
 
 from cloudshell.sandbox.environment.setup.setup_common import SetupCommon
 from cloudshell.sandbox.profiler.env_profiler import profileit
+from cloudshell.sandbox.orchestration.default_setup_orchestrator import DefaultSetupOrchestrator
 
 
 class SandboxManager(object):
@@ -54,69 +55,11 @@ class SandboxManager(object):
     def _add_default_orchestration(self):
         self.logger.info("Adding defualt orchestration")
         if self._enable_default_provisioning:
-            self.add_provisioning_process(self._default_provisioning, None, None)
+            self.add_provisioning_process(DefaultSetupOrchestrator.default_provisioning, None, None)
         if self._enable_default_connectivity:
-            self.add_connectivity_process(self._default_connectivity, None, None)
+            self.add_connectivity_process(DefaultSetupOrchestrator.default_connectivity, None, None)
         if self._enable_default_configuration:
-            self.add_configuration_process(self._default_configuration, None, None)
-
-    def _default_provisioning(self, sandbox):
-        """
-        :param SandboxManager sandbox:
-        :return:
-        """
-        api = sandbox.api
-
-        sandbox.logger.info("Executing default provisioning")
-
-        reservation_details = api.GetReservationDetails(sandbox.reservation_id)
-        self.deploy_result = SetupCommon.deploy_apps_in_reservation(api=api,
-                                                                    reservation_details=reservation_details,
-                                                                    reservation_id=sandbox.reservation_id,
-                                                                    logger=sandbox.logger)
-
-        SetupCommon.validate_all_apps_deployed(deploy_results=sandbox.deploy_result,
-                                               logger=sandbox.logger)
-
-        SetupCommon.try_exeucte_autoload(api=api,
-                                         deploy_result=sandbox.deploy_result,
-                                         resource_details_cache=sandbox._resource_details_cache,
-                                         reservation_id=sandbox.reservation_id,
-                                         logger=sandbox.logger)
-
-    def _default_connectivity(self, sandbox):
-        """
-        :param SandboxManager sandbox:
-        :return:
-        """
-        api = sandbox.api
-
-        sandbox.logger.info("Executing default connectivity")
-
-        reservation_details = api.GetReservationDetails(sandbox.reservation_id)
-
-        SetupCommon.connect_all_routes_in_reservation(api=api,
-                                                      reservation_details=reservation_details,
-                                                      reservation_id=sandbox.reservation_id,
-                                                      resource_details_cache=sandbox._resource_details_cache,
-                                                      logger=sandbox.logger)
-
-        SetupCommon.run_async_power_on_refresh_ip(api=api,
-                                                  reservation_details=reservation_details,
-                                                  deploy_results=sandbox.deploy_result,
-                                                  resource_details_cache=sandbox._resource_details_cache,
-                                                  reservation_id=sandbox.reservation_id,
-                                                  logger=sandbox.logger)
-
-    def _default_configuration(self, sandbox):
-        """
-        :param SandboxManager sandbox:
-        :return:
-        """
-        sandbox.logger.info("Executing default configuration")
-        SetupCommon.configure_apps(api=sandbox.api,
-                                   reservation_id=sandbox.reservation_id,
-                                   logger=sandbox.logger)
+            self.add_configuration_process(DefaultSetupOrchestrator.default_configuration, None, None)
 
     def _execute_step(self, func):
         self.logger.info("Executing: {0}. ".format(func.__name__))
