@@ -1,7 +1,20 @@
 from cloudshell.sandbox.environment.setup.setup_common import SetupCommon
+from cloudshell.sandbox.orchestration.sandbox_manager import SandboxManager
 
-
-class DefaultSetupOrchestrator(object):
+class DefaultSetupWorkflow(object):
+    @staticmethod
+    def extend(sandbox, enable_provisioning=True, enable_connectivity=True, enable_configuration=True):
+        """
+        :param SandboxManager sandbox:
+        :return:
+        """
+        sandbox.logger.info("Adding defualt orchestration")
+        if enable_provisioning:
+            sandbox.workflow.add_provisioning_process(DefaultSetupWorkflow.default_provisioning, None, None)
+        if enable_connectivity:
+            sandbox.workflow.add_connectivity_process(DefaultSetupWorkflow.default_connectivity, None, None)
+        if enable_configuration:
+            sandbox.workflow.add_configuration_process(DefaultSetupWorkflow.default_configuration, None, None)
 
     @staticmethod
     def default_provisioning(sandbox):
