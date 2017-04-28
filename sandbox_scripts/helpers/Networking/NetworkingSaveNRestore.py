@@ -148,17 +148,31 @@ class NetworkingSaveRestore(object):
                             resource.load_network_config(self.sandbox.id, config_path, 'Running', 'Override')
                     else:
                         if len(images_path_dict) > 0:
-                            # check what the device FW version
-                            image_key = (resource.alias + '_' + resource.model).replace(' ', '_')
+                            # check what the device FW version is currently.
                             version = resource.get_version(self.sandbox.id)
                             self.sandbox.report_info(resource.name + ": current version: " + version,
                                                 write_to_output_window=False)
+                            # First try with an firmware image key of concrete resource name!!
+                            dict_img_version = ''
+                            image_key = ''
                             try:
+                                # Try using concrete resource name to find entry
+                                image_key = resource.name
                                 dict_img_version = images_path_dict[image_key].version
-                                self.sandbox.report_info(resource.name + ": FirmwareData specifies version " + dict_img_version)
                             except:
-                                image_key = resource.model.replace(' ', '_')
-                                dict_img_version = images_path_dict[image_key].version
+                                try:
+                                    # Try using alias_model
+                                    image_key = (resource.alias + '_' + resource.model).replace(' ', '_')
+                                    dict_img_version = images_path_dict[image_key].version
+                                except:
+                                    try:
+                                        # Try using just model, hopefully from attribute xxxxxx.Model
+                                        image_key = resource.model.replace(' ', '_')
+                                        dict_img_version = images_path_dict[image_key].version
+                                    except:
+                                        # Getting here means no firmware specified in FirmwareData.csv
+                                        message += "\n" + resource.name + ": NO firmware version specified in Base FirmwareData.csv"
+
                             # same image version - Only load config (running override)
                             message += "\n" + resource.name + ": loading configuration from: " + config_path
                             if dict_img_version.lower() == version.lower():
@@ -172,8 +186,8 @@ class NetworkingSaveRestore(object):
                                                              config_type='Running',
                                                              restore_method='Override')
 
-                                resource_image_path = images_path_dict[image_key].path
-                                if resource_image_path != '':
+                                if dict_img_version != '':
+                                    resource_image_path = images_path_dict[image_key].path
                                     message += "\n" + resource.name + ": changing firmware from: " + version + \
                                                " to: " + dict_img_version + " at \n    " + resource_image_path
                                     additionalinfo = " (firmware) "
@@ -203,7 +217,7 @@ class NetworkingSaveRestore(object):
                           ". Unexpected error: " + str(ex)
                     message += err
             else:
-                self.sandbox.report_info(resource.name + " health check failed.", write_to_output_window=True)
+                self.sandbox.report_error(resource.name + " health check failed.", write_to_output_window=True)
                 load_result.run_result = False
                 err = resource.name + " did not pass health check. Configuration will not be loaded to the device.\n" + \
                         "Health check error is: " + health_check_result
@@ -304,7 +318,6 @@ class NetworkingSaveRestore(object):
             os.unlink(tmp_concrete_config_file.name)
             # Set the path to the new concrete file
             config_path = concrete_file_path
-            #print tmp_template_config_file.name
 
         return config_path
 
@@ -413,7 +426,7 @@ class NetworkingSaveRestore(object):
 
         if ignore_models:
             for ignore_model in ignore_models:
-                if resource.model.lower() == ignore_model.lower():
+                if resource.details.ResourceModelName.lower() == ignore_model.lower():
                     return False
 
         apps = self.sandbox.get_Apps_resources()
