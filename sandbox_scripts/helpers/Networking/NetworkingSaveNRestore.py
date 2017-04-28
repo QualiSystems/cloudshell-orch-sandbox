@@ -1,11 +1,12 @@
 # coding=utf-8
 import csv
+import os
 import tempfile
 from multiprocessing.pool import ThreadPool
 from threading import Lock
 
-from sandbox_scripts.QualiEnvironmentUtils.ConfigFileManager import *
-from sandbox_scripts.QualiEnvironmentUtils.ConfigPoolManager import *
+from sandbox_scripts.QualiEnvironmentUtils.ConfigFileManager import ConfigFileManager
+from sandbox_scripts.QualiEnvironmentUtils.ConfigPoolManager import ConfigPoolManager
 from sandbox_scripts.helpers.Networking.base_save_restore import *
 from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
 
@@ -22,9 +23,9 @@ class NetworkingSaveRestore(object):
             self.storage_mgr = StorageManager(sandbox)
             self.config_files_root = self.storage_mgr.get_configs_root()
         else:
-            if self.is_resources_in_reservation_to_restore(ignore_models = None):
+            if self.is_resources_in_reservation_to_restore(ignore_models=None):
                 self.sandbox.report_info("Failed to find a storage server resource (e.g. ftp) in the sandbox. ",
-                                      write_to_output_window=False)
+                                         write_to_output_window=False)
 
     # ----------------------------------
     # load_network_config(ResourceName,config_type, RestoreMethod=Override)
@@ -63,7 +64,7 @@ class NetworkingSaveRestore(object):
             root_path = root_path + config_set_name.strip() + '/'
 
         root_path = root_path.replace(' ', '_')
-        self.sandbox.report_info("RootPath: " + root_path,write_to_output_window=True)
+        self.sandbox.report_info("RootPath: " + root_path, write_to_output_window=True)
         images_path_dict = self._get_images_path_dict(root_path)
         self.sandbox.report_info("\nLoading image and configuration on the devices. This action may take some time",
                                  write_to_output_window=True)
@@ -249,7 +250,7 @@ class NetworkingSaveRestore(object):
         config_set_pool_resource = self.sandbox.get_config_set_pool_resource()
         if config_set_pool_resource is not None:
             config_set_pool_manager = ConfigPoolManager(sandbox=self.sandbox, pool_resource=config_set_pool_resource)
-            config_set_pool_data = config_set_pool_manager.pool_data_to_dict()
+            config_set_pool_data = config_set_pool_manager.pool_data
         if config_stage == 'snapshots':
             config_path = root_path + resource.name + '_' + resource.model + '.cfg'
         else:

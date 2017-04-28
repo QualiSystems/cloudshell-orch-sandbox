@@ -1,4 +1,8 @@
+import tempfile
+import os
 from sandbox_scripts.helpers.Networking.base_save_restore import *
+from sandbox_scripts.QualiEnvironmentUtils.ConfigPoolManager import ConfigPoolManager
+from sandbox_scripts.QualiEnvironmentUtils.ConfigFileManager import ConfigFileManager
 from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
 from multiprocessing.pool import ThreadPool
 from threading import Lock
@@ -7,7 +11,6 @@ from threading import Lock
 class VMsSaveRestore(BaseSaveRestore):
     def __init__(self, sandbox):
         super(VMsSaveRestore,self).__init__(sandbox)
-
 
     # ----------------------------------
     # ----------------------------------
@@ -79,7 +82,7 @@ class VMsSaveRestore(BaseSaveRestore):
                         dest_name = resource.name + '_' + resource.model +'_artifact.txt'
                         dest_name = dest_name.replace(' ','-')
                         saved_artifact_info = self.storage_mgr.download_artifact_info(root_path, dest_name)
-                        resource.orchestration_restore(self.sandbox.id,None,saved_artifact_info)
+                        resource.orchestration_restore(self.sandbox.id, None, saved_artifact_info)
 
                     health_check_result = resource.health_check(self.sandbox.id)
                     if health_check_result != '':
@@ -236,7 +239,7 @@ class VMsSaveRestore(BaseSaveRestore):
         config_set_pool_resource = self.sandbox.get_config_set_pool_resource()
         if config_set_pool_resource is not None:
             config_set_pool_manager = ConfigPoolManager(sandbox=self.sandbox, pool_resource=config_set_pool_resource)
-            config_set_pool_data = config_set_pool_manager.pool_data_to_dict()
+            config_set_pool_data = config_set_pool_manager.pool_data
         if config_stage == 'snapshots':
             config_path = root_path + resource.name + '_' + resource.model + '.cfg'
         else:
