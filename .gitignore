@@ -60,14 +60,7 @@ target/
 
 #Ipython Notebook
 .ipynb_checkpoints
-.idea/.name
-.idea/cloudshell-orch-sandbox.iml
-.idea/encodings.xml
-.idea/misc.xml
-.idea/modules.xml
-.idea/vcs.xml
-.idea/workspace.xml
-.idea/dictionaries/
+.idea/*
 qpm.ini
 
 # zip files
@@ -75,13 +68,4 @@ qpm.ini
 SandboxOrchestration/environment_scripts/env_setup/data.json
 SandboxOrchestrationPackage/Topology Scripts/Default Sandbox Setup.zip
 SandboxOrchestrationPackage/Topology Scripts/Default Sandbox Teardown.zip
-SandboxOrchestrationPackage/Topology Scripts/Default Sandbox Teardown.zip
-sandbox_scripts/environment/.idea/.name
-sandbox_scripts/environment/.idea/encodings.xml
-sandbox_scripts/environment/.idea/misc.xml
-sandbox_scripts/environment/.idea/workspace.xml
-*.zip
-sandbox_scripts/environment/.idea/environment.iml
-SandboxOrchestrationPackage/Topology Scripts/Default Sandbox Setup.zip
-sandbox_scripts/environment/.idea/modules.xml
-SandboxOrchestrationPackage/Topology Scripts/Default Sandbox Teardown.zip
+
