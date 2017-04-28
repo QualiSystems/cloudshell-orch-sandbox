@@ -1,7 +1,8 @@
 # coding=utf-8
-from sandbox_scripts.QualiEnvironmentUtils.Sandbox import *
-from time import gmtime, strftime
 import traceback
+import re
+from sandbox_scripts.QualiEnvironmentUtils.Sandbox import SandboxBase
+from time import gmtime, strftime
 
 
 # ===================================
@@ -15,8 +16,7 @@ class ConfigFileManager:
 
     # ----------------------------------
     # ----------------------------------
-    def create_concrete_config_from_template(self, template_config_data, config_set_pool_data,
-                                             resource):
+    def create_concrete_config_from_template(self, template_config_data, config_set_pool_data, resource):
         """
         Replace parameters in the template file with concrete values
         Parameters in the template file are marked with {}
@@ -30,36 +30,39 @@ class ConfigFileManager:
             it = re.finditer(r"\{ConfigPool\:[^}]*\}", concrete_config_data, flags=re.IGNORECASE)
             for match in it:
                 param = match.group()
-                concrete_config_data = concrete_config_data.replace(param, config_set_pool_data[param.lower()])
+                if param.lower() in config_set_pool_data:
+                    concrete_config_data = concrete_config_data.replace(param, config_set_pool_data[param.lower()])
+                else:
+                    raise ('Could not find attribute ' + param.lower() + ' in the config pool')
 
             # Replace {QUALI-NOTATION} WITH A NOTE
-            it = re.finditer(r"\{QUALI NOTATION\}", concrete_config_data,flags=re.IGNORECASE)
+            it = re.finditer(r"\{QUALI NOTATION\}", concrete_config_data, flags=re.IGNORECASE)
             for match in it:
                 param = match.group()
                 quali_note = "Built from template: " + strftime("%Y-%b-%d %H:%M:%S", gmtime())
                 concrete_config_data = concrete_config_data.replace(param, quali_note)
 
             # Replace {Device.Self.Name} with the resource's name
-            it = re.finditer(r"\{Device:Self:Name\}", concrete_config_data,flags=re.IGNORECASE)
+            it = re.finditer(r"\{Device:Self:Name\}", concrete_config_data, flags=re.IGNORECASE)
             for match in it:
                 param = match.group()
                 concrete_config_data = concrete_config_data.replace(param, resource.name)
 
             # Replace {Device.Self.Address} with the resource's management ip
-            it = re.finditer(r"\{Device:Self:Address\}", concrete_config_data,flags=re.IGNORECASE)
+            it = re.finditer(r"\{Device:Self:Address\}", concrete_config_data, flags=re.IGNORECASE)
             for match in it:
                 param = match.group()
                 concrete_config_data = concrete_config_data.replace(param, resource.address)
 
             # Replace {Device.Self.ATTRIBUTE_NAME} with the resource's attribute value
             # Need to decode password attributes: Password, Enable Password, and SNMP Read Community
-            it = re.finditer(r"\{Device:Self\:[^}]*\}", concrete_config_data,flags=re.IGNORECASE)
+            it = re.finditer(r"\{Device:Self\:[^}]*\}", concrete_config_data, flags=re.IGNORECASE)
             for match in it:
                 param = match.group()
                 idx = param.rfind(':')+1
                 att_name = param[idx:len(param)-1]
                 param_val = resource.get_attribute(att_name)
-                #param_val = resource.get_attribute(param)
+                # param_val = resource.get_attribute(param)
                 concrete_config_data = concrete_config_data.replace(param, param_val)
 
             # Replacemant of params from types: {Device:ALIAS:Attribute_name}

@@ -228,14 +228,13 @@ class ResourceBase(object):
                         if 'orchestration_restore' == command.Name:
                             tag = command.Tag
                             json_str = artifact_info
-                            self.execute_connected_command(reservation_id, 'orchestration_restore',tag,
-                                commandInputs=[json_str],
-                                printOutput=True)
+                            self.execute_connected_command(reservation_id, 'orchestration_restore', tag,
+                                                           commandInputs=[json_str], printOutput=True)
                             break
 
             else:
                 if self.has_command('orchestration_restore'):
-                    if(artifact_info == None):
+                    if artifact_info is None:
                         artifact_info = self.create_artifact_info(config_path)
                         json_str = json.dumps(artifact_info)
                     else:
@@ -243,8 +242,7 @@ class ResourceBase(object):
 
                     command_inputs = [InputNameValue('saved_details', json_str)]
                     self.execute_command(reservation_id, 'orchestration_restore',
-                                     commandInputs=command_inputs,
-                                     printOutput=True)
+                                         commandInputs=command_inputs, printOutput=True)
 
         except QualiError as qerror:
             raise QualiError(self.name, "Failed to load configuration: " + qerror.message)
@@ -275,9 +273,8 @@ class ResourceBase(object):
                     if 'orchestration_save' == command.Name:
                         tag = command.Tag
 
-                        config_name = self.execute_connected_command(reservation_id, 'orchestration_save',tag,
-                                               commandInputs=['shallow',''],
-                                               printOutput=False)
+                        config_name = self.execute_connected_command(reservation_id, 'orchestration_save', tag,
+                                                                     commandInputs=['shallow',''], printOutput=False)
 
                         return config_name.Output
 
@@ -285,7 +282,7 @@ class ResourceBase(object):
                 if self.has_command('orchestration_save'):
 
                     config_name = self.execute_command(reservation_id, 'orchestration_save',
-                                               commandInputs=[InputNameValue('custom_params',json_str),
+                                               commandInputs=[InputNameValue('custom_params', json_str),
                                                               InputNameValue('mode','shallow')],
                                                printOutput=False)
 
