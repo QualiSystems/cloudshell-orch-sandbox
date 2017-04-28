@@ -1,53 +1,19 @@
 import unittest
-import json
-import os
-from mock import patch, Mock, call
+from mock import patch, Mock
 from sandbox_scripts.QualiEnvironmentUtils.ConfigPoolManager import ConfigPoolManager
-from sandbox_scripts.QualiEnvironmentUtils.Sandbox import SandboxBase
 from sandbox_scripts.QualiEnvironmentUtils.Resource import ResourceBase
 from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
-from cloudshell.api.cloudshell_api import ResourceAttribute
-from cloudshell.api.common_cloudshell_api import CloudShellAPIError
-
-resContext = '''{"id":"5487c6ce-d0b3-43e9-8ee7-e27af8406905",
- "ownerUser":"bob",
- "ownerPass":"nIqm+BG6ZGJjby5hUittVFFJASc=",
- "domain":"Global",
- "environmentName":"My environment",
- "description":"New demo environment",
- "parameters":
-   { "globalInputs": [],
-     "resourceRequirements":[],
-     "resourceAdditionalInfo":[]}}'''
-
-conContext = '''{"serverAddress": "localhost",
-"adminAuthToken": "anAdminToken"}'''
 
 
 class ConfigPoolManagerTests(unittest.TestCase):
-    @patch('cloudshell.helpers.scripts.cloudshell_scripts_helpers.get_api_session')
-    def setUp(self, mock_api_session):
-        os.environ['reservationContext'] = resContext
-        os.environ['qualiConnectivityContext'] = conContext
-        tli = Mock()
-        tli.Topologies = ["My environment"]
-        mock_api_session.return_value.GetActiveTopologyNames = Mock(return_value=tli)
-
-        abstractinfo = Mock()
-        abstractinfo.Alias = "alias"
-        topoinfo = Mock()
-
-        topoinfo.Name = "My environment"
-        topoinfo.AbstractResources = [abstractinfo]
-        mock_api_session.return_value.GetTopologyDetails = Mock(return_value=topoinfo)
-        mock_logger = Mock()
-        self.sandbox = SandboxBase(reservation_id="5487c6ce-d0b3-43e9-8ee7-e27af8406905", logger=mock_logger)
+    def setUp(self):
+        self.sandbox = None
 
     def tearDown(self):
         pass
 
     # ================================================================
-    # test push_data_from_pool_to_sandbox function
+    # test ConfigPoolManager/pool_data function
     def test_no_config_manager(self):
         with self.assertRaises(QualiError) as e:
             self.config_pool_mgr = ConfigPoolManager(sandbox=self.sandbox, pool_resource=None)

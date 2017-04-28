@@ -243,7 +243,7 @@ class NetworkingSaveRestore(object):
         :rtype: str
         """
 
-        config_file_mgr = ConfigFileManager(self.sandbox)
+        config_file_mgr = ConfigFileManager()
         #TODO - set the pool dictionary only once during the init of the class
         config_set_pool_data = dict()
         # If there is a pool resource, get the pool data
@@ -277,8 +277,19 @@ class NetworkingSaveRestore(object):
                 self.storage_mgr.download(tftp_template_config_path, tmp_template_config_file.name)
             with open(tmp_template_config_file.name, 'r') as content_file:
                 tmp_template_config_file_data = content_file.read()
-            concrete_config_data = config_file_mgr.create_concrete_config_from_template(
-                tmp_template_config_file_data, config_set_pool_data, resource)
+
+            concrete_config_data = ''
+            try:
+                concrete_config_data = config_file_mgr.create_concrete_config_from_template(
+                    tmp_template_config_file_data,
+                    config_set_pool_data,
+                    self.sandbox, resource)
+            except QualiError as qe:
+                self.sandbox.report_error(error_message='Could not create a concrete config file '
+                                                        'for resource {0}'.format(resource.name),
+                                          log_message=qe.message,
+                                          write_to_output_window=True)
+
             tmp_concrete_config_file = tempfile.NamedTemporaryFile(delete=False)
             tf = file(tmp_concrete_config_file.name, 'wb+')
             tf.write(concrete_config_data)
