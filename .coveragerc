@@ -11,3 +11,5 @@ omit =
         */profiler/*
         */tests/*
         */remap_child_resources_constants.py
+        */setup_script.py
+        */teardown_script.py
