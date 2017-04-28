@@ -22,7 +22,7 @@ class ResourceBase(object):
 
             self.attributes = self.details.ResourceAttributes
             # If there is an attribute named 'model' take its value (exist in shells), otherwise take the family's model
-            self.model = self.get_attrib_value_ending_in_Model
+            self.model = self.get_attrib_value_ending_in_model()
             self.alias = resource_alias
 
     # -----------------------------------------
@@ -47,11 +47,11 @@ class ResourceBase(object):
 
     # -----------------------------------------
     # -----------------------------------------
-    def get_attrib_value_ending_in_Model(self):
+    def get_attrib_value_ending_in_model(self):
         for attribute in self.attributes:
             if attribute.Name.endswith('.Model'):
-                return attribute.Value
-        return self.details.ResourceModelName
+                return str(attribute.Value)
+        return str(self.details.ResourceModelName)
 
     # -----------------------------------------
     # -----------------------------------------
