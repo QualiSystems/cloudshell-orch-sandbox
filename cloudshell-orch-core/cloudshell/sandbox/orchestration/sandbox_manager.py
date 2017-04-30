@@ -52,15 +52,19 @@ class SandboxManager(object):
     @profileit(scriptName='Setup')
     def execute(self):
         api = self.api
+        self.logger.info("Setup execution started")
 
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                             message='Beginning sandbox setup')
 
         ## prepare sandbox stage
+        self.logger.info("Preparing connectivity for sandbox. ")
         SetupCommon.prepare_connectivity(api, self.reservation_id, self.logger)
 
         ## provisioning sandbox stage
-        pool = ThreadPool(len(self.workflow._provisioning_functions))
+        provisioning_processes = len(self.workflow._provisioning_functions)
+        pool = ThreadPool(provisioning_processes)
+        self.logger.info("Executing {0} sandbox provisioning processes. ".format(provisioning_processes))
 
         async_results = [pool.apply_async(self._execute_step, (workflow_object.function,
                                                                workflow_object.components,
@@ -78,13 +82,19 @@ class SandboxManager(object):
                                                          message='<font color="red">Error occurred during sandbox provisioning, see full activity feed for more information.</font>')
                 sys.exit(-1)
 
-        for function in self.workflow._after_provisioning:
-            self._execute_step(function)
+        self.logger.info(
+            "Executing {0} sandbox after provisioning ended steps. ".format(len(self.workflow._after_provisioning)))
+        for workflow_object in self.workflow._after_provisioning:
+            self._execute_step(workflow_object.function,
+                               workflow_object.components,
+                               workflow_object.steps)
         # API.StageEnded(provisioning)
 
 
         # connectivity sandbox stage
-        pool = ThreadPool(len(self.workflow._connectivity_functions))
+        connectivity_processes = len(self.workflow._connectivity_functions)
+        pool = ThreadPool(connectivity_processes)
+        self.logger.info("Executing {0} sandbox connectivity processes. ".format(connectivity_processes))
 
         async_results = [pool.apply_async(self._execute_step, (workflow_object.function,
                                                                workflow_object.components,
@@ -102,14 +112,20 @@ class SandboxManager(object):
                                                          message='<font color="red">Error occurred during sandbox connectivity, see full activity feed for more information.</font>')
                 sys.exit(-1)
 
-        for function in self.workflow._after_connectivity:
-            self._execute_step(function)
+        self.logger.info(
+            "Executing {0} sandbox after connectivity ended steps. ".format(len(self.workflow._after_connectivity)))
+        for workflow_object in self.workflow._after_connectivity:
+            self._execute_step(workflow_object.function,
+                               workflow_object.components,
+                               workflow_object.steps)
 
         # API.StageEnded(provisioning)
 
 
         # configuration sandbox stage
-        pool = ThreadPool(len(self.workflow._configuration_functions))
+        configuration_processes = len(self.workflow._configuration_functions)
+        pool = ThreadPool(configuration_processes)
+        self.logger.info("Executing {0} sandbox connectivity processes. ".format(configuration_processes))
 
         async_results = [pool.apply_async(self._execute_step, (workflow_object.function,
                                                                workflow_object.components,
@@ -127,8 +143,12 @@ class SandboxManager(object):
                                                          message='<font color="red">Error occurred during sandbox configuration, see full activity feed for more information.</font>')
                 sys.exit(-1)
 
-        for function in self.workflow._after_configuration:
-            self._execute_step(function)
+        self.logger.info(
+            "Executing {0} sandbox after configuration ended steps. ".format(len(self.workflow._after_configuration)))
+        for workflow_object in self.workflow._after_configuration:
+            self._execute_step(workflow_object.function,
+                               workflow_object.components,
+                               workflow_object.steps)
 
         # API.StageEnded(provisioning)
 
