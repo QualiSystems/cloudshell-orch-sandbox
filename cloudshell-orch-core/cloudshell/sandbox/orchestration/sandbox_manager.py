@@ -43,7 +43,7 @@ class SandboxManager(object):
         except Exception as exc:
             execution_failed = 1
             print exc
-            self.logger.error("Error executing function {0}. detaild error: {1}".format(func.__name__, str(exc)))
+            self.logger.error("Error executing function {0}. detaild error: {1}, {2}".format(func.__name__, str(exc), str(exc.message)))
         return execution_failed
 
     def get_api(self):
@@ -62,25 +62,30 @@ class SandboxManager(object):
         SetupCommon.prepare_connectivity(api, self.reservation_id, self.logger)
 
         ## provisioning sandbox stage
-        provisioning_processes = len(self.workflow._provisioning_functions)
-        pool = ThreadPool(provisioning_processes)
-        self.logger.info("Executing {0} sandbox provisioning processes. ".format(provisioning_processes))
+        number_of_provisioning_processes = len(self.workflow._provisioning_functions)
+        self.logger.info("Executing {0} sandbox provisioning processes. ".format(number_of_provisioning_processes))
 
-        async_results = [pool.apply_async(self._execute_step, (workflow_object.function,
-                                                               workflow_object.components,
-                                                               workflow_object.steps)) for workflow_object in
-                         self.workflow._provisioning_functions]
+        if number_of_provisioning_processes >= 1:
+            pool = ThreadPool(number_of_provisioning_processes)
 
-        pool.close()
-        pool.join()
+            async_results = [pool.apply_async(self._execute_step, (workflow_object.function,
+                                                                   workflow_object.components,
+                                                                   workflow_object.steps)) for workflow_object in
+                             self.workflow._provisioning_functions]
 
-        ## validate parallel results
-        for async_result in async_results:
-            result = async_result.get()
-            if result == 1:  # failed to execute step
-                self.api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                         message='<font color="red">Error occurred during sandbox provisioning, see full activity feed for more information.</font>')
-                sys.exit(-1)
+            pool.close()
+            pool.join()
+
+            ## validate parallel results
+            for async_result in async_results:
+                result = async_result.get()
+                if result == 1:  # failed to execute step
+                    self.api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                                             message='<font color="red">Error occurred during sandbox provisioning, see full activity feed for more information.</font>')
+                    sys.exit(-1)
+
+        else:
+            self.logger.info("No provisioning process was configured.")
 
         self.logger.info(
             "Executing {0} sandbox after provisioning ended steps. ".format(len(self.workflow._after_provisioning)))
@@ -92,25 +97,28 @@ class SandboxManager(object):
 
 
         # connectivity sandbox stage
-        connectivity_processes = len(self.workflow._connectivity_functions)
-        pool = ThreadPool(connectivity_processes)
-        self.logger.info("Executing {0} sandbox connectivity processes. ".format(connectivity_processes))
+        number_of_connectivity_processes = len(self.workflow._connectivity_functions)
+        self.logger.info("Executing {0} sandbox connectivity processes. ".format(number_of_connectivity_processes))
+        if number_of_connectivity_processes >= 1:
+            pool = ThreadPool(number_of_connectivity_processes)
 
-        async_results = [pool.apply_async(self._execute_step, (workflow_object.function,
-                                                               workflow_object.components,
-                                                               workflow_object.steps)) for workflow_object in
-                         self.workflow._connectivity_functions]
+            async_results = [pool.apply_async(self._execute_step, (workflow_object.function,
+                                                                   workflow_object.components,
+                                                                   workflow_object.steps)) for workflow_object in
+                             self.workflow._connectivity_functions]
 
-        pool.close()
-        pool.join()
+            pool.close()
+            pool.join()
 
-        ## validate parallel results
-        for async_result in async_results:
-            result = async_result.get()
-            if result == 1:  # failed to execute step
-                self.api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                         message='<font color="red">Error occurred during sandbox connectivity, see full activity feed for more information.</font>')
-                sys.exit(-1)
+            ## validate parallel results
+            for async_result in async_results:
+                result = async_result.get()
+                if result == 1:  # failed to execute step
+                    self.api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                                             message='<font color="red">Error occurred during sandbox connectivity, see full activity feed for more information.</font>')
+                    sys.exit(-1)
+        else:
+            self.logger.info("No connectivity process was configured.")
 
         self.logger.info(
             "Executing {0} sandbox after connectivity ended steps. ".format(len(self.workflow._after_connectivity)))
@@ -123,28 +131,32 @@ class SandboxManager(object):
 
 
         # configuration sandbox stage
-        configuration_processes = len(self.workflow._configuration_functions)
-        pool = ThreadPool(configuration_processes)
-        self.logger.info("Executing {0} sandbox connectivity processes. ".format(configuration_processes))
+        number_of_configuration_processes = len(self.workflow._configuration_functions)
+        self.logger.info("Executing {0} sandbox configuration processes. ".format(number_of_configuration_processes))
+        if number_of_configuration_processes>= 1:
+            pool = ThreadPool(number_of_configuration_processes)
 
-        async_results = [pool.apply_async(self._execute_step, (workflow_object.function,
-                                                               workflow_object.components,
-                                                               workflow_object.steps)) for workflow_object in
-                         self.workflow._configuration_functions]
+            async_results = [pool.apply_async(self._execute_step, (workflow_object.function,
+                                                                   workflow_object.components,
+                                                                   workflow_object.steps)) for workflow_object in
+                             self.workflow._configuration_functions]
 
-        pool.close()
-        pool.join()
+            pool.close()
+            pool.join()
 
-        ## validate parallel results
-        for async_result in async_results:
-            result = async_result.get()
-            if result == 1:  # failed to execute step
-                self.api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                         message='<font color="red">Error occurred during sandbox configuration, see full activity feed for more information.</font>')
-                sys.exit(-1)
+            ## validate parallel results
+            for async_result in async_results:
+                result = async_result.get()
+                if result == 1:  # failed to execute step
+                    self.api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                                             message='<font color="red">Error occurred during sandbox configuration, see full activity feed for more information.</font>')
+                    sys.exit(-1)
+        else:
+            self.logger.info("No configuration process was configured.")
 
         self.logger.info(
             "Executing {0} sandbox after configuration ended steps. ".format(len(self.workflow._after_configuration)))
+
         for workflow_object in self.workflow._after_configuration:
             self._execute_step(workflow_object.function,
                                workflow_object.components,

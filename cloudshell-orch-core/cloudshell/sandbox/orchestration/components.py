@@ -11,4 +11,13 @@ class Components(object):
         """:type : dict[str, ReservationAppResource]"""
 
     def get_apps_by_name_contains(self, name):
-        return [x for x in self.Apps if name in x]
+        results = []
+        for key, value in self.Apps.iteritems():
+            if name in key:
+                results.append(value)
+        return results
+        #
+        # return [x for x in self.Apps if name in x]
+
+    def get_resources_by_model(self, model):
+        return [x for x in self.Resources if model == x.ResourceModelName]

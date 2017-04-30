@@ -28,7 +28,8 @@ class AppsConfiguration(object):
         #add all apps that doesn't have inputs to appsConfiguration
         for app in apps:
             if app.Name not in [x.AppName for x in self.appsConfiguration]:
-                self.appsConfiguration.append(AppConfiguration(app.Name, None))
+                self.appsConfiguration.append(AppConfiguration(app.Name,
+                                                               None)) #no config inputs
 
         self.api.ConfigureApps(reservationId=self.reservation_id,
                                appConfigurations=self.appsConfiguration)
