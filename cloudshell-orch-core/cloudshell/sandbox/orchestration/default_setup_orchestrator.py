@@ -17,7 +17,7 @@ class DefaultSetupWorkflow(object):
             sandbox.workflow.add_configuration_process(DefaultSetupWorkflow.default_configuration, None, None)
 
     @staticmethod
-    def default_provisioning(sandbox):
+    def default_provisioning(sandbox, resources, steps):
         """
         :param SandboxManager sandbox:
         :return:
@@ -42,7 +42,7 @@ class DefaultSetupWorkflow(object):
                                          logger=sandbox.logger)
 
     @staticmethod
-    def default_connectivity(sandbox):
+    def default_connectivity(sandbox, resources, steps):
         """
         :param SandboxManager sandbox:
         :return:
@@ -67,7 +67,7 @@ class DefaultSetupWorkflow(object):
                                                   logger=sandbox.logger)
 
     @staticmethod
-    def default_configuration(sandbox):
+    def default_configuration(sandbox, resources, steps):
         """
         :param SandboxManager sandbox:
         :return:

@@ -34,11 +34,11 @@ class SandboxManager(object):
                                     log_group=self.reservation_id,
                                     log_category='Setup')
 
-    def _execute_step(self, func):
+    def _execute_step(self, func, resources, steps):
         self.logger.info("Executing: {0}. ".format(func.__name__))
         execution_failed = 0
         try:
-            func(self)
+            func(self, resources, steps)
             # if (step not ended --> end all steps)
         except Exception as exc:
             execution_failed = 1
@@ -62,7 +62,9 @@ class SandboxManager(object):
         ## provisioning sandbox stage
         pool = ThreadPool(len(self.workflow._provisioning_functions))
 
-        async_results = [pool.apply_async(self._execute_step, (function,)) for function in
+        async_results = [pool.apply_async(self._execute_step, (workflow_object.function,
+                                                               workflow_object.components,
+                                                               workflow_object.steps)) for workflow_object in
                          self.workflow._provisioning_functions]
 
         pool.close()
@@ -84,7 +86,9 @@ class SandboxManager(object):
         # connectivity sandbox stage
         pool = ThreadPool(len(self.workflow._connectivity_functions))
 
-        async_results = [pool.apply_async(self._execute_step, (function,)) for function in
+        async_results = [pool.apply_async(self._execute_step, (workflow_object.function,
+                                                               workflow_object.components,
+                                                               workflow_object.steps)) for workflow_object in
                          self.workflow._connectivity_functions]
 
         pool.close()
@@ -107,7 +111,9 @@ class SandboxManager(object):
         # configuration sandbox stage
         pool = ThreadPool(len(self.workflow._configuration_functions))
 
-        async_results = [pool.apply_async(self._execute_step, (function,)) for function in
+        async_results = [pool.apply_async(self._execute_step, (workflow_object.function,
+                                                               workflow_object.components,
+                                                               workflow_object.steps)) for workflow_object in
                          self.workflow._configuration_functions]
 
         pool.close()
