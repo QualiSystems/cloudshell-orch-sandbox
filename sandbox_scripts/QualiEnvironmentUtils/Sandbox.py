@@ -58,7 +58,8 @@ class SandboxBase(object):
             self.api_session.WriteMessageToReservationOutput(self.id, '<font color="red">' + message + '</font>')
 
     # ----------------------------------
-    def report_error(self, error_message, log_message=None, raise_error=True, write_to_output_window=False):
+    def report_error(self, error_message, log_message=None, raise_error=True, write_to_output_window=False,
+                     send_email=False):
         """
         Report on an error to the log file, output window is optional.There is also an option to raise the error up
         :param str error_message:  The error message you would like to present
@@ -69,21 +70,29 @@ class SandboxBase(object):
 
         emailresult = ''
         if raise_error:
-            emailOwner = False
-            emailSubject = str(self.Blueprint_name) + ' / ' + str(self.owner)
-            emailBody = "Sandbox: " + str(self.Blueprint_name) + "\n" + \
-                        "Owner: " + str(self.owner) + "\n\n"
-            if log_message:
-                emailBody += "LogMsg: " + log_message + "\n\n"
-            if error_message:
-                emailBody += "ErrMsg: " + error_message + "\n\n"
-            emailresult = self.emailalert(emailSubject, emailBody, owner=self.owner, ishtml=False, emailOwner=emailOwner)
+            if send_email:
+                emailOwner = False
+                try:
+                    emailSubject = str(self.Blueprint_name) + ' / ' + str(self.owner)
+                    emailBody = "Sandbox: " + str(self.Blueprint_name) + "\n" + \
+                            "Owner: " + str(self.owner) + "\n\n"
+                    sb_owner = str(self.owner)
+                except:
+                    emailSubject = "Catastrophic ERROR in sandbox."
+                    emailBody = str(os.environ) + "\n\n"
+                    sb_owner = "Owner Unknown"
+
+                if log_message:
+                    emailBody += "LogMsg: " + log_message + "\n\n"
+                if error_message:
+                    emailBody += "ErrMsg: " + error_message + "\n\n"
+                emailresult = self.emailalert(emailSubject, emailBody, owner=sb_owner, ishtml=False, emailOwner=emailOwner) + "\n"
 
         if self._logger:
             if log_message:
-                self._logger.error(emailresult + "\n" + log_message)
+                self._logger.error(emailresult + log_message)
             else:
-                self._logger.error(emailresult + "\n" + error_message)
+                self._logger.error(emailresult + error_message)
         if write_to_output_window:
             self._write_message_to_output(error_message, SEVERITY_ERROR)
         if raise_error:
@@ -107,45 +116,48 @@ class SandboxBase(object):
 
     # ----------------------------------
     def emailalert(self, subject, body, owner, ishtml=False, emailOwner=False):
-        globalsresource = self.get_config_set_pool_resource()
-        host = str(globalsresource.get_attribute("ConfigPool_SMTP_Server"))
-        port = str(globalsresource.get_attribute("ConfigPool_SMTP_port"))
-        emailfrom = str(globalsresource.get_attribute("ConfigPool_SMTP_from"))
-        emailto = emailfrom
-        emailcc = ''
-        emailbcc = ''
-
-        if emailOwner:
-            try:
-                emailto = str(self.api_session.GetUserDetails(owner).Email)
-                emailbcc = emailfrom
-                body += "----\n A copy of this email was also sent to our support staff."
-            except:
-                emailbcc = ''
-                emailto = emailfrom
-
         try:
-            if ishtml:
-                emsg = MIMEText(body + '\n\n', 'html')
-            else:
-                emsg = MIMEText(body + '\n\n', 'plain')
+            globalsresource = self.get_config_set_pool_resource()
+            host = str(globalsresource.get_attribute("ConfigPool_SMTP_Server"))
+            port = str(globalsresource.get_attribute("ConfigPool_SMTP_port"))
+            emailfrom = str(globalsresource.get_attribute("ConfigPool_SMTP_from"))
+            emailto = emailfrom
+            emailcc = ''
+            emailbcc = ''
 
-            emsg['Subject'] = subject
-            emsg['From'] = emailfrom
-            emsg['To'] = ",".join([emailto])
-            emsg['CC'] = ""
-            emsg.preamble = subject
-            tolist = emailto.split(",") + emailcc.split(",") + emailbcc.split(",")
-            mailer = smtplib.SMTP(host=host, port=port)
-            mailer.sendmail(emailfrom, tolist, emsg.as_string())
-            return "Emailed OK"
+            if emailOwner:
+                try:
+                    emailto = str(self.api_session.GetUserDetails(owner).Email)
+                    emailbcc = emailfrom
+                    body += "----\n A copy of this email was also sent to our support staff."
+                except:
+                    emailbcc = ''
+                    emailto = emailfrom
 
-        except smtplib.SMTPException as e:
-            # cannot post again as error or we could be in a loop!
-            return ("ERROR Failed to send email, %s" % str(e))
+            try:
+                if ishtml:
+                    emsg = MIMEText(body + '\n\n', 'html')
+                else:
+                    emsg = MIMEText(body + '\n\n', 'plain')
+
+                emsg['Subject'] = subject
+                emsg['From'] = emailfrom
+                emsg['To'] = ",".join([emailto])
+                emsg['CC'] = ""
+                emsg.preamble = subject
+                tolist = emailto.split(",") + emailcc.split(",") + emailbcc.split(",")
+                mailer = smtplib.SMTP(host=host, port=port)
+                mailer.sendmail(emailfrom, tolist, emsg.as_string())
+                return "Emailed OK"
+
+            except smtplib.SMTPException as e:
+                # cannot post again as error or we could be in a loop!
+                return ("ERROR Failed to send email, %s" % str(e))
+            except:
+                # cannot post again as error or we could be in a loop!
+                return "ERROR Failed to send email(1)"
         except:
-            # cannot post again as error or we could be in a loop!
-            return "ERROR Failed to send email"
+            return "ERROR Failed to send email(2)"
 
     # ----------------------------------
     def get_root_resources(self):
