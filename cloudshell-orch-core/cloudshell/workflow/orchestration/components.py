@@ -19,3 +19,14 @@ class Components(object):
 
     def get_resources_by_model(self, model):
         return [x for x in self.Resources if model == x.ResourceModelName]
+
+    def add_app_deployment_results(self, sandbox, deployment_results):
+        """
+        :param Sandbox sandbox:
+        :param DeployAppToCloudProviderBulkInfo deployment_results:
+        :return:
+        """
+        for deployment_result in deployment_results:
+            logical_resource = deployment_result.AppDeploymentyInfo.LogicalResourceName
+            sandbox.apps_configuration._apps_details_cache[logical_resource]=deployment_result[deployment_result.AppName]
+        pass

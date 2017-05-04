@@ -9,6 +9,8 @@ class AppsConfiguration(object):
         """:type : str"""
         self.appsConfiguration = []
         """:type : list[AppConfiguration]"""
+        self._apps_details_cache = {}
+        """:type : dict[str, str]""" # logical resource, app name
 
     def set_config_param(self, app, key, value):
         """
@@ -29,7 +31,7 @@ class AppsConfiguration(object):
         for app in apps:
             if app.Name not in [x.AppName for x in self.appsConfiguration]:
                 self.appsConfiguration.append(AppConfiguration(app.Name,
-                                                               None)) #no config inputs
+                                                               None)) #no config params
 
         self.api.ConfigureApps(reservationId=self.reservation_id,
                                appConfigurations=self.appsConfiguration)

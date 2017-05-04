@@ -1,20 +1,13 @@
 import os
 import time
 
-from cloudshell.sandbox.orchestration.sandbox_manager import SandboxManager
-from cloudshell.sandbox.orchestration.default_setup_orchestrator import DefaultSetupWorkflow
-#
-# target = open(r'c:\temp\python.log', 'w')
-# target.write(os.path.realpath(__file__) + "    " + str(os.getpid()))
-# target.close()
-#
-# while True:
-#     time.sleep(1)
+from cloudshell.workflow.orchestration.sandbox import Sandbox
+from cloudshell.workflow.orchestration.default_setup_orchestrator import DefaultSetupWorkflow
 
 
 def conf_func1(sandbox):
     """
-    :param SandboxManager sandbox:
+    :param Sandbox sandbox:
     :return:
     """
     sandbox.api.WriteMessageToReservationOutput(reservationId=sandbox.reservation_id,
@@ -26,13 +19,13 @@ def conf_func1(sandbox):
 
 def func(sandbox, apps, steps):
     """
-    :param SandboxManager sandbox:
+    :param Sandbox sandbox:
     :return:
     """
     sandbox.api.WriteMessageToReservationOutput(reservationId=sandbox.reservation_id,
-                                                message="steps: " + str(steps))
+                                                message="steps: " + str(steps) + " ,apps: " + str(apps))
 
-    quali_server_ip = sandbox.components.Resources['quali server'].FullAddress
+    # quali_server_ip = sandbox.components.Resources['quali server'].FullAddress
 
     for app in apps:
         build_id = sandbox.globals['build_id']
@@ -55,19 +48,13 @@ def func2(sandbox, resources):
         sandbox.api.ExecuteCommand(sandbox.reservation_id, resource.FullName, 'Resource')
 
 
-sandbox = SandboxManager()
+sandbox = Sandbox()
 
 DefaultSetupWorkflow.extend(sandbox, enable_configuration=False)
 
 
 sandbox.api.WriteMessageToReservationOutput(reservationId=sandbox.reservation_id,
                                             message="Something started :-)")
-
-
-sandbox.api.WriteMessageToReservationOutput(reservationId=sandbox.reservation_id,
-                                            message="sandbox.Components.Apps type is: " + str(type(sandbox.components.Apps)))
-
-
 
 demo_apps = sandbox.components.get_apps_by_name('demo')
 

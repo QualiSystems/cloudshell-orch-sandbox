@@ -4,7 +4,7 @@ from threading import Lock
 from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 
-from cloudshell.sandbox.helpers.resource_helpers import *
+from cloudshell.workflow.helpers.resource_helpers import *
 from remap_child_resources_constants import *
 
 
@@ -138,10 +138,10 @@ class SetupCommon(object):
                 endpoints.append(endpoint.Source)
 
         if not endpoints:
-            logger.info("No routes to connect for reservation {0}".format(reservation_id))
+            logger.info("No routes to connect for sandbox {0}".format(reservation_id))
             return
 
-        logger.info("Executing connect routes for reservation {0}".format(reservation_id))
+        logger.info("Executing connect routes for sandbox {0}".format(reservation_id))
         logger.debug("Connecting: {0}".format(",".join(endpoints)))
         api.WriteMessageToReservationOutput(reservationId=reservation_id,
                                             message='Connecting all apps')
@@ -259,7 +259,7 @@ class SetupCommon(object):
         wait_for_ip = "true"
 
         try:
-            logger.debug("Getting resource details for resource {0} in reservation {1}"
+            logger.debug("Getting resource details for resource {0} in sandbox {1}"
                               .format(deployed_app_name, reservation_id))
 
             resource_details = get_resource_details_from_cache_or_server(api, deployed_app_name, resource_details_cache)
@@ -284,7 +284,7 @@ class SetupCommon(object):
                         deployed_app_data = data
 
         except Exception as exc:
-            logger.error("Error getting resource details for deployed app {0} in reservation {1}. "
+            logger.error("Error getting resource details for deployed app {0} in sandbox {1}. "
                               "Will use default settings. Error: {2}".format(deployed_app_name,
                                                                              reservation_id,
                                                                              str(exc)))
@@ -292,14 +292,14 @@ class SetupCommon(object):
         try:
             SetupCommon._power_on(api, deployed_app_name, power_on, lock, message_status, reservation_id, logger)
         except Exception as exc:
-            logger.error("Error powering on deployed app {0} in reservation {1}. Error: {2}"
+            logger.error("Error powering on deployed app {0} in sandbox {1}. Error: {2}"
                               .format(deployed_app_name, reservation_id, str(exc)))
             return False, "Error powering on deployed app {0}".format(deployed_app_name)
 
         try:
             SetupCommon._wait_for_ip(api, deployed_app_name, wait_for_ip, lock, message_status, reservation_id, logger)
         except Exception as exc:
-            logger.error("Error refreshing IP on deployed app {0} in reservation {1}. Error: {2}"
+            logger.error("Error refreshing IP on deployed app {0} in sandbox {1}. Error: {2}"
                               .format(deployed_app_name, reservation_id, str(exc)))
             return False, "Error refreshing IP deployed app {0}. Error: {1}".format(deployed_app_name, exc.message)
 
@@ -316,20 +316,20 @@ class SetupCommon(object):
                             reservationId=reservation_id,
                             message='Waiting for apps IP addresses, this may take a while...')
 
-            logger.info("Executing 'Refresh IP' on deployed app {0} in reservation {1}"
+            logger.info("Executing 'Refresh IP' on deployed app {0} in sandbox {1}"
                              .format(deployed_app_name, reservation_id))
 
             api.ExecuteResourceConnectedCommand(reservation_id, deployed_app_name,
                                                 "remote_refresh_ip",
                                                 "remote_connectivity")
         else:
-            logger.info("Wait For IP is off for deployed app {0} in reservation {1}"
+            logger.info("Wait For IP is off for deployed app {0} in sandbox {1}"
                              .format(deployed_app_name, reservation_id))
 
     @staticmethod
     def _power_on(api, deployed_app_name, power_on, lock, message_status, reservation_id, logger):
         if power_on.lower() == "true":
-            logger.info("Executing 'Power On' on deployed app {0} in reservation {1}"
+            logger.info("Executing 'Power On' on deployed app {0} in sandbox {1}"
                              .format(deployed_app_name, reservation_id))
 
             if not message_status['power_on']:
@@ -341,5 +341,5 @@ class SetupCommon(object):
 
             api.ExecuteResourceConnectedCommand(reservation_id, deployed_app_name, "PowerOn", "power")
         else:
-            logger.info("Auto Power On is off for deployed app {0} in reservation {1}"
+            logger.info("Auto Power On is off for deployed app {0} in sandbox {1}"
                              .format(deployed_app_name, reservation_id))

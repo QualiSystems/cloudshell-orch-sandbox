@@ -6,8 +6,8 @@ from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from cloudshell.core.logger import qs_logger
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 
-from cloudshell.sandbox.profiler.env_profiler import profileit
-from cloudshell.sandbox.helpers.resource_helpers import *
+from cloudshell.workflow.profiler.env_profiler import profileit
+from cloudshell.workflow.helpers.resource_helpers import *
 
 class EnvironmentTeardown:
     REMOVE_DEPLOYED_RESOURCE_ERROR = 153
@@ -24,7 +24,7 @@ class EnvironmentTeardown:
         reservation_details = api.GetReservationDetails(self.reservation_id)
 
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                            message='Beginning sandbox teardown')
+                                            message='Beginning workflow teardown')
 
         self._disconnect_all_routes_in_reservation(api, reservation_details)
 

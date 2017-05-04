@@ -1,10 +1,10 @@
 from cloudshell.api.cloudshell_api import InputNameValue
-from cloudshell.sandbox.orchestration.sandbox_manager import SandboxManager
-from cloudshell.sandbox.orchestration.default_setup_orchestrator import DefaultSetupWorkflow
+from cloudshell.workflow.orchestration.sandbox import Sandbox
+from cloudshell.workflow.orchestration.default_setup_orchestrator import DefaultSetupWorkflow
 
 def load_firmware_sequential(sandbox):
     """
-    :param SandboxManager sandbox:
+    :param Sandbox sandbox:
     :return:
     """
     nxso_switches = sandbox.components.get_resources_by_model('nxos')
@@ -17,7 +17,7 @@ def load_firmware_sequential(sandbox):
                                                                  sandbox.globals['fw_version'])])
 
 
-sandbox = SandboxManager()
+sandbox = Sandbox()
 DefaultSetupWorkflow.extend(sandbox)
 
 nxso_switches = sandbox.components.get_resources_by_model('nxos')

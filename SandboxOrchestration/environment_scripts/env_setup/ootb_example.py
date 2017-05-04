@@ -1,7 +1,7 @@
-from cloudshell.sandbox.orchestration.sandbox_manager import SandboxManager
-from cloudshell.sandbox.orchestration.default_setup_orchestrator import DefaultSetupWorkflow
+from cloudshell.workflow.orchestration.sandbox import Sandbox
+from cloudshell.workflow.orchestration.default_setup_orchestrator import DefaultSetupWorkflow
 
-sandbox = SandboxManager()
+sandbox = Sandbox()
 
 DefaultSetupWorkflow.extend(sandbox)
 

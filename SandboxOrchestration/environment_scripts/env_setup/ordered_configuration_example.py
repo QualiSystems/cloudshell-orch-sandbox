@@ -1,9 +1,9 @@
-from cloudshell.sandbox.orchestration.sandbox_manager import SandboxManager
-from cloudshell.sandbox.orchestration.default_setup_orchestrator import DefaultSetupWorkflow
+from cloudshell.workflow.orchestration.sandbox import Sandbox
+from cloudshell.workflow.orchestration.default_setup_orchestrator import DefaultSetupWorkflow
 
 
 def main():
-    sandbox = SandboxManager()
+    sandbox = Sandbox()
     DefaultSetupWorkflow.extend(sandbox, enable_configuration=False)  ##Disable OOTB configuration
     sandbox.workflow.add_configuration_process(function=configure_apps,
                                                resources=sandbox.components.Apps,
@@ -13,7 +13,7 @@ def main():
 
 def configure_apps(sandbox, apps):
     """
-    :param SandboxManager sandbox:
+    :param Sandbox sandbox:
     :return:
     """
     ##Configure databases

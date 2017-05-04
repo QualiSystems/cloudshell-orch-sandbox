@@ -4,14 +4,14 @@ from multiprocessing.pool import ThreadPool
 from cloudshell.core.logger.qs_logger import get_qs_logger
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 
-from cloudshell.sandbox.environment.setup.setup_common import SetupCommon
-from cloudshell.sandbox.orchestration.workflow import Workflow
-from cloudshell.sandbox.profiler.env_profiler import profileit
-from cloudshell.sandbox.orchestration.apps_configuration import AppsConfiguration
-from cloudshell.sandbox.orchestration.components import Components
+from cloudshell.workflow.environment.setup.setup_common import SetupCommon
+from cloudshell.workflow.orchestration.workflow import Workflow
+from cloudshell.workflow.profiler.env_profiler import profileit
+from cloudshell.workflow.orchestration.apps_configuration import AppsConfiguration
+from cloudshell.workflow.orchestration.components import Components
 
 
-class SandboxManager(object):
+class Sandbox(object):
     def __init__(self):
         self._resource_details_cache = {}
         self.api = helpers.get_api_session()
@@ -61,9 +61,9 @@ class SandboxManager(object):
         self.logger.info("Preparing connectivity for sandbox. ")
         SetupCommon.prepare_connectivity(api, self.reservation_id, self.logger)
 
-        ## provisioning sandbox stage
+        ## provisioning workflow stage
         number_of_provisioning_processes = len(self.workflow._provisioning_functions)
-        self.logger.info("Executing {0} sandbox provisioning processes. ".format(number_of_provisioning_processes))
+        self.logger.info("Executing {0} workflow provisioning processes. ".format(number_of_provisioning_processes))
 
         if number_of_provisioning_processes >= 1:
             pool = ThreadPool(number_of_provisioning_processes)
@@ -96,7 +96,7 @@ class SandboxManager(object):
         # API.StageEnded(provisioning)
 
 
-        # connectivity sandbox stage
+        # connectivity workflow stage
         number_of_connectivity_processes = len(self.workflow._connectivity_functions)
         self.logger.info("Executing {0} sandbox connectivity processes. ".format(number_of_connectivity_processes))
         if number_of_connectivity_processes >= 1:
@@ -130,7 +130,7 @@ class SandboxManager(object):
         # API.StageEnded(provisioning)
 
 
-        # configuration sandbox stage
+        # configuration workflow stage
         number_of_configuration_processes = len(self.workflow._configuration_functions)
         self.logger.info("Executing {0} sandbox configuration processes. ".format(number_of_configuration_processes))
         if number_of_configuration_processes>= 1:
