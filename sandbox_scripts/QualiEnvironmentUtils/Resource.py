@@ -123,19 +123,22 @@ class ResourceBase(object):
             the_path = "undef"
             the_cfgtype = "undef"
             the_restoremeth = "undef"
+            found_cmd = False
             for command in self.commands:
                 if command.Name == 'restore':
+                    found_cmd = True
                     for parm in command.Parameters:
                         if parm.Name in ["path", "src_Path"]:
                             the_path = parm.Name
-                        if parm.Name in ["configuration_type","config_type"]:
+                        elif parm.Name in ["configuration_type","config_type"]:
                             the_cfgtype = parm.Name
-                        if parm.Name in ["restore_method"]:
+                        elif parm.Name in ["restore_method"]:
                             the_restoremeth = parm.Name
-
+            if not found_cmd:
+                raise QualiError(self.name, "Restore command does not exist. Check driver installation.")
             if the_path == "undef" or the_cfgtype == "undef" or the_restoremeth == "undef":
                 raise QualiError(self.name, "Failed to find viable restore command for " + self.name \
-                      + " : " + the_path + ", " + the_cfgtype + ", " + the_restoremeth)
+                      + " - config_path: " + the_path + ", config_type: " + the_cfgtype + ", restore_method: " + the_restoremeth)
 
         except QualiError as qerror:
             raise QualiError(self.name, "Failed building restore command input parm names." + qerror.message)
@@ -157,8 +160,8 @@ class ResourceBase(object):
         except QualiError as qerror:
             raise QualiError(self.name, "Failed to load configuration: " + qerror.message)
 
-        except:
-            raise "Failed to load configuration. Unexpected error:" + str(sys.exc_info()[0])
+        except Exception as e:
+            raise QualiError(self.name, "Failed to load configuration. Unexpected error:" + e.message)
 
     # -----------------------------------------
     # -----------------------------------------
@@ -169,6 +172,7 @@ class ResourceBase(object):
         :param config_path:  The path where to save the config file
         :param config_type:  StartUp or Running
         """
+        #TODO modify the function to identify the command name and its params (similar behavior as in load_network_config)
         # Run executeCommand with the restore command and its params (ConfigPath,RestoreMethod)
         try:
             command_inputs = [InputNameValue('source_filename', str(config_type)),
