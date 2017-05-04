@@ -41,7 +41,7 @@ class ResourceBase(object):
     def attribute_exist(self, attribute_name):
         attribute_name = attribute_name.lower()
         for attribute in self.attributes:
-            if attribute.Name.lower() == attribute_name:
+            if attribute.Name.lower() == attribute_name or attribute.Name.lower().endswith('.' + attribute_name):
                 return True
         return False
 
@@ -58,7 +58,7 @@ class ResourceBase(object):
     def get_attribute(self, attribute_name):
         attribute_name = attribute_name.lower()
         for attribute in self.attributes:
-            if attribute.Name.lower() == attribute_name:
+            if attribute.Name.lower() == attribute_name or attribute.Name.lower().endswith('.' + attribute_name):
                 if attribute.Type == 'Password':
                     decrypted = self.api_session.DecryptPassword(attribute.Value)
                     return decrypted.Value
@@ -69,11 +69,17 @@ class ResourceBase(object):
     # -----------------------------------------
     # -----------------------------------------
     def set_attribute_value(self, attribute_name, attribute_value):
+        # if caller passes ending string of name, need to handle not knowing prefix
         try:
-            self.api_session.SetAttributeValue(resourceFullPath=self.name, attributeName=attribute_name,
-                                               attributeValue=attribute_value)
+            attribute_name = attribute_name.lower()
+            for attribute in self.attributes:
+                if attribute.Name.lower() == attribute_name or attribute.Name.lower().endswith('.' + attribute_name):
+                    self.api_session.SetAttributeValue(resourceFullPath=self.name,
+                                                       attributeName=attribute.Name,
+                                                       attributeValue=attribute_value)
+                    return
         except CloudShellAPIError as error:
-            raise QualiError(self.name, "Attribute: " + attribute_name + " not found. " + error.message)
+            raise QualiError(self.name, "Attribute named or ending-with: " + attribute_name + " not found. " + error.message)
 
     # -----------------------------------------
     # implement the command to get the neighbors and their ports
