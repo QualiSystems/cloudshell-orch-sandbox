@@ -17,16 +17,16 @@ class SandboxManager(object):
         self.api = helpers.get_api_session()
         self.workflow = Workflow()
 
-        self.ConnectivityContextDetails = helpers.get_connectivity_context_details()
-        self.ReservationContextDetails = helpers.get_reservation_context_details()
-        self.Globals = self.ReservationContextDetails.parameters.global_inputs
-        self.reservation_id = self.ReservationContextDetails.id
+        self.connectivityContextDetails = helpers.get_connectivity_context_details()
+        self.reservationContextDetails = helpers.get_reservation_context_details()
+        self.globals = self.reservationContextDetails.parameters.global_inputs
+        self.reservation_id = self.reservationContextDetails.id
 
         self.apps_configuration = AppsConfiguration(reservation_id=self.reservation_id,
                                                     api=self.api)
 
         reservation_description = self.api.GetReservationDetails(self.reservation_id).ReservationDescription
-        self.Components = Components(reservation_description.Resources,
+        self.components = Components(reservation_description.Resources,
                                      reservation_description.Services,
                                      reservation_description.Apps)
 

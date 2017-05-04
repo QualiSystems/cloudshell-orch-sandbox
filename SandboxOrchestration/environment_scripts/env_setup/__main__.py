@@ -19,9 +19,9 @@ def conf_func1(sandbox):
     """
     sandbox.api.WriteMessageToReservationOutput(reservationId=sandbox.reservation_id,
                                                 message="conf_func1 :-)")
-    for glob in sandbox.Globals:
+    for glob in sandbox.globals:
         sandbox.api.WriteMessageToReservationOutput(reservationId=sandbox.reservation_id,
-                                                    message=glob + ": " + sandbox.Globals[glob])
+                                                    message=glob + ": " + sandbox.globals[glob])
 
 
 def func(sandbox, apps, steps):
@@ -32,20 +32,20 @@ def func(sandbox, apps, steps):
     sandbox.api.WriteMessageToReservationOutput(reservationId=sandbox.reservation_id,
                                                 message="steps: " + str(steps))
 
-    # quali_server_ip = sandbox.Components.Apps['quali server'].address
+    quali_server_ip = sandbox.components.Resources['quali server'].FullAddress
 
     for app in apps:
-        id_ = sandbox.Globals['build_id']
+        build_id = sandbox.globals['build_id']
         sandbox.api.WriteMessageToReservationOutput(reservationId=sandbox.reservation_id,
-                                                    message="Using global inputs: " + id_)
+                                                    message="Using global inputs: " + build_id)
 
         sandbox.apps_configuration.set_config_param(app=app,
                                                     key='build_id',
-                                                    value=id_)
+                                                    value=build_id)
 
-        # sandbox.apps_configuration.set_config_param(app=app,
-        #                                             key='server_address',
-        #                                             value='address')
+        sandbox.apps_configuration.set_config_param(app=app,
+                                                    key='server_address',
+                                                    value='address')
 
     sandbox.apps_configuration.apply_apps_configurations(apps)
 
@@ -65,23 +65,13 @@ sandbox.api.WriteMessageToReservationOutput(reservationId=sandbox.reservation_id
 
 
 sandbox.api.WriteMessageToReservationOutput(reservationId=sandbox.reservation_id,
-                                            message="sandbox.Components.Apps type is: " + str(type(sandbox.Components.Apps)))
+                                            message="sandbox.Components.Apps type is: " + str(type(sandbox.components.Apps)))
 
 
 
-demo_apps = sandbox.Components.get_apps_by_name_contains('demo')
+demo_apps = sandbox.components.get_apps_by_name('demo')
 
 sandbox.workflow.add_configuration_process(func, demo_apps, ['step name'])
-
-# vcenter = sandbox.Components.Resources['vcenter']
-# sandbox.workflow.add_configuration_process(func2, vcenter, ['step name'])
-
-# databases = sandbox.Components.by_model('databases')
-
-##databases is an object of components
-# sandbox.workflow.on_configuration_ended(func, databases, ['this is a step'])
-
-# sandbox.workflow.add_provisioning_process(conf_func1, ['step1', 'step2'], ['resource1', 'resource2'])
 
 sandbox.execute()
 
