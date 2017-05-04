@@ -6,3 +6,4 @@ jsonpickle
 nose-exclude
 coveralls
 pyapi-gitlab
+freezegun
