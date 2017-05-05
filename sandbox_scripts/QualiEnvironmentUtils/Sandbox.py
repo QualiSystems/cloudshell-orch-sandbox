@@ -24,8 +24,10 @@ class SandboxBase(object):
             """:type : logging.Logger"""
             self.api_session = helpers.get_api_session()
             self.id = reservation_id
-            self.owner = helpers.get_reservation_context_details().owner_user
-            self.Blueprint_name = helpers.get_reservation_context_details().environment_name
+            self.context = helpers.get_reservation_context_details()
+            self.owner = self.context.owner_user
+            self.environment_path = self.context.environment_path
+            self.Blueprint_name = self.context.environment_name
             if self.Blueprint_name == '':
                 raise QualiError("Blueprint name empty (from env name)")
 
