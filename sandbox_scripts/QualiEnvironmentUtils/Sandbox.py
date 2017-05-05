@@ -71,24 +71,23 @@ class SandboxBase(object):
         """
 
         emailresult = ''
-        if raise_error:
-            if send_email:
-                emailOwner = False
-                try:
-                    emailSubject = str(self.Blueprint_name) + ' / ' + str(self.owner)
-                    emailBody = "Sandbox: " + str(self.Blueprint_name) + "\n" + \
+        if raise_error and send_email:
+            emailOwner = False
+            try:
+                emailSubject = str(self.Blueprint_name) + ' / ' + str(self.owner)
+                emailBody = "Sandbox: " + str(self.Blueprint_name) + "\n" + \
                             "Owner: " + str(self.owner) + "\n\n"
-                    sb_owner = str(self.owner)
-                except:
-                    emailSubject = "Catastrophic ERROR in sandbox."
-                    emailBody = str(os.environ) + "\n\n"
-                    sb_owner = "Owner Unknown"
+                sb_owner = str(self.owner)
+            except:
+                emailSubject = "Catastrophic ERROR in sandbox."
+                emailBody = str(os.environ) + "\n\n"
+                sb_owner = "Owner Unknown"
 
-                if log_message:
-                    emailBody += "LogMsg: " + log_message + "\n\n"
-                if error_message:
-                    emailBody += "ErrMsg: " + error_message + "\n\n"
-                emailresult = self.emailalert(emailSubject, emailBody, owner=sb_owner, ishtml=False, emailOwner=emailOwner) + "\n"
+            if log_message:
+                emailBody += "LogMsg: " + log_message + "\n\n"
+            if error_message:
+                emailBody += "ErrMsg: " + error_message + "\n\n"
+            emailresult = self.emailalert(emailSubject, emailBody, owner=sb_owner, ishtml=False, emailOwner=emailOwner) + "\n"
 
         if self._logger:
             if log_message:
