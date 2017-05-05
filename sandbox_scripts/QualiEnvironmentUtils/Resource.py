@@ -21,8 +21,11 @@ class ResourceBase(object):
             self.connected_commands = self.api_session.GetResourceConnectedCommands(resource_name).Commands
 
             self.attributes = self.details.ResourceAttributes
-            # If there is an attribute named 'model' take its value (exist in shells), otherwise take the family's model
-            self.model = self.get_attrib_value_ending_in_model()
+            # If there is an attribute 'named' 'model' use its value, otherwise take the family's model
+            if self.attribute_exist('Model'):
+                self.model = self.get_attribute('Model')
+            else:
+                self.model = str(self.details.ResourceModelName)
             self.alias = resource_alias
 
     # -----------------------------------------
@@ -44,14 +47,6 @@ class ResourceBase(object):
             if attribute.Name.lower() == attribute_name or attribute.Name.lower().endswith('.' + attribute_name):
                 return True
         return False
-
-    # -----------------------------------------
-    # -----------------------------------------
-    def get_attrib_value_ending_in_model(self):
-        for attribute in self.attributes:
-            if attribute.Name.endswith('.Model'):
-                return str(attribute.Value)
-        return str(self.details.ResourceModelName)
 
     # -----------------------------------------
     # -----------------------------------------
