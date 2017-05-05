@@ -21,12 +21,11 @@ class ResourceBase(object):
             self.connected_commands = self.api_session.GetResourceConnectedCommands(resource_name).Commands
 
             self.attributes = self.details.ResourceAttributes
-            # If there is an attribute named 'model' take its value (exist in shells), otherwise take the family's model
+            # If there is an attribute 'named' 'model' use its value, otherwise take the family's model
             if self.attribute_exist('Model'):
                 self.model = self.get_attribute('Model')
             else:
-                self.model = self.details.ResourceModelName
-
+                self.model = str(self.details.ResourceModelName)
             self.alias = resource_alias
 
     # -----------------------------------------
@@ -45,17 +44,16 @@ class ResourceBase(object):
     def attribute_exist(self, attribute_name):
         attribute_name = attribute_name.lower()
         for attribute in self.attributes:
-            if attribute.Name.lower() == attribute_name:
+            if attribute.Name.lower() == attribute_name or attribute.Name.lower().endswith('.' + attribute_name):
                 return True
         return False
-
 
     # -----------------------------------------
     # -----------------------------------------
     def get_attribute(self, attribute_name):
         attribute_name = attribute_name.lower()
         for attribute in self.attributes:
-            if attribute.Name.lower() == attribute_name:
+            if attribute.Name.lower() == attribute_name or attribute.Name.lower().endswith('.' + attribute_name):
                 if attribute.Type == 'Password':
                     decrypted = self.api_session.DecryptPassword(attribute.Value)
                     return decrypted.Value
@@ -66,11 +64,17 @@ class ResourceBase(object):
     # -----------------------------------------
     # -----------------------------------------
     def set_attribute_value(self, attribute_name, attribute_value):
+        # if caller passes ending string of name, need to handle not knowing prefix
         try:
-            self.api_session.SetAttributeValue(resourceFullPath=self.name, attributeName=attribute_name,
-                                               attributeValue=attribute_value)
+            attribute_name = attribute_name.lower()
+            for attribute in self.attributes:
+                if attribute.Name.lower() == attribute_name or attribute.Name.lower().endswith('.' + attribute_name):
+                    self.api_session.SetAttributeValue(resourceFullPath=self.name,
+                                                       attributeName=attribute.Name,
+                                                       attributeValue=attribute_value)
+                    return
         except CloudShellAPIError as error:
-            raise QualiError(self.name, "Attribute: " + attribute_name + " not found. " + error.message)
+            raise QualiError(self.name, "Attribute named or ending-with: " + attribute_name + " not found. " + error.message)
 
     # -----------------------------------------
     # implement the command to get the neighbors and their ports

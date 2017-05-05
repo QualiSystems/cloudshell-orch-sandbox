@@ -37,23 +37,26 @@ class VMsSaveRestore(BaseSaveRestore):
             "Loading image on the devices. This action may take some time",write_to_output_window=True)
         root_resources = self.sandbox.get_root_vm_resources()
         """:type : list[ResourceBase]"""
-        pool = ThreadPool(len(root_resources))
-        async_results = [pool.apply_async(self._run_asynch_load,
-                                          (resource, root_path, ignore_models, in_teardown_mode))
-                         for resource in root_resources]
+        if len(root_resources) > 0:
+            pool = ThreadPool(len(root_resources))
+            async_results = [pool.apply_async(self._run_asynch_load,
+                                              (resource, root_path, ignore_models, in_teardown_mode))
+                             for resource in root_resources]
 
-        pool.close()
-        pool.join()
-        for async_result in async_results:
-            res = async_result.get()
-            """:type : load_result_struct"""
-            if not res.run_result:
-                err = "Failed to load configuration on device " + res.resource_name
-                self.sandbox.report_error(err, write_to_output_window=write_to_output, raise_error=False)
-                self.sandbox.report_error(res.message, raise_error=False)
-                self.sandbox.api_session.SetResourceLiveStatus(res.resource_name, 'Error')
-            elif res.message != '':
-                self.sandbox.report_info(res.resource_name + "\n" + res.message)
+            pool.close()
+            pool.join()
+            for async_result in async_results:
+                res = async_result.get()
+                """:type : load_result_struct"""
+                if not res.run_result:
+                    err = "Failed to load configuration on device " + res.resource_name
+                    self.sandbox.report_error(err, write_to_output_window=write_to_output, raise_error=False)
+                    self.sandbox.report_error(res.message, raise_error=False)
+                    self.sandbox.api_session.SetResourceLiveStatus(res.resource_name, 'Error')
+                elif res.message != '':
+                    self.sandbox.report_info(res.resource_name + "\n" + res.message)
+        else:
+            self.sandbox.report_info("No VM resources found to process")
 
     # ----------------------------------
     # ----------------------------------
@@ -284,3 +287,14 @@ class VMsSaveRestore(BaseSaveRestore):
             config_path = concrete_file_path
 
         return config_path
+
+
+    # ----------------------------------
+    # delete file name on storage
+    # ----------------------------------
+    def delete_src_file(self,fileName):
+
+        env_dir = self.config_files_root + '/Snapshots/' + fileName
+        env_dir = env_dir.replace(' ', '_')
+        self.storage_mgr.delete(env_dir)
+

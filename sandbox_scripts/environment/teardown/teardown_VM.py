@@ -1,9 +1,11 @@
+from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
+from cloudshell.core.logger import qs_logger
+from sandbox_scripts.helpers.Networking.save_restore_mgr import SaveRestoreManager
+from sandbox_scripts.QualiEnvironmentUtils.Sandbox import SandboxBase
 from multiprocessing.pool import ThreadPool
 from threading import Lock
+from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 
-from cloudshell.core.logger import qs_logger
-
-from sandbox_scripts.helpers.Networking.NetworkingSaveNRestore import *
 
 
 class EnvironmentTeardownVM:
@@ -25,7 +27,7 @@ class EnvironmentTeardownVM:
         reservation_details = self.sandbox.api_session.GetReservationDetails(self.reservation_id)
 
 
-        saveNRestoreTool = NetworkingSaveRestore(self.sandbox)
+        saveNRestoreTool = SaveRestoreManager(self.sandbox)
 
         filename = "Snapshot_"+self.reservation_id+".txt"
 
