@@ -1,4 +1,5 @@
 # coding=utf-8
+import traceback
 from Resource import *
 from cloudshell.core.logger.qs_logger import *
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
@@ -42,8 +43,8 @@ class SandboxBase(object):
 
             if full_path:
                 self.blueprint_details = self.api_session.GetTopologyDetails(full_path)
-
         except:
+	    traceback.print_exc()
             err = "Failed to initialize the Sandbox. Unexpected error:" + \
                   str(sys.exc_info()[0])
             self.report_error(error_message=err)
