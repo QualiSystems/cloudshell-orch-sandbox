@@ -1,5 +1,4 @@
 # coding=utf-8
-import traceback
 from Resource import *
 from cloudshell.core.logger.qs_logger import *
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
@@ -26,8 +25,9 @@ class SandboxBase(object):
             self.api_session = helpers.get_api_session()
             self.id = reservation_id
             self.context = helpers.get_reservation_context_details()
+            print vars(self.context)
             self.owner = self.context.owner_user
-            self.environment_path = self.context.environment_path
+	    self.environment_path = self.context.environment_path
             self.Blueprint_name = self.context.environment_name
             if self.Blueprint_name == '':
                 raise QualiError("Blueprint name empty (from env name)")
@@ -43,9 +43,10 @@ class SandboxBase(object):
 
             if full_path:
                 self.blueprint_details = self.api_session.GetTopologyDetails(full_path)
+	except AttributeError, e:
+	    print e
         except:
-	    traceback.print_exc()
-            err = "Failed to initialize the Sandbox. Unexpected error:" + \
+	    err = "Failed to initialize the Sandbox. Unexpected error:" + \
                   str(sys.exc_info()[0])
             self.report_error(error_message=err)
 
