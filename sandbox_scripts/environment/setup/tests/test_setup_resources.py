@@ -1,6 +1,8 @@
 import unittest
 from mock import patch, Mock, call
 from sandbox_scripts.environment.setup.setup_resources import EnvironmentSetupResources
+from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
+from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 import json
 import os
 
@@ -73,6 +75,38 @@ class SetupResourcesTests(unittest.TestCase):
                              call('Sandbox setup finished successfully')]
         mock_sandboxbase.return_value.report_info.assert_has_calls(report_info_calls)
 
+    @patch('cloudshell.helpers.scripts.cloudshell_scripts_helpers.get_api_session')
+    @patch('sandbox_scripts.environment.setup.setup_resources.SandboxBase')
+    @patch('sandbox_scripts.environment.setup.setup_resources.SaveRestoreManager')
+    def test_qualierror_exception(self, mock_save, mock_sandboxbase, mock_api_session):
+        mock_sandboxbase.return_value.get_storage_server_resource.return_value = False
+        mock_sandboxbase.return_value.activate_all_routes_and_connectors.side_effect = QualiError(name='a',message='b')
+
+        self.setup_script.execute()
+        report_info_calls = [call('Beginning load configuration for resources'),
+                             call('Skipping load configuration. No storage resource associated with the blueprint ',
+                                  write_to_output_window=True)]
+        mock_sandboxbase.return_value.report_info.assert_has_calls(report_info_calls)
+
+        report_info_calls = [call('Sandbox setup finished successfully')]
+        mock_sandboxbase.return_value.report_info.asset_not_called(report_info_calls)
+        self.setup_script.logger.error.assert_called_with('Setup failed. CloudShell error at a. Error is: b')
+
+    @patch('cloudshell.helpers.scripts.cloudshell_scripts_helpers.get_api_session')
+    @patch('sandbox_scripts.environment.setup.setup_resources.SandboxBase')
+    @patch('sandbox_scripts.environment.setup.setup_resources.SaveRestoreManager')
+    def test_general_exception(self, mock_save, mock_sandboxbase, mock_api_session):
+        mock_sandboxbase.return_value.get_storage_server_resource.side_effect = Exception('error')
+        self.setup_script.execute()
+        report_info_calls = [call('Beginning load configuration for resources')]
+        mock_sandboxbase.return_value.report_info.assert_has_calls(report_info_calls)
+
+        report_info_calls = [call('Skipping load configuration. No storage resource associated with the blueprint ',
+                                  write_to_output_window=True),
+                             call('Sandbox setup finished successfully')]
+        mock_sandboxbase.return_value.report_info.asset_not_called(report_info_calls)
+
+        self.setup_script.logger.error.assert_called_with('Setup failed. Unexpected error:error')
 
 if __name__ == '__main__':
     unittest.main()

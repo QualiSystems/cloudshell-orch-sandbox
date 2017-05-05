@@ -15,9 +15,9 @@ class BaseSaveRestore(object):
             self.storage_mgr = StorageManager(sandbox)
             self.config_files_root = self.storage_mgr.get_configs_root()
         else:
-            if self.is_resources_in_reservation_to_restore(ignore_models = None):
+            if self.is_resources_in_reservation_to_restore(ignore_models=None):
                 self.sandbox.report_info("Failed to find a storage server resource (e.g. tftp) in the sandbox. ",
-                                      write_to_output_window=False)
+                                         write_to_output_window=False)
 
     # ----------------------------------
     # ----------------------------------
@@ -27,7 +27,7 @@ class BaseSaveRestore(object):
     # ----------------------------------
     # Is this Sandbox originates from a snapshot Blueprint?
     # ----------------------------------
-    def is_snapshot(self,fileName = " "):
+    def is_snapshot(self, fileName=" "):
         # check if there is a directory with the Blueprint's name under the snapshots dir
 
         if fileName != " ":

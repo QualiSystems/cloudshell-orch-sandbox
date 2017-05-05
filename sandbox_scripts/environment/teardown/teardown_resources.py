@@ -4,7 +4,6 @@ from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from sandbox_scripts.QualiEnvironmentUtils.Sandbox import SandboxBase
 from sandbox_scripts.helpers.Networking.save_restore_mgr import SaveRestoreManager
 from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
-import sys
 
 
 class EnvironmentTeardownResources:

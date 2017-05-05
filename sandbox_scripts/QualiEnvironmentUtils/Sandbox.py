@@ -2,6 +2,7 @@
 from Resource import *
 from cloudshell.core.logger.qs_logger import *
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
+from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from os.path import *
 from time import gmtime, strftime
 import smtplib
@@ -40,11 +41,10 @@ class SandboxBase(object):
             if full_path:
                 self.blueprint_details = self.api_session.GetTopologyDetails(full_path)
 
-        except:
+        except Exception as e:
             err = "Failed to initialize the Sandbox. Unexpected error:" + \
-                    str(sys.exc_info()[0])
+                  e.message
             self.report_error(error_message=err)
-
 
     # ----------------------------------
     # ----------------------------------
@@ -56,7 +56,6 @@ class SandboxBase(object):
             self.api_session.WriteMessageToReservationOutput(self.id, message)
         elif severity_level == SEVERITY_ERROR:
             self.api_session.WriteMessageToReservationOutput(self.id, '<font color="red">' + message + '</font>')
-
 
     # ----------------------------------
     def report_error(self, error_message, log_message=None, raise_error=True, write_to_output_window=False,
@@ -99,7 +98,6 @@ class SandboxBase(object):
         if raise_error:
             raise QualiError(self.id, error_message)
 
-
     # ----------------------------------
     def report_info(self, message, log_message=None, write_to_output_window=False):
         """
@@ -115,7 +113,6 @@ class SandboxBase(object):
                 self._logger.info(message)
         if write_to_output_window:
             self._write_message_to_output(message, SEVERITY_INFO)
-
 
     # ----------------------------------
     def _emailalert(self, subject, body, owner, ishtml=False, emailOwner=False):
@@ -212,7 +209,6 @@ class SandboxBase(object):
 
         return root_resources
 
-
     # ----------------------------------
     # ----------------------------------
     def get_root_networking_resources(self):
@@ -242,7 +238,6 @@ class SandboxBase(object):
 
         return root_resources
 
-
     # ----------------------------------
     # ----------------------------------
     def clear_all_resources_live_status(self):
@@ -253,7 +248,6 @@ class SandboxBase(object):
         for resource in root_resources:
             self.api_session.SetResourceLiveStatus(resource.name, liveStatusName="Info",
                                                    additionalInfo='status cleared ' + strftime("%H:%M:%S", gmtime()))
-
 
     # ----------------------------------
     # ----------------------------------
@@ -267,7 +261,6 @@ class SandboxBase(object):
         except:
             err = "Failed to get the Sandbox's details. Unexpected error: " + str(sys.exc_info()[0])
             self.report_error(error_message=err)
-
 
     # ----------------------------------
     # ----------------------------------
@@ -287,7 +280,6 @@ class SandboxBase(object):
         except:
             err = "Failed to activate connectors and routes. Unexpected error: " + str(sys.exc_info()[0])
             self.report_error(error_message=err, write_to_output_window=write_to_output)
-
 
     # ----------------------------------
     # ----------------------------------
@@ -317,7 +309,6 @@ class SandboxBase(object):
         except:
             err = "Failed to activate the connectors. Unexpected error: " + str(sys.exc_info()[0])
             self.report_error(error_message=err, write_to_output_window=write_to_output)
-
 
     # ----------------------------------
     # ----------------------------------
@@ -356,7 +347,6 @@ class SandboxBase(object):
             err = "Failed to activate routes. Unexpected error: " + str(sys.exc_info()[0])
             self.report_error(error_message=err, write_to_output_window=write_to_output)
 
-
     # -----------------------------------------
     # -----------------------------------------
     def execute_command(self, commandName, commandInputs=[], printOutput=False):
@@ -375,7 +365,6 @@ class SandboxBase(object):
         except CloudShellAPIError as error:
             raise QualiError(self.id, error.message)
 
-
     # -----------------------------------------
     # -----------------------------------------
     def enqueue_command(self, commandName, commandInputs=[], printOutput=False):
@@ -393,8 +382,7 @@ class SandboxBase(object):
 
         except CloudShellAPIError as error:
             raise QualiError(self.id, error.message)
-
-
+        
     # -----------------------------------------
     # -----------------------------------------
     def save_sandbox_as_blueprint(self, blueprint_name, write_to_output=True):
@@ -418,7 +406,6 @@ class SandboxBase(object):
         fullTopologyName = 'Snapshots/' + blueprint_name
         self.api_session.UpdateTopologyOwner(topologyName=fullTopologyName, ownerName=username)
 
-
     # -----------------------------------------
     # check if this resource originated from an abstract resource
     # -----------------------------------------
@@ -427,7 +414,6 @@ class SandboxBase(object):
             if resource_alias == abstract_resource.Alias:
                 return True
         return False
-
 
     # -----------------------------------------
     # Return the storage resource of the sandbox (e.g. tftp, ftp), if found
@@ -439,7 +425,6 @@ class SandboxBase(object):
                 return resource
         return None
 
-
     # -----------------------------------------
     # Return the repositroy resource of the sandbox (e.g. gitlab), if found
     # -----------------------------------------
@@ -449,7 +434,6 @@ class SandboxBase(object):
             if resource.details.ResourceFamilyName.lower() == 'repository':
                 return resource
         return None
-
 
     # -----------------------------------------
     # Return the pool resource of the sandbox, if found
@@ -461,20 +445,18 @@ class SandboxBase(object):
                 return resource
         return None
 
-
     # -----------------------------------------
     # Return the pool Apps of the sandbox, if found
     #  -----------------------------------------
     def get_Apps_resources(self):
         """
-            Get the Apps resources
-            :rtype: list[ReservationAppResource]
+        Get the Apps resources
+        :rtype: list[ReservationAppResource]
         """
         details = self.get_details()
         apps_resources = details.ReservationDescription.Apps
 
         return apps_resources
-
 
     # -----------------------------------------
     # Return if there are apps in the sandbox
@@ -485,13 +467,12 @@ class SandboxBase(object):
         apps = details.ReservationDescription.App
 
         if not apps or (len(apps) == 1 and not apps[0].Name):
-            self.report_info("No apps found in reservation {0}".format(self.reservation_id))
-            self.api_session.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                             message='No apps in reservation')
+            self.report_info(message='No apps in reservation',
+                             log_message="No apps found in reservation {0}".format(self.reservation_id),
+                             write_to_output_window=True)
             return False
 
         return True
-
 
     # ----------------------------------
     # Power on VMs
@@ -502,8 +483,10 @@ class SandboxBase(object):
         for resource in root_resources:
             if resource.is_app():
                 deployed_app_name = resource.name
-                self.api_session.WriteMessageToReservationOutput(reservationId=self.id,
-                                                                 message='Power on Apps again')
+                if write_to_output:
+                    self.report_info(message='Power on Apps again', write_to_output_window=True)
+                    write_to_output = False  # to prevent more prints
+
                 self.api_session.ExecuteResourceConnectedCommand(self.id, deployed_app_name, "PowerOn", "power")
 
 

@@ -10,15 +10,14 @@ class FTPClient(StorageClient):
     # ----------------------------------
     # ----------------------------------
     def __init__(self, sandbox, storage_resource):
-        super(FTPClient,self).__init__(sandbox, storage_resource)
+        super(FTPClient, self).__init__(sandbox, storage_resource)
         try:
             self.username = storage_resource.get_attribute("Storage username")
             self.password = storage_resource.get_attribute("Storage password")
-            #self.ftp = ftplib.FTP(self.address, self.username, self.password)
+            # self.ftp = ftplib.FTP(self.address, self.username, self.password)
             self.ftp = ftplib.FTP()
-            self.ftp.connect(self.address,self.port)
-            self.ftp.login(self.username,self.password)
-
+            self.ftp.connect(self.address, self.port)
+            self.ftp.login(self.username, self.password)
 
         except Exception as e:
             self.sandbox.report_error("Failed to connect to the FTP server . Error is: " + str(e), raise_error=True)
@@ -50,11 +49,10 @@ class FTPClient(StorageClient):
             self.ftp.connect(self.address, self.port)
             self.ftp.login(self.username, self.password)
             source = self._remove_header(source)
-            self.ftp.retrbinary("RETR " + source ,open(destination, 'wb').write)
+            self.ftp.retrbinary("RETR " + source, open(destination, 'wb').write)
         except Exception as e:
             self.sandbox.report_error("Failed to download file " + source + " to " + destination +
                                       " from  the FTP server. Error is: " + str(e), raise_error=True)
-
 
     # ----------------------------------
     # ----------------------------------
@@ -67,11 +65,11 @@ class FTPClient(StorageClient):
         try:
             self.ftp.connect(self.address, self.port)
             self.ftp.login(self.username, self.password)
-            file_idx=destination.rfind('/')
+            file_idx = destination.rfind('/')
             destination_dir = destination[:(file_idx-len(destination))]
             destination_dir = self._remove_header(destination_dir)
             destination_file = destination[file_idx+1:]
-            #destination_dir = destination_dir.replace('//','/')
+            # destination_dir = destination_dir.replace('//','/')
             self.ftp.cwd(destination_dir)
             myfile = open(source, 'r')
             self.ftp.storlines('STOR ' + destination_file, myfile)
@@ -80,8 +78,8 @@ class FTPClient(StorageClient):
         except Exception as e:
             self.sandbox.report_error("Failed to upload file " + source + " to " + destination_file +
                                       " on  the FTP server. Error is: " + str(e), raise_error=True)
-            print "Failed to upload file " + source + " to " + destination_file + " on  the FTP server. Error is: " + str(e)
-
+            print "Failed to upload file " + source + " to " + destination_file + \
+                  " on  the FTP server. Error is: " + str(e)
 
     # ----------------------------------
     # ----------------------------------

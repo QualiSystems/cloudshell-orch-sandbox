@@ -1,11 +1,10 @@
 # coding=utf-8
-#from sandbox_scripts.helpers.Networking.NetworkingHealthCheck import *
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from sandbox_scripts.helpers.Networking.save_restore_mgr import SaveRestoreManager
 from sandbox_scripts.QualiEnvironmentUtils.Sandbox import SandboxBase
 from cloudshell.core.logger.qs_logger import get_qs_logger
 from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
-import os, sys
+import os
 
 
 class EnvironmentSetupResources(object):
@@ -45,6 +44,7 @@ class EnvironmentSetupResources(object):
                                     write_to_output_window=True)
 
             # power on Vms that might be powered off because of the snapshot configuration
+            # TODO: get a list of vms that were restored from snapshot and only power on these ones
             sandbox.power_on_vms()
 
             # call activate_all_routes_and_connectors
