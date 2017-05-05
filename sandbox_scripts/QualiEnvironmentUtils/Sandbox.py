@@ -87,7 +87,7 @@ class SandboxBase(object):
                 emailBody += "LogMsg: " + log_message + "\n\n"
             if error_message:
                 emailBody += "ErrMsg: " + error_message + "\n\n"
-            emailresult = self.emailalert(emailSubject, emailBody, owner=sb_owner, ishtml=False, emailOwner=emailOwner) + "\n"
+            emailresult = self._emailalert(emailSubject, emailBody, owner=sb_owner, ishtml=False, emailOwner=emailOwner) + "\n"
 
         if self._logger:
             if log_message:
@@ -116,7 +116,7 @@ class SandboxBase(object):
             self._write_message_to_output(message, SEVERITY_INFO)
 
     # ----------------------------------
-    def emailalert(self, subject, body, owner, ishtml=False, emailOwner=False):
+    def _emailalert(self, subject, body, owner, ishtml=False, emailOwner=False):
         try:
             globalsresource = self.get_config_set_pool_resource()
             host = str(globalsresource.get_attribute("ConfigPool_SMTP_Server"))
