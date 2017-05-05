@@ -5,9 +5,10 @@ from sandbox_scripts.QualiEnvironmentUtils.Sandbox import *
 import tempfile
 import pip
 
+
 try:
-    import tftpy
     imported_tftpy = True
+    import tftpy
 except:
     try:
         pip.main(["install","tftpy"])

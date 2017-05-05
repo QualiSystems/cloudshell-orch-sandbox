@@ -26,6 +26,12 @@ class StorageManager(object):
 
     # ----------------------------------
     # ----------------------------------
+    #def _get_storage_client(self, storage_resource):
+    #    if storage_resource.model.lower() == 'generic tftp server':
+    #        return TFTPClient(self.sandbox,storage_resource)
+    #   elif storage_resource.model.lower() == 'generic ftp server':
+    #        return FTPClient(self.sandbox,storage_resource)
+
     def _get_storage_client(self, storage_resource):
         if storage_resource.model.lower() == 'generic tftp server':
             return TFTPClient(self.sandbox,storage_resource)

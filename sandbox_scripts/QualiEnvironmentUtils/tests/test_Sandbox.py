@@ -6,12 +6,14 @@ from cloudshell.api.cloudshell_api import ReservationDescriptionInfo
 import json
 import os
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
+from freezegun import freeze_time
 
 resContext = '''{"id":"5487c6ce-d0b3-43e9-8ee7-e27af8406905",
  "ownerUser":"bob",
  "ownerPass":"nIqm+BG6ZGJjby5hUittVFFJASc=",
  "domain":"Global",
  "environmentName":"My environment",
+ "environmentPath":"My environment",
  "description":"New demo environment",
  "parameters":
    { "globalInputs": [],
@@ -202,9 +204,10 @@ class SandboxTests(unittest.TestCase):
         rr = [resource1, resource2]
         self.sandbox.get_root_resources = Mock(return_value=rr)
 
-        self.sandbox.clear_all_resources_live_status()
-        calls = [call('r1', ''),
-                 call('r2', '')]
+        with freeze_time("2017-01-17 12:00:01"):
+            self.sandbox.clear_all_resources_live_status()
+        calls = [call('r1', additionalInfo='status cleared 12:00:01', liveStatusName='Info'),
+                 call('r2', additionalInfo='status cleared 12:00:01', liveStatusName='Info')]
         self.mock_api_session.return_value.SetResourceLiveStatus.assert_has_calls(calls)
 
     #================================================================

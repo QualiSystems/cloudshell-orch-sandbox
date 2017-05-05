@@ -4,7 +4,9 @@ from cloudshell.core.logger.qs_logger import *
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from os.path import *
-
+from time import gmtime, strftime
+import smtplib
+from email.mime.text import MIMEText
 
 SEVERITY_INFO = 20
 SEVERITY_ERROR = 40
@@ -21,9 +23,11 @@ class SandboxBase(object):
             """:type : logging.Logger"""
             self.api_session = helpers.get_api_session()
             self.id = reservation_id
-
-            self.Blueprint_name = helpers.get_reservation_context_details().environment_name
-
+            context = helpers.get_reservation_context_details()
+            self.owner = context.owner_user
+            self.Blueprint_name = context.environment_name
+            if self.Blueprint_name == '':
+                raise QualiError("Blueprint name empty (from env name)")
 
             full_path = None
             tp = self.api_session.GetActiveTopologyNames()
@@ -37,9 +41,9 @@ class SandboxBase(object):
             if full_path:
                 self.blueprint_details = self.api_session.GetTopologyDetails(full_path)
 
-        except:
+        except Exception as e:
             err = "Failed to initialize the Sandbox. Unexpected error:" + \
-                  str(sys.exc_info()[0])
+                  e.message
             self.report_error(error_message=err)
 
     # ----------------------------------
@@ -54,7 +58,8 @@ class SandboxBase(object):
             self.api_session.WriteMessageToReservationOutput(self.id, '<font color="red">' + message + '</font>')
 
     # ----------------------------------
-    def report_error(self, error_message, log_message=None, raise_error=True, write_to_output_window=False):
+    def report_error(self, error_message, log_message=None, raise_error=True, write_to_output_window=False,
+                     send_email=False):
         """
         Report on an error to the log file, output window is optional.There is also an option to raise the error up
         :param str error_message:  The error message you would like to present
@@ -62,11 +67,32 @@ class SandboxBase(object):
         :param bool raise_error:  Do you want to throw an exception
         :param bool write_to_output_window:  Would you like to write the message to the output window
         """
+
+        emailresult = ''
+        if raise_error and send_email:
+            emailOwner = False
+            try:
+                emailSubject = str(self.Blueprint_name) + ' / ' + str(self.owner)
+                emailBody = "Sandbox: " + str(self.Blueprint_name) + "\n" + \
+                            "Owner: " + str(self.owner) + "\n\n"
+                sb_owner = str(self.owner)
+            except:
+                emailSubject = "Catastrophic ERROR in sandbox."
+                emailBody = str(os.environ) + "\n\n"
+                sb_owner = "Owner Unknown"
+
+            if log_message:
+                emailBody += "LogMsg: " + log_message + "\n\n"
+            if error_message:
+                emailBody += "ErrMsg: " + error_message + "\n\n"
+            emailresult = self._emailalert(emailSubject, emailBody, owner=sb_owner, ishtml=False,
+                                           emailOwner=emailOwner) + "\n"
+
         if self._logger:
             if log_message:
-                self._logger.error(log_message)
+                self._logger.error(emailresult + log_message)
             else:
-                self._logger.error(error_message)
+                self._logger.error(emailresult + error_message)
         if write_to_output_window:
             self._write_message_to_output(error_message, SEVERITY_ERROR)
         if raise_error:
@@ -87,6 +113,52 @@ class SandboxBase(object):
                 self._logger.info(message)
         if write_to_output_window:
             self._write_message_to_output(message, SEVERITY_INFO)
+
+    # ----------------------------------
+    def _emailalert(self, subject, body, owner, ishtml=False, emailOwner=False):
+        try:
+            globalsresource = self.get_config_set_pool_resource()
+            host = str(globalsresource.get_attribute("ConfigPool_SMTP_Server"))
+            port = str(globalsresource.get_attribute("ConfigPool_SMTP_port"))
+            emailfrom = str(globalsresource.get_attribute("ConfigPool_SMTP_from"))
+            emailto = emailfrom
+            emailcc = ''
+            emailbcc = ''
+
+            if emailOwner:
+                try:
+                    emailto = str(self.api_session.GetUserDetails(owner).Email)
+                    emailbcc = emailfrom
+                    body += "----\n A copy of this email was also sent to our support staff."
+                except:
+                    emailbcc = ''
+                    emailto = emailfrom
+
+            try:
+                if ishtml:
+                    emsg = MIMEText(body + '\n\n', 'html')
+                else:
+                    emsg = MIMEText(body + '\n\n', 'plain')
+
+                emsg['Subject'] = subject
+                emsg['From'] = emailfrom
+                emsg['To'] = ",".join([emailto])
+                emsg['CC'] = ""
+                emsg.preamble = subject
+                tolist = emailto.split(",") + emailcc.split(",") + emailbcc.split(",")
+                mailer = smtplib.SMTP(host=host, port=port)
+                mailer.sendmail(emailfrom, tolist, emsg.as_string())
+                return "Emailed OK"
+
+            except smtplib.SMTPException as e:
+                # cannot post again as error or we could be in a loop!
+                return ("ERROR Failed to send email, %s" % str(e))
+            except:
+                # cannot post again as error or we could be in a loop!
+                return "ERROR Failed to send email(1)"
+        except:
+            return "ERROR Failed to send email(2)"
+
 
     # ----------------------------------
     def get_root_resources(self):
@@ -129,8 +201,8 @@ class SandboxBase(object):
         resources = details.ReservationDescription.Resources
         # Loop over all devices in the sandbox and add to a dictionary all root devices of VM type:
         for resource in resources:
-            #resource_details = self.api_session.GetResourceDetails(resource.Name)
-            if resource.VmDetails and hasattr(resource.VmDetails,'UID') and resource.VmDetails.UID:
+            # resource_details = self.api_session.GetResourceDetails(resource.Name)
+            if resource.VmDetails and hasattr(resource.VmDetails, 'UID') and resource.VmDetails.UID:
                 split_name = resource.Name.split('/')
                 root_resources_names_dict[split_name[0]] = 1
                 root_resources.append(ResourceBase(resource.Name, ''))
@@ -151,7 +223,7 @@ class SandboxBase(object):
         topo_resources = details.ReservationDescription.TopologiesReservedResources
         # Loop over all devices in the sandbox and add to a dictionary all root devices of type networking devices:
         for resource in resources:
-            if not(resource.VmDetails and hasattr(resource.VmDetails,'UID') and resource.VmDetails.UID):
+            if not (resource.VmDetails and hasattr(resource.VmDetails, 'UID') and resource.VmDetails.UID):
                 split_name = resource.Name.split('/')
                 root_resources_names_dict[split_name[0]] = 1
 
@@ -174,7 +246,8 @@ class SandboxBase(object):
         """
         root_resources = self.get_root_resources()
         for resource in root_resources:
-            self.api_session.SetResourceLiveStatus(resource.name, '')
+            self.api_session.SetResourceLiveStatus(resource.name, liveStatusName="Info",
+                                                   additionalInfo='status cleared ' + strftime("%H:%M:%S", gmtime()))
 
     # ----------------------------------
     # ----------------------------------
@@ -314,10 +387,11 @@ class SandboxBase(object):
     # -----------------------------------------
     def save_sandbox_as_blueprint(self, blueprint_name, write_to_output=True):
         try:
-            #TODO - fullpath should be passed as a param to the function and not hard coded
+            # TODO - fullpath should be passed as a param to the function and not hard coded
             # save the current Sandbox as a new Blueprint with the given snapshot name
             fullpath = 'Snapshots'
-            self.api_session.SaveReservationAsTopology(self.id, topologyName=blueprint_name,folderFullPath=fullpath, includeInactiveRoutes=True)
+            self.api_session.SaveReservationAsTopology(self.id, topologyName=blueprint_name, folderFullPath=fullpath,
+                                                       includeInactiveRoutes=True)
 
         except CloudShellAPIError as error:
             err = "Failed to save sandbox as blueprint. " + error.message
@@ -327,10 +401,10 @@ class SandboxBase(object):
         #     self.report_error(error_message=err, write_to_output_window=write_to_output)
         #     raise Exception('Blueprint name already exist. Please select a different name.')
 
-        #update the new snapshot with the user as owner
+        # update the new snapshot with the user as owner
         username = helpers.get_reservation_context_details().owner_user
-        fullTopologyName = 'Snapshots/'+blueprint_name
-        self.api_session.UpdateTopologyOwner(topologyName=fullTopologyName,ownerName=username)
+        fullTopologyName = 'Snapshots/' + blueprint_name
+        self.api_session.UpdateTopologyOwner(topologyName=fullTopologyName, ownerName=username)
 
     # -----------------------------------------
     # check if this resource originated from an abstract resource
@@ -338,7 +412,7 @@ class SandboxBase(object):
     def is_abstract(self, resource_alias):
         for abstract_resource in self.blueprint_details.AbstractResources:
             if resource_alias == abstract_resource.Alias:
-                    return True
+                return True
         return False
 
     # -----------------------------------------
@@ -404,7 +478,6 @@ class SandboxBase(object):
     # Power on VMs
     # ----------------------------------
     def power_on_vms(self, write_to_output=True):
-
         root_resources = self.get_root_resources()
 
         for resource in root_resources:

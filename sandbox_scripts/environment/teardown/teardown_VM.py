@@ -1,5 +1,5 @@
 from cloudshell.core.logger import qs_logger
-
+from sandbox_scripts.helpers.Networking.save_restore_mgr import SaveRestoreManager
 from sandbox_scripts.helpers.Networking.NetworkingSaveNRestore import *
 
 
@@ -21,14 +21,13 @@ class EnvironmentTeardownVM:
 
         reservation_details = self.sandbox.api_session.GetReservationDetails(self.reservation_id)
 
-
-        saveNRestoreTool = NetworkingSaveRestore(self.sandbox)
+        saveNRestoreTool = SaveRestoreManager(self.sandbox)
 
         filename = "Snapshot_"+self.reservation_id+".txt"
 
         is_snapshot = False
 
-        #if the current reservation was saved as snapshot we look it by reservation_id
+        # if the current reservation was saved as snapshot we look it by reservation_id
         if saveNRestoreTool.get_storage_manager():
             if saveNRestoreTool.is_snapshot(filename):
                 is_snapshot = True
