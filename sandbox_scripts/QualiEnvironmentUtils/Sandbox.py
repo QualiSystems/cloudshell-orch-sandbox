@@ -19,36 +19,25 @@ class SandboxBase(object):
         Load the configuration from config files on the Blueprint's devices
         :param str reservation_id:  reservation id
         """
-        try:
-            self._logger = logger
-            """:type : logging.Logger"""
-            self.api_session = helpers.get_api_session()
-            self.id = reservation_id
-            self.context = helpers.get_reservation_context_details()
-            print vars(self.context)
-            self.owner = self.context.owner_user
-	    self.environment_path = self.context.environment_path
-            self.Blueprint_name = self.context.environment_name
-            if self.Blueprint_name == '':
-                raise QualiError("Blueprint name empty (from env name)")
+        #try:
+        self._logger = logger
+        """:type : logging.Logger"""
+        self.api_session = helpers.get_api_session()
+        self.id = reservation_id
+        self.context = helpers.get_reservation_context_details()
+        print vars(self.context)
+        self.owner = self.context.owner_user
+	self.environment_path = self.context.environment_path
+        self.Blueprint_name = self.context.environment_name
+        if self.Blueprint_name == '':
+            raise QualiError("Blueprint name empty (from env name)")
 
-            full_path = None
-            tp = self.api_session.GetActiveTopologyNames()
-
-            for value in tp.Topologies:
-                filename = basename(value)
-                if filename == self.Blueprint_name:
-                    full_path = value
-                    break
-
-            if full_path:
-                self.blueprint_details = self.api_session.GetTopologyDetails(full_path)
-	except AttributeError, e:
-	    print e
-        except:
-	    err = "Failed to initialize the Sandbox. Unexpected error:" + \
-                  str(sys.exc_info()[0])
-            self.report_error(error_message=err)
+	if self.environment_path:
+            self.blueprint_details = self.api_session.GetTopologyDetails(self.environment_path)
+	#except:
+	#    err = "Failed to initialize the Sandbox. Unexpected error:" + \
+        #          str(sys.exc_info()[0])
+        #    self.report_error(error_message=err)
 
     # ----------------------------------
     # ----------------------------------
