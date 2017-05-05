@@ -82,7 +82,7 @@ class SetupVMTests(unittest.TestCase):
 
         logger_debug_calls = [call("Skipping resource 'r1' - not an app, not powering on"),
                               call("Skipping resource 'r2' - not an app, not powering on")]
-        self.setup_script.logger.debug.assert_has_calls(logger_debug_calls)
+        self.setup_script.logger.debug.assert_has_calls(logger_debug_calls, any_order=True)
 
     @patch('cloudshell.helpers.scripts.cloudshell_scripts_helpers.get_api_session')
     @patch('sandbox_scripts.environment.setup.setup_VM.SandboxBase')
