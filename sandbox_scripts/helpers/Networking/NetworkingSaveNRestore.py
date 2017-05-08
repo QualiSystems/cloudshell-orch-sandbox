@@ -67,7 +67,7 @@ class NetworkingSaveRestore(object):
         root_path = root_path.replace(' ', '_')
         self.sandbox.report_info("RootPath: " + root_path, write_to_output_window=True)
         images_path_dict = self._get_images_path_dict(root_path)
-        self.sandbox.report_info("\nLoading image and configuration on the devices. This action may take some time",
+        self.sandbox.report_info("\nLoading image and configuration on the devices. This action may take some time.",
                                  write_to_output_window=True)
         root_resources = self.sandbox.get_root_networking_resources()
         """:type : list[ResourceBase]"""
@@ -149,8 +149,8 @@ class NetworkingSaveRestore(object):
                         if len(images_path_dict) > 0:
                             # check what the device FW version is currently.
                             version = resource.get_version(self.sandbox.id)
-                            self.sandbox.report_info(resource.name + ": current version: " + version,
-                                                     write_to_output_window=False)
+                            self.sandbox.report_info(resource.name + " current version: " + version,
+                                                     write_to_output_window=True)
                             # First try with an firmware image key of concrete resource name!!
                             dict_img_version = ''
                             image_key = ''
@@ -179,7 +179,6 @@ class NetworkingSaveRestore(object):
                                                              restore_method='Override')
                             # Different image - Load config to the RUNNING ALSO and load the image
                             else:
-                                message += "\n" + resource.name + ": loading configuration from:" + config_path
                                 resource.load_network_config(self.sandbox.id, config_path,
                                                              config_type='Running',
                                                              restore_method='Override')
