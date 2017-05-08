@@ -21,7 +21,7 @@ class ResourceBase(object):
             self.connected_commands = self.api_session.GetResourceConnectedCommands(resource_name).Commands
 
             self.attributes = self.details.ResourceAttributes
-            # If there is an attribute named 'model' take its value (exist in shells), otherwise take the family's model
+            # If there is an attribute 'named' 'model' use its value, otherwise take the family's model
             if self.attribute_exist('Model'):
                 self.model = self.get_attribute('Model')
             else:
@@ -45,32 +45,37 @@ class ResourceBase(object):
     def attribute_exist(self, attribute_name):
         attribute_name = attribute_name.lower()
         for attribute in self.attributes:
-            if attribute.Name.lower() == attribute_name:
+            if attribute.Name.lower() == attribute_name or attribute.Name.lower().endswith('.' + attribute_name):
                 return True
         return False
-
 
     # -----------------------------------------
     # -----------------------------------------
     def get_attribute(self, attribute_name):
-        attribute_name = attribute_name.lower()
+        attribute_name_lower = attribute_name.lower()
         for attribute in self.attributes:
-            if attribute.Name.lower() == attribute_name:
+            if attribute.Name.lower() == attribute_name_lower or attribute.Name.lower().endswith('.' + attribute_name_lower):
                 if attribute.Type == 'Password':
                     decrypted = self.api_session.DecryptPassword(attribute.Value)
                     return decrypted.Value
                 else:
                     return attribute.Value
-        raise QualiError(self.name, "Attribute: " + attribute_name + " not found")
+        raise QualiError(self.name, "Attribute: '" + attribute_name + "' not found")
 
     # -----------------------------------------
     # -----------------------------------------
     def set_attribute_value(self, attribute_name, attribute_value):
+        # if caller passes ending string of name, need to handle not knowing prefix
         try:
-            self.api_session.SetAttributeValue(resourceFullPath=self.name, attributeName=attribute_name,
-                                               attributeValue=attribute_value)
+            attribute_name = attribute_name.lower()
+            for attribute in self.attributes:
+                if attribute.Name.lower() == attribute_name or attribute.Name.lower().endswith('.' + attribute_name):
+                    self.api_session.SetAttributeValue(resourceFullPath=self.name,
+                                                       attributeName=attribute.Name,
+                                                       attributeValue=attribute_value)
+                    return
         except CloudShellAPIError as error:
-            raise QualiError(self.name, "Attribute: " + attribute_name + " not found. " + error.message)
+            raise QualiError(self.name, "Failed to set attribute named or ending-with '" + attribute_name + "'. " + error.message)
 
     # -----------------------------------------
     # implement the command to get the neighbors and their ports
@@ -99,9 +104,9 @@ class ResourceBase(object):
         if self.has_command('health_check'):
             try:
                 # Return a detailed description in case of a failure
-                out = self.execute_command(reservation_id, 'health_check', printOutput=False) #.Output()
+                out = self.execute_command(reservation_id, 'health_check', printOutput=False)
                 if out.Output.find(' passed') == -1:
-                    err = "Health check did not pass for device " + self.name + ". "  +out.Output
+                    err = "Health check did not pass for device " + self.name + ". " + out.Output
                     return err
 
             except QualiError as qe:
@@ -124,19 +129,22 @@ class ResourceBase(object):
             the_path = "undef"
             the_cfgtype = "undef"
             the_restoremeth = "undef"
+            found_cmd = False
             for command in self.commands:
                 if command.Name == 'restore':
+                    found_cmd = True
                     for parm in command.Parameters:
                         if parm.Name in ["path", "src_Path"]:
                             the_path = parm.Name
-                        if parm.Name in ["configuration_type","config_type"]:
+                        elif parm.Name in ["configuration_type", "config_type"]:
                             the_cfgtype = parm.Name
-                        if parm.Name in ["restore_method"]:
+                        elif parm.Name in ["restore_method"]:
                             the_restoremeth = parm.Name
-
+            if not found_cmd:
+                raise QualiError(self.name, "Restore command does not exist. Check driver installation.")
             if the_path == "undef" or the_cfgtype == "undef" or the_restoremeth == "undef":
                 raise QualiError(self.name, "Failed to find viable restore command for " + self.name \
-                      + " : " + the_path + ", " + the_cfgtype + ", " + the_restoremeth)
+                      + " - config_path: " + the_path + ", config_type: " + the_cfgtype + ", restore_method: " + the_restoremeth)
 
         except QualiError as qerror:
             raise QualiError(self.name, "Failed building restore command input parm names." + qerror.message)
@@ -158,8 +166,11 @@ class ResourceBase(object):
         except QualiError as qerror:
             raise QualiError(self.name, "Failed to load configuration: " + qerror.message)
 
-        except:
-            raise "Failed to load configuration. Unexpected error:" + str(sys.exc_info()[0])
+        except Exception as e:
+            if type(e) == QualiError:
+                raise e
+            else:
+                raise QualiError(self.name, "Failed to load configuration. Unexpected error:" + e.message)
 
     # -----------------------------------------
     # -----------------------------------------
@@ -170,6 +181,7 @@ class ResourceBase(object):
         :param config_path:  The path where to save the config file
         :param config_type:  StartUp or Running
         """
+        #TODO modify the function to identify the command name and its params (similar behavior as in load_network_config)
         # Run executeCommand with the restore command and its params (ConfigPath,RestoreMethod)
         try:
             command_inputs = [InputNameValue('source_filename', str(config_type)),
@@ -229,14 +241,13 @@ class ResourceBase(object):
                         if 'orchestration_restore' == command.Name:
                             tag = command.Tag
                             json_str = artifact_info
-                            self.execute_connected_command(reservation_id, 'orchestration_restore',tag,
-                                commandInputs=[json_str],
-                                printOutput=True)
+                            self.execute_connected_command(reservation_id, 'orchestration_restore', tag,
+                                                           commandInputs=[json_str], printOutput=True)
                             break
 
             else:
                 if self.has_command('orchestration_restore'):
-                    if(artifact_info == None):
+                    if artifact_info is None:
                         artifact_info = self.create_artifact_info(config_path)
                         json_str = json.dumps(artifact_info)
                     else:
@@ -244,8 +255,7 @@ class ResourceBase(object):
 
                     command_inputs = [InputNameValue('saved_details', json_str)]
                     self.execute_command(reservation_id, 'orchestration_restore',
-                                     commandInputs=command_inputs,
-                                     printOutput=True)
+                                         commandInputs=command_inputs, printOutput=True)
 
         except QualiError as qerror:
             raise QualiError(self.name, "Failed to load configuration: " + qerror.message)
@@ -276,9 +286,8 @@ class ResourceBase(object):
                     if 'orchestration_save' == command.Name:
                         tag = command.Tag
 
-                        config_name = self.execute_connected_command(reservation_id, 'orchestration_save',tag,
-                                               commandInputs=['shallow',''],
-                                               printOutput=False)
+                        config_name = self.execute_connected_command(reservation_id, 'orchestration_save', tag,
+                                                                     commandInputs=['shallow',''], printOutput=False)
 
                         return config_name.Output
 
@@ -286,7 +295,7 @@ class ResourceBase(object):
                 if self.has_command('orchestration_save'):
 
                     config_name = self.execute_command(reservation_id, 'orchestration_save',
-                                               commandInputs=[InputNameValue('custom_params',json_str),
+                                               commandInputs=[InputNameValue('custom_params', json_str),
                                                               InputNameValue('mode','shallow')],
                                                printOutput=False)
 
@@ -320,7 +329,7 @@ class ResourceBase(object):
         :rtype: CommandExecutionCompletedResultInfo
         """
         # check the command exists on the device
-        if self.commands.__sizeof__() > 0:
+        if len(self.commands) > 0:
             # Run executeCommand with the restore command and its params (ConfigPath,RestoreMethod)
             try:
                 return self.api_session.ExecuteCommand(reservation_id, self.name, 'Resource', commandName,
@@ -345,13 +354,13 @@ class ResourceBase(object):
         :rtype: CommandExecutionCompletedResultInfo
         """
         # check the command exists on the device
-        if self.connected_commands.__sizeof__() > 0:
+        if len(self.connected_commands) > 0:
             # Run executeCommand with the restore command and its params (ConfigPath,RestoreMethod)
             try:
                return self.api_session.ExecuteResourceConnectedCommand(reservation_id,self.name,
                                                                        commandName=commandName,
                                                                        commandTag=tag,
-                                                                       parameterValues = commandInputs)
+                                                                       parameterValues=commandInputs)
 
             except CloudShellAPIError as error:
                 raise QualiError(self.name, error.message)
@@ -361,8 +370,10 @@ class ResourceBase(object):
     # -----------------------------------------
     # -----------------------------------------
     def set_address(self, address):
-        self.api_session.UpdateResourceAddress(resourceFullPath=self.name, resourceAddress=address)
-
+        try:
+            self.api_session.UpdateResourceAddress(resourceFullPath=self.name, resourceAddress=address)
+        except CloudShellAPIError as error:
+            raise QualiError(self.name, error.message)
 
     # -----------------------------------------
     # -----------------------------------------
@@ -389,16 +400,19 @@ class ResourceBase(object):
 
     # -----------------------------------------
     # -----------------------------------------
-    def set_live_status(self,live_status_name, additional_info=''):
-        self.api_session.SetResourceLiveStatus(self.name,live_status_name, additional_info)
+    def set_live_status(self, live_status_name, additional_info=''):
+        try:
+            self.api_session.SetResourceLiveStatus(self.name, live_status_name, additional_info)
+        except CloudShellAPIError as error:
+            raise QualiError(self.name, error.message)
 
     # -----------------------------------------
     # -----------------------------------------
     def get_live_status(self):
-        self.api_session.GetResourceLiveStatus(self.name)
-
-
-
+        try:
+            self.api_session.GetResourceLiveStatus(self.name)
+        except CloudShellAPIError as error:
+            raise QualiError(self.name, error.message)
 
     # -----------------------------------------
     # -----------------------------------------
@@ -428,9 +442,10 @@ class ResourceBase(object):
     # -----------------------------------------
     def is_app(self):
         try:
-            if self.details.VmDetails.UID:
+            if self.details.VmDetails is not None and \
+                    hasattr(self.details.VmDetails, 'UID') and \
+                    self.details.VmDetails.UID:
                 return True
-
         except:
             return False
 
@@ -445,9 +460,9 @@ class ResourceBase(object):
         # Run executeCommand with the update_firmware command and its params (ConfigPath,RestoreMethod)
         try:
             version = self.execute_command(reservation_id, 'get_version',
-                                 printOutput=False).Output
+                                           printOutput=False).Output
             version = version.replace('\r\n', '')
-            return  version
+            return version
         except QualiError as qerror:
             raise QualiError(self.name, "Failed to get the version: " + qerror.message)
         except Exception as ex:

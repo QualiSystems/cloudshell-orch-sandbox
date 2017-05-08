@@ -1,4 +1,8 @@
+import tempfile
+import os
 from sandbox_scripts.helpers.Networking.base_save_restore import *
+from sandbox_scripts.QualiEnvironmentUtils.ConfigPoolManager import ConfigPoolManager
+from sandbox_scripts.QualiEnvironmentUtils.ConfigFileManager import ConfigFileManager
 from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
 from multiprocessing.pool import ThreadPool
 from threading import Lock
@@ -7,7 +11,6 @@ from threading import Lock
 class VMsSaveRestore(BaseSaveRestore):
     def __init__(self, sandbox):
         super(VMsSaveRestore,self).__init__(sandbox)
-
 
     # ----------------------------------
     # ----------------------------------
@@ -37,23 +40,26 @@ class VMsSaveRestore(BaseSaveRestore):
             "Loading image on the devices. This action may take some time",write_to_output_window=True)
         root_resources = self.sandbox.get_root_vm_resources()
         """:type : list[ResourceBase]"""
-        pool = ThreadPool(len(root_resources))
-        async_results = [pool.apply_async(self._run_asynch_load,
-                                          (resource, root_path, ignore_models, in_teardown_mode))
-                         for resource in root_resources]
+        if len(root_resources) > 0:
+            pool = ThreadPool(len(root_resources))
+            async_results = [pool.apply_async(self._run_asynch_load,
+                                              (resource, root_path, ignore_models, in_teardown_mode))
+                             for resource in root_resources]
 
-        pool.close()
-        pool.join()
-        for async_result in async_results:
-            res = async_result.get()
-            """:type : load_result_struct"""
-            if not res.run_result:
-                err = "Failed to load configuration on device " + res.resource_name
-                self.sandbox.report_error(err, write_to_output_window=write_to_output, raise_error=False)
-                self.sandbox.report_error(res.message, raise_error=False)
-                self.sandbox.api_session.SetResourceLiveStatus(res.resource_name, 'Error')
-            elif res.message != '':
-                self.sandbox.report_info(res.resource_name + "\n" + res.message)
+            pool.close()
+            pool.join()
+            for async_result in async_results:
+                res = async_result.get()
+                """:type : load_result_struct"""
+                if not res.run_result:
+                    err = "Failed to load configuration on device " + res.resource_name
+                    self.sandbox.report_error(err, write_to_output_window=write_to_output, raise_error=False)
+                    self.sandbox.report_error(res.message, raise_error=False)
+                    self.sandbox.api_session.SetResourceLiveStatus(res.resource_name, 'Error')
+                elif res.message != '':
+                    self.sandbox.report_info(res.resource_name + "\n" + res.message)
+        else:
+            self.sandbox.report_info("No VM resources found to process")
 
     # ----------------------------------
     # ----------------------------------
@@ -79,7 +85,7 @@ class VMsSaveRestore(BaseSaveRestore):
                         dest_name = resource.name + '_' + resource.model +'_artifact.txt'
                         dest_name = dest_name.replace(' ','-')
                         saved_artifact_info = self.storage_mgr.download_artifact_info(root_path, dest_name)
-                        resource.orchestration_restore(self.sandbox.id,None,saved_artifact_info)
+                        resource.orchestration_restore(self.sandbox.id, None, saved_artifact_info)
 
                     health_check_result = resource.health_check(self.sandbox.id)
                     if health_check_result != '':
@@ -229,14 +235,14 @@ class VMsSaveRestore(BaseSaveRestore):
         :rtype: str
         """
 
-        config_file_mgr = ConfigFileManager(self.sandbox)
+        config_file_mgr = ConfigFileManager()
         #TODO - set the pool dictionary only once during the init of the class
         config_set_pool_data = dict()
         # If there is a pool resource, get the pool data
         config_set_pool_resource = self.sandbox.get_config_set_pool_resource()
         if config_set_pool_resource is not None:
             config_set_pool_manager = ConfigPoolManager(sandbox=self.sandbox, pool_resource=config_set_pool_resource)
-            config_set_pool_data = config_set_pool_manager.pool_data_to_dict()
+            config_set_pool_data = config_set_pool_manager.pool_data
         if config_stage == 'snapshots':
             config_path = root_path + resource.name + '_' + resource.model + '.cfg'
         else:
@@ -263,8 +269,19 @@ class VMsSaveRestore(BaseSaveRestore):
                 self.storage_mgr.download(tftp_template_config_path, tmp_template_config_file.name)
             with open(tmp_template_config_file.name, 'r') as content_file:
                 tmp_template_config_file_data = content_file.read()
-            concrete_config_data = config_file_mgr.create_concrete_config_from_template(
-                tmp_template_config_file_data, config_set_pool_data, resource)
+
+            concrete_config_data = ''
+            try:
+                concrete_config_data = config_file_mgr.create_concrete_config_from_template(
+                    tmp_template_config_file_data,
+                    config_set_pool_data,
+                    self.sandbox, resource)
+            except QualiError as qe:
+                self.sandbox.report_error(error_message='Could not create a concrete config file '
+                                                        'for resource {0}'.format(resource.name),
+                                          log_message=qe.message,
+                                          write_to_output_window=True)
+
             tmp_concrete_config_file = tempfile.NamedTemporaryFile(delete=False)
             tf = file(tmp_concrete_config_file.name, 'wb+')
             tf.write(concrete_config_data)
@@ -284,3 +301,14 @@ class VMsSaveRestore(BaseSaveRestore):
             config_path = concrete_file_path
 
         return config_path
+
+
+    # ----------------------------------
+    # delete file name on storage
+    # ----------------------------------
+    def delete_src_file(self,fileName):
+
+        env_dir = self.config_files_root + '/Snapshots/' + fileName
+        env_dir = env_dir.replace(' ', '_')
+        self.storage_mgr.delete(env_dir)
+

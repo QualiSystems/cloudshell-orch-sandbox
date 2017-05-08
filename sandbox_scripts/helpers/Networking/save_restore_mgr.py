@@ -46,3 +46,8 @@ class SaveRestoreManager(object):
     # ----------------------------------
     def is_snapshot(self,fileName = " "):
         return self.vm_save_restore.is_snapshot(fileName)
+
+    # ----------------------------------
+    # ----------------------------------
+    def delete_src_file(self, fileName):
+        self.vm_save_restore.delete_src_file(fileName)

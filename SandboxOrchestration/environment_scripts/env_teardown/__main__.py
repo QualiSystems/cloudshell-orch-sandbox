@@ -2,6 +2,7 @@ from sandbox_scripts.environment.teardown.teardown_script import EnvironmentTear
 from sandbox_scripts.environment.teardown.teardown_resources import EnvironmentTeardownResources
 from sandbox_scripts.environment.teardown.teardown_VM import EnvironmentTeardownVM
 
+
 def main():
     EnvironmentTeardown().execute()
     EnvironmentTeardownVM().execute()
