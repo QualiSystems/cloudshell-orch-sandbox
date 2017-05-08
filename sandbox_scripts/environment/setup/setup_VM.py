@@ -69,11 +69,11 @@ class EnvironmentSetupVM(object):
         deployed_app_name = resource.Name
 
         resource_details = self.sandbox.api_session.GetResourceDetails(deployed_app_name)
-        vm_details = resource_details.VmDetails
-
-        if vm_details is None or hasattr(vm_details, "UID") is False or vm_details.UID is None:
-            self.logger.debug("Skipping resource '{0}' - not an app, not powering on".format(deployed_app_name))
-            return True, ""
+        with lock:
+            vm_details = resource_details.VmDetails
+            if not (vm_details and hasattr(vm_details, 'UID') and vm_details.UID):
+                self.logger.debug("Skipping resource '{0}' - not an app, not powering on".format(deployed_app_name))
+                return True, ""
 
         power_on = "true"
         wait_for_ip = "true"
