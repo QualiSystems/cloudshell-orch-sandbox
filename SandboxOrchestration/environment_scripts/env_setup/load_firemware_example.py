@@ -9,11 +9,11 @@ def load_firmware_sequential(sandbox):
     """
     nxso_switches = sandbox.components.get_resources_by_model('nxos')
     for r in nxso_switches:
-        sandbox.api.ExecuteCommand(reservationId= sandbox.reservation_id,
-                                   targetName=r.FullName,
-                                   targetType='Resource',
-                                   commandName='load_firemware',
-                                   commandInputs=[InputNameValue('fw_version',
+        sandbox.automation_api.ExecuteCommand(reservationId= sandbox.reservation_id,
+                                              targetName=r.FullName,
+                                              targetType='Resource',
+                                              commandName='load_firemware',
+                                              commandInputs=[InputNameValue('fw_version',
                                                                  sandbox.globals['fw_version'])])
 
 
@@ -22,7 +22,7 @@ DefaultSetupWorkflow.extend(sandbox)
 
 nxso_switches = sandbox.components.get_resources_by_model('nxos')
 sandbox.workflow.add_provisioning_process(function=load_firmware_sequential,
-                                          resources= nxso_switches,
-                                          steps=['Load Firmware'])
+                                          resources= nxso_switches)
+
 
 sandbox.execute()

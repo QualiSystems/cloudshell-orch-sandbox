@@ -9,7 +9,7 @@ DefaultSetupWorkflow.extend(sandbox,
                             enable_provisioning=True)
 
 #get sandbox id
-reservation_details = sandbox.api.GetReservationDetails(sandbox.reservation_id)
+reservation_details = sandbox.automation_api.GetReservationDetails(sandbox.reservation_id)
 
 #get all apps in sandbox
 all_apps = sandbox.components.Apps

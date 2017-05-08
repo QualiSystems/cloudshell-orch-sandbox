@@ -6,8 +6,7 @@ def main():
     sandbox = Sandbox()
     DefaultSetupWorkflow.extend(sandbox, enable_configuration=False)  ##Disable OOTB configuration
     sandbox.workflow.add_configuration_process(function=configure_apps,
-                                               resources=sandbox.components.Apps,
-                                               steps=['Configuration'])
+                                               resources=sandbox.components.Apps)
     sandbox.execute()
 
 
@@ -17,10 +16,10 @@ def configure_apps(sandbox, apps):
     :return:
     """
     ##Configure databases
-    databases = sandbox.components.get_apps_by_name('Database')
+    databases = sandbox.components.get_apps_by_name_contains('Database')
     for app in databases:
         build_id = sandbox.globals['build_id']
-        sandbox.apps_configuration.set_config_param(app=app,
+        sandbox.apps_configuration.set_config_param(deployed_app=app,
                                                     key='build_id',
                                                     value=build_id)
 
@@ -28,10 +27,11 @@ def configure_apps(sandbox, apps):
 
     ##Configure web servers
     address = sandbox.components.Resources['Application-server'].FullAddress
-    web_servers = sandbox.components.get_apps_by_name('Web Server')
+
+    web_servers = sandbox.components.get_apps_by_name_contains('Web Server')
     for app in web_servers:
         build_id = sandbox.globals['build_id']
-        sandbox.apps_configuration.set_config_param(app=app,
+        sandbox.apps_configuration.set_config_param(deployed_app=app,
                                                     key='server',
                                                     value=address)
 

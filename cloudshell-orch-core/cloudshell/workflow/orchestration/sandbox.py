@@ -13,8 +13,9 @@ from cloudshell.workflow.orchestration.components import Components
 
 class Sandbox(object):
     def __init__(self):
+        self.deploy_result = None
         self._resource_details_cache = {}
-        self.api = helpers.get_api_session()
+        self.automation_api = helpers.get_api_session()
         self.workflow = Workflow()
 
         self.connectivityContextDetails = helpers.get_connectivity_context_details()
@@ -22,10 +23,7 @@ class Sandbox(object):
         self.globals = self.reservationContextDetails.parameters.global_inputs
         self.reservation_id = self.reservationContextDetails.id
 
-        self.apps_configuration = AppsConfiguration(reservation_id=self.reservation_id,
-                                                    api=self.api)
-
-        reservation_description = self.api.GetReservationDetails(self.reservation_id).ReservationDescription
+        reservation_description = self.automation_api.GetReservationDetails(self.reservation_id).ReservationDescription
         self.components = Components(reservation_description.Resources,
                                      reservation_description.Services,
                                      reservation_description.Apps)
@@ -34,11 +32,15 @@ class Sandbox(object):
                                     log_group=self.reservation_id,
                                     log_category='Setup')
 
-    def _execute_step(self, func, resources, steps):
+        self.apps_configuration = AppsConfiguration(reservation_id=self.reservation_id,
+                                                    api=self.automation_api,
+                                                    logger = self.logger)
+
+    def _execute_step(self, func, components):
         self.logger.info("Executing: {0}. ".format(func.__name__))
         execution_failed = 0
         try:
-            func(self, resources, steps)
+            func(self, components)
             # if (step not ended --> end all steps)
         except Exception as exc:
             execution_failed = 1
@@ -47,11 +49,11 @@ class Sandbox(object):
         return execution_failed
 
     def get_api(self):
-        return self.api
+        return self.automation_api
 
     @profileit(scriptName='Setup')
     def execute(self):
-        api = self.api
+        api = self.automation_api
         self.logger.info("Setup execution started")
 
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
@@ -69,8 +71,7 @@ class Sandbox(object):
             pool = ThreadPool(number_of_provisioning_processes)
 
             async_results = [pool.apply_async(self._execute_step, (workflow_object.function,
-                                                                   workflow_object.components,
-                                                                   workflow_object.steps)) for workflow_object in
+                                                                   workflow_object.components)) for workflow_object in
                              self.workflow._provisioning_functions]
 
             pool.close()
@@ -80,8 +81,8 @@ class Sandbox(object):
             for async_result in async_results:
                 result = async_result.get()
                 if result == 1:  # failed to execute step
-                    self.api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                             message='<font color="red">Error occurred during sandbox provisioning, see full activity feed for more information.</font>')
+                    self.automation_api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                                                        message='<font color="red">Error occurred during sandbox provisioning, see full activity feed for more information.</font>')
                     sys.exit(-1)
 
         else:
@@ -91,8 +92,7 @@ class Sandbox(object):
             "Executing {0} sandbox after provisioning ended steps. ".format(len(self.workflow._after_provisioning)))
         for workflow_object in self.workflow._after_provisioning:
             self._execute_step(workflow_object.function,
-                               workflow_object.components,
-                               workflow_object.steps)
+                               workflow_object.components)
         # API.StageEnded(provisioning)
 
 
@@ -103,8 +103,7 @@ class Sandbox(object):
             pool = ThreadPool(number_of_connectivity_processes)
 
             async_results = [pool.apply_async(self._execute_step, (workflow_object.function,
-                                                                   workflow_object.components,
-                                                                   workflow_object.steps)) for workflow_object in
+                                                                   workflow_object.components)) for workflow_object in
                              self.workflow._connectivity_functions]
 
             pool.close()
@@ -114,8 +113,8 @@ class Sandbox(object):
             for async_result in async_results:
                 result = async_result.get()
                 if result == 1:  # failed to execute step
-                    self.api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                             message='<font color="red">Error occurred during sandbox connectivity, see full activity feed for more information.</font>')
+                    self.automation_api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                                                        message='<font color="red">Error occurred during sandbox connectivity, see full activity feed for more information.</font>')
                     sys.exit(-1)
         else:
             self.logger.info("No connectivity process was configured.")
@@ -124,8 +123,7 @@ class Sandbox(object):
             "Executing {0} sandbox after connectivity ended steps. ".format(len(self.workflow._after_connectivity)))
         for workflow_object in self.workflow._after_connectivity:
             self._execute_step(workflow_object.function,
-                               workflow_object.components,
-                               workflow_object.steps)
+                               workflow_object.components)
 
         # API.StageEnded(provisioning)
 
@@ -137,8 +135,7 @@ class Sandbox(object):
             pool = ThreadPool(number_of_configuration_processes)
 
             async_results = [pool.apply_async(self._execute_step, (workflow_object.function,
-                                                                   workflow_object.components,
-                                                                   workflow_object.steps)) for workflow_object in
+                                                                   workflow_object.components)) for workflow_object in
                              self.workflow._configuration_functions]
 
             pool.close()
@@ -148,8 +145,8 @@ class Sandbox(object):
             for async_result in async_results:
                 result = async_result.get()
                 if result == 1:  # failed to execute step
-                    self.api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                             message='<font color="red">Error occurred during sandbox configuration, see full activity feed for more information.</font>')
+                    self.automation_api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                                                        message='<font color="red">Error occurred during sandbox configuration, see full activity feed for more information.</font>')
                     sys.exit(-1)
         else:
             self.logger.info("No configuration process was configured.")
@@ -159,8 +156,7 @@ class Sandbox(object):
 
         for workflow_object in self.workflow._after_configuration:
             self._execute_step(workflow_object.function,
-                               workflow_object.components,
-                               workflow_object.steps)
+                               workflow_object.components)
 
         # API.StageEnded(provisioning)
 

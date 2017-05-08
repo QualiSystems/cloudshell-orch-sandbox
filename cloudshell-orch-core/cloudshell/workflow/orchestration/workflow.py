@@ -1,13 +1,12 @@
 class WorkflowObject(object):
-    def __init__(self, function, components, steps):
+    def __init__(self, function, components):
         self.function = function
         self.components = components
-        self.steps = steps
 
 
 class Workflow(object):
     def __init__(self):
-        self._provisioning_functions = []  # provisioning steps, function step name, resources
+        self._provisioning_functions = []
         """:type : list[WorkflowObject]"""
         self._connectivity_functions = []
         """:type : list[WorkflowObject]"""
@@ -21,20 +20,20 @@ class Workflow(object):
         self._after_configuration = []
         """:type : list[WorkflowObject]"""
 
-    def add_provisioning_process(self, function, steps=None, resources=None):
-        self._provisioning_functions.append(WorkflowObject(function, steps, resources))
+    def add_to_provisioning(self, function, components=None):
+        self._provisioning_functions.append(WorkflowObject(function=function, components=components))
 
-    def on_provisioning_ended(self, function, steps=None, resources=None):
-        self._after_provisioning.append(WorkflowObject(function, steps, resources))
+    def on_provisioning_ended(self, function, components=None):
+        self._after_provisioning.append(WorkflowObject(function=function, components=components))
 
-    def add_connectivity_process(self, function, steps=None, resources=None):
-        self._connectivity_functions.append(WorkflowObject(function, steps, resources))
+    def add_to_connectivity(self, function, components=None):
+        self._connectivity_functions.append(WorkflowObject(function=function, components=components))
 
-    def on_connectivity_ended(self, function, steps=None, resources=None):
-        self._after_connectivity.append(WorkflowObject(function, steps, resources))
+    def on_connectivity_ended(self, function, components=None):
+        self._after_connectivity.append(WorkflowObject(function=function, components=components))
 
-    def add_configuration_process(self, function, steps=None, resources=None):
-        self._configuration_functions.append(WorkflowObject(function, steps, resources))
+    def add_to_configuration(self, function, components=None):
+        self._configuration_functions.append(WorkflowObject(function=function, components=components))
 
-    def on_configuration_ended(self, function, steps=None, resources=None):
-        self._after_configuration.append(WorkflowObject(function, steps, resources))
+    def on_configuration_ended(self, function, omponents=None):
+        self._after_configuration.append(WorkflowObject(function=function, components=components))

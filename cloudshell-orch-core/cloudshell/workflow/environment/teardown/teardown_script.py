@@ -9,6 +9,7 @@ from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from cloudshell.workflow.profiler.env_profiler import profileit
 from cloudshell.workflow.helpers.resource_helpers import *
 
+
 class EnvironmentTeardown:
     REMOVE_DEPLOYED_RESOURCE_ERROR = 153
 
@@ -109,7 +110,7 @@ class EnvironmentTeardown:
             except CloudShellAPIError as exc:
                 if exc.code == EnvironmentTeardown.REMOVE_DEPLOYED_RESOURCE_ERROR:
                     self.logger.error(
-                            "Error executing RemoveResourcesFromReservation command. Error: {0}".format(exc.message))
+                        "Error executing RemoveResourcesFromReservation command. Error: {0}".format(exc.message))
                     api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                                         message=exc.message)
 
