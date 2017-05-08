@@ -58,3 +58,6 @@ docs/_build/
 # PyBuilder
 target/
 cloudshell_config.yml
+
+# PyCharm
+.idea/*
