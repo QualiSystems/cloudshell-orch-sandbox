@@ -35,5 +35,5 @@ class Workflow(object):
     def add_to_configuration(self, function, components=None):
         self._configuration_functions.append(WorkflowObject(function=function, components=components))
 
-    def on_configuration_ended(self, function, omponents=None):
+    def on_configuration_ended(self, function, components=None):
         self._after_configuration.append(WorkflowObject(function=function, components=components))

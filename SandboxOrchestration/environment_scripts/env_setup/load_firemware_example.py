@@ -1,28 +1,25 @@
-from cloudshell.api.cloudshell_api import InputNameValue
-from cloudshell.workflow.orchestration.sandbox import Sandbox
 from cloudshell.workflow.orchestration.default_setup_orchestrator import DefaultSetupWorkflow
+from cloudshell.workflow.orchestration.sandbox import Sandbox
 
-def load_firmware_sequential(sandbox):
+
+def load_firmware_sequential(sandbox, components):
     """
     :param Sandbox sandbox:
+    :param components:
     :return:
     """
-    nxso_switches = sandbox.components.get_resources_by_model('nxos')
-    for r in nxso_switches:
-        sandbox.automation_api.ExecuteCommand(reservationId= sandbox.reservation_id,
-                                              targetName=r.FullName,
+    for component in components:
+        sandbox.automation_api.ExecuteCommand(reservationId=sandbox.id,
+                                              targetName=component.Name,
                                               targetType='Resource',
-                                              commandName='load_firemware',
-                                              commandInputs=[InputNameValue('fw_version',
-                                                                 sandbox.globals['fw_version'])])
+                                              commandName='return_simple_string')
 
 
 sandbox = Sandbox()
-DefaultSetupWorkflow.extend(sandbox)
+DefaultSetupWorkflow().register(sandbox)
 
-nxso_switches = sandbox.components.get_resources_by_model('nxos')
-sandbox.workflow.add_provisioning_process(function=load_firmware_sequential,
-                                          resources= nxso_switches)
-
+nxso_switches = sandbox.components.get_resources_by_model('Generic Chassis Model')
+sandbox.workflow.add_to_provisioning(function=load_firmware_sequential,
+                                     components=nxso_switches)
 
 sandbox.execute()

@@ -13,61 +13,53 @@ from cloudshell.workflow.orchestration.components import Components
 
 class Sandbox(object):
     def __init__(self):
-        self.deploy_result = None
-        self._resource_details_cache = {}
         self.automation_api = helpers.get_api_session()
         self.workflow = Workflow()
 
         self.connectivityContextDetails = helpers.get_connectivity_context_details()
         self.reservationContextDetails = helpers.get_reservation_context_details()
         self.globals = self.reservationContextDetails.parameters.global_inputs
-        self.reservation_id = self.reservationContextDetails.id
+        self.id = self.reservationContextDetails.id
 
-        reservation_description = self.automation_api.GetReservationDetails(self.reservation_id).ReservationDescription
+        reservation_description = self.automation_api.GetReservationDetails(self.id).ReservationDescription
         self.components = Components(reservation_description.Resources,
                                      reservation_description.Services,
                                      reservation_description.Apps)
 
         self.logger = get_qs_logger(log_file_prefix="CloudShell Sandbox Setup",
-                                    log_group=self.reservation_id,
+                                    log_group=self.id,
                                     log_category='Setup')
 
-        self.apps_configuration = AppsConfiguration(reservation_id=self.reservation_id,
-                                                    api=self.automation_api,
-                                                    logger = self.logger)
+        self.apps_configuration = AppsConfiguration(sandbox=self)
 
     def _execute_step(self, func, components):
-        self.logger.info("Executing: {0}. ".format(func.__name__))
+        self.logger.info("Executing method: {0}. ".format(func.__name__))
         execution_failed = 0
         try:
             func(self, components)
-            # if (step not ended --> end all steps)
         except Exception as exc:
             execution_failed = 1
             print exc
             self.logger.error("Error executing function {0}. detaild error: {1}, {2}".format(func.__name__, str(exc), str(exc.message)))
         return execution_failed
 
-    def get_api(self):
-        return self.automation_api
-
     @profileit(scriptName='Setup')
     def execute(self):
         api = self.automation_api
         self.logger.info("Setup execution started")
 
-        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+        api.WriteMessageToReservationOutput(reservationId=self.id,
                                             message='Beginning sandbox setup')
 
         ## prepare sandbox stage
         self.logger.info("Preparing connectivity for sandbox. ")
-        SetupCommon.prepare_connectivity(api, self.reservation_id, self.logger)
+        SetupCommon.prepare_connectivity(api, self.id, self.logger)
 
         ## provisioning workflow stage
         number_of_provisioning_processes = len(self.workflow._provisioning_functions)
         self.logger.info("Executing {0} workflow provisioning processes. ".format(number_of_provisioning_processes))
 
-        if number_of_provisioning_processes >= 1:
+        if number_of_provisioning_processes > 0:
             pool = ThreadPool(number_of_provisioning_processes)
 
             async_results = [pool.apply_async(self._execute_step, (workflow_object.function,
@@ -81,7 +73,7 @@ class Sandbox(object):
             for async_result in async_results:
                 result = async_result.get()
                 if result == 1:  # failed to execute step
-                    self.automation_api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                    self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
                                                                         message='<font color="red">Error occurred during sandbox provisioning, see full activity feed for more information.</font>')
                     sys.exit(-1)
 
@@ -113,7 +105,7 @@ class Sandbox(object):
             for async_result in async_results:
                 result = async_result.get()
                 if result == 1:  # failed to execute step
-                    self.automation_api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                    self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
                                                                         message='<font color="red">Error occurred during sandbox connectivity, see full activity feed for more information.</font>')
                     sys.exit(-1)
         else:
@@ -145,7 +137,7 @@ class Sandbox(object):
             for async_result in async_results:
                 result = async_result.get()
                 if result == 1:  # failed to execute step
-                    self.automation_api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                    self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
                                                                         message='<font color="red">Error occurred during sandbox configuration, see full activity feed for more information.</font>')
                     sys.exit(-1)
         else:
@@ -160,7 +152,7 @@ class Sandbox(object):
 
         # API.StageEnded(provisioning)
 
-        self.logger.info("Setup for sandbox {0} completed".format(self.reservation_id))
+        self.logger.info("Setup for sandbox {0} completed".format(self.id))
 
-        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+        api.WriteMessageToReservationOutput(reservationId=self.id,
                                             message='Sandbox setup finished successfully')

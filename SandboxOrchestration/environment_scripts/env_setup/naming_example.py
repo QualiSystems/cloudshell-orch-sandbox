@@ -3,13 +3,12 @@ from cloudshell.workflow.orchestration.default_setup_orchestrator import Default
 
 sandbox = Sandbox()
 
-DefaultSetupWorkflow.extend(sandbox,
-                            enable_configuration=True,
-                            enable_connectivity=True,
-                            enable_provisioning=True)
+DefaultSetupWorkflow.register(enable_configuration=True,
+                              enable_connectivity=True,
+                              enable_provisioning=True)
 
 #get sandbox id
-reservation_details = sandbox.automation_api.GetReservationDetails(sandbox.reservation_id)
+reservation_details = sandbox.automation_api.GetReservationDetails(sandbox.id)
 
 #get all apps in sandbox
 all_apps = sandbox.components.Apps

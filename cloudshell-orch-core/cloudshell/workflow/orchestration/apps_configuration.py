@@ -3,41 +3,45 @@ from logging import Logger
 
 
 class AppsConfiguration(object):
-    def __init__(self, reservation_id, api, logger):
-        self.api = api
-        """:type : CloudShellAPISession"""
-        self.reservation_id = reservation_id
-        """:type : str"""
-        self.appsConfiguration = []
-        """:type : list[AppConfiguration]"""
-        self._apps_details_cache = {}
-        """:type : dict[str, str]"""  # logical resource, app name
-        self.logger = logger
-        """:type : logging.Logger"""
+    def __init__(self, sandbox):
+        self.sandbox = sandbox
+        """:type : Sandbox"""
 
-    def set_config_param(self, deployed_app, key, value):
+    def set_config_param(self, app, key, value):
         """
-        :param ReservedResourceInfo deployed_app:
+        :param App app:
         :param str key:
         :param str value:
         :return:
         """
-        self.appsConfiguration.append(AppConfiguration(deployed_app.Name, ConfigParams(ConfigParam(key, value))))
-        self.logger.debug("App config param with key: {0} and value: {1} was added to app-resource {2}"
-                          .format(key, value, deployed_app.Name))
+        self.sandbox.components.apps[app.app_request.app_resource.Name].app_request.add_app_config_param(key, value)
+        self.sandbox.logger.info("App config param with key: '{0}' and value: '{1}' was added to app-resource '{2}'"
+                                 .format(key, value, app.app_request.app_resource.Name))
 
-    def apply_apps_configurations(self, deployed_apps):
+    def apply_apps_configurations(self, apps):
         """
-        :param list[ReservedResourceInfo] deployed_apps:
+        :param list[App] apps:
         :return:
         """
+        apps_configuration = []
 
-        # add all apps that doesn't have inputs to appsConfiguration
-        for deployed_app in deployed_apps:
-            if deployed_app.Name not in [x.AppName for x in self.appsConfiguration]:
-                self.appsConfiguration.append(AppConfiguration(deployed_app.Name,
-                                                               None))  # no config params
+        for app in apps:
+            if len(app.app_request.appConfiguration) > 0:
+                apps_configuration.append(AppConfiguration(app.deployed_app.Name,
+                                                           app.app_request.appConfiguration))
+                self.sandbox.logger.debug(
+                    "App '{0}' was added to appConfiguration using app request information".format(
+                        app.deployed_app.Name))
 
 
-        self.api.ConfigureApps(reservationId=self.reservation_id,
-                               appConfigurations=self.appsConfiguration)
+            else:
+                apps_configuration.append(AppConfiguration(app.deployed_app.Name, None))
+                self.sandbox.logger.debug(
+                    "App '{0}' was added to appConfiguration without configuration parameters".format(
+                        app.deployed_app.Name))
+
+        self.sandbox.logger.info(
+            "Configuring apps: {0}".format(', '.join([app_configuration.AppName for app_configuration in apps_configuration])))
+
+        self.sandbox.automation_api.ConfigureApps(reservationId=self.sandbox.reservation_id,
+                                                  appConfigurations=apps_configuration)

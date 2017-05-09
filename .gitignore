@@ -68,11 +68,15 @@ target/
 .idea/vcs.xml
 .idea/workspace.xml
 .idea/dictionaries/
+.idea/inspectionProfiles/*
 qpm.ini
 .pypirc
 */.idea/*
+.vs/*
 
 # zip files
 *.zip
 /cloudshell-orch-core/.idea/
 /cloudshell-orch-core/upload.bat
+cloudshell-orch-sandbox.pyproj
+Delete.py

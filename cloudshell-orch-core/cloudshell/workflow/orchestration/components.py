@@ -1,4 +1,4 @@
-from cloudshell.api.cloudshell_api import ReservedResourceInfo, ServiceInstance, ReservationAppResource
+from cloudshell.workflow.orchestration.app import App
 
 
 class Components(object):
@@ -7,26 +7,34 @@ class Components(object):
         """:type : dict[str, ReservedResourceInfo]"""
         self.services = dict((service.ServiceName, service) for service in services)
         """:type : dict[str, ServiceInstance]"""
-        self.apps = dict((app.Name, app) for app in apps)
-        """:type : dict[str, ReservationAppResource]"""
+        self.apps = dict((app.Name, App(app)) for app in apps)
+        """:type : dict[str, App]"""
 
     def get_apps_by_name_contains(self, name):
-        results = []
-        for key, value in self.apps.iteritems():
-            if name in key:
-                results.append(value)
-        return results
+        """
+        :param str name:
+        :return:
+        """
+        return [value for key, value in self.apps.iteritems() if name in key]
 
     def get_resources_by_model(self, model):
-        return [x for x in self.resources if model == x.ResourceModelName]
+        """
+        :param str model:
+        :return:
+        """
+        return [value for key, value in self.resources.iteritems() if model == value.ResourceModelName]
 
-    def add_app_deployment_results(self, sandbox, deployment_results):
+    def add_deployed_apps_info(self, sandbox, deployment_results):
         """
         :param Sandbox sandbox:
         :param DeployAppToCloudProviderBulkInfo deployment_results:
         :return:
         """
-        for deployment_result in deployment_results:
-            logical_resource = deployment_result.AppDeploymentyInfo.LogicalResourceName
-            sandbox.apps_configuration._apps_details_cache[logical_resource]=deployment_result[deployment_result.AppName]
-        pass
+        reservation_resources = sandbox.automation_api.GetReservationDetails(
+            sandbox.id).ReservationDescription.Resources
+
+        self.resources = dict((resource.Name, resource) for resource in reservation_resources)
+
+        for result_item in deployment_results.ResultItems:
+            self.apps[result_item.AppName].set_deployed_app_resource(
+                self.resources[result_item.AppDeploymentyInfo.LogicalResourceName])
