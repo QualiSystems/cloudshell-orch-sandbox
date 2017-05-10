@@ -5,6 +5,13 @@ class WorkflowObject(object):
 
 
 class Workflow(object):
+    PROVISIONING_STAGE_NAME = 'Provisioning'
+    ON_PROVISIONING_ENDED_STAGE_NAME = 'On provisioning ended'
+    CONNECTIVITY_STAGE_NAME = 'Connectivity'
+    ON_CONNECTIVITY_ENDED_STAGE_NAME = 'On connectivity ended'
+    CONFIGURATION_STAGE_NAME = 'Configuration'
+    ON_CONFIGURATION_ENDED_STAGE_NAME = 'On configuration ended'
+
     def __init__(self):
         self._provisioning_functions = []
         """:type : list[WorkflowObject]"""
@@ -19,6 +26,9 @@ class Workflow(object):
         """:type : list[WorkflowObject]"""
         self._after_configuration = []
         """:type : list[WorkflowObject]"""
+
+        self._teardown = None
+        """:type : WorkflowObject"""
 
     def add_to_provisioning(self, function, components=None):
         self._provisioning_functions.append(WorkflowObject(function=function, components=components))
@@ -37,3 +47,6 @@ class Workflow(object):
 
     def on_configuration_ended(self, function, components=None):
         self._after_configuration.append(WorkflowObject(function=function, components=components))
+
+    def set_teardown(self, function, components=None):
+        self._teardown = WorkflowObject(function=function, components=components)

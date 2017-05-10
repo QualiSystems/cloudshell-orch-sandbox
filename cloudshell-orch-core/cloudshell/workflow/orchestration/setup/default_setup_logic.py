@@ -8,7 +8,7 @@ from cloudshell.workflow.helpers.resource_helpers import *
 from remap_child_resources_constants import *
 
 
-class SetupCommon(object):
+class DefaultSetupLogic(object):
     NO_DRIVER_ERR = "129"
     DRIVER_FUNCTION_ERROR = "151"
 
@@ -74,8 +74,8 @@ class SetupCommon(object):
                                    REMAP_CHILD_RESOURCES, [])
 
             except CloudShellAPIError as exc:
-                if exc.code not in (SetupCommon.NO_DRIVER_ERR,
-                                    SetupCommon.DRIVER_FUNCTION_ERROR,
+                if exc.code not in (DefaultSetupLogic.NO_DRIVER_ERR,
+                                    DefaultSetupLogic.DRIVER_FUNCTION_ERROR,
                                     MISSING_COMMAND_ERROR):
                     logger.error(
                         "Error executing Autoload command on deployed app {0}. Error: {1}".format(deployed_app_name,
@@ -167,7 +167,7 @@ class SetupCommon(object):
             api.WriteMessageToReservationOutput(
                 reservationId=reservation_id,
                 message='No resources to power on')
-            SetupCommon.validate_all_apps_deployed(deploy_results)
+            DefaultSetupLogic.validate_all_apps_deployed(deploy_results)
             return
 
         pool = ThreadPool(len(resources))
@@ -177,7 +177,7 @@ class SetupCommon(object):
             "wait_for_ip": False
         }
 
-        async_results = [pool.apply_async(SetupCommon._power_on_refresh_ip,
+        async_results = [pool.apply_async(DefaultSetupLogic._power_on_refresh_ip,
                                           (api, lock, message_status, resource, deploy_results, resource_details_cache, reservation_id, logger))
                          for resource in resources]
 
@@ -189,8 +189,8 @@ class SetupCommon(object):
             if not res[0]:
                 raise Exception("Sandbox is Active with Errors - " + res[1])
 
-        SetupCommon.validate_all_apps_deployed(deploy_results=deploy_results,
-                                               logger=logger)
+        DefaultSetupLogic.validate_all_apps_deployed(deploy_results=deploy_results,
+                                                     logger=logger)
 
     @staticmethod
     def configure_apps(api, reservation_id, logger):
@@ -290,14 +290,14 @@ class SetupCommon(object):
                                                                              str(exc)))
 
         try:
-            SetupCommon._power_on(api, deployed_app_name, power_on, lock, message_status, reservation_id, logger)
+            DefaultSetupLogic._power_on(api, deployed_app_name, power_on, lock, message_status, reservation_id, logger)
         except Exception as exc:
             logger.error("Error powering on deployed app {0} in sandbox {1}. Error: {2}"
                               .format(deployed_app_name, reservation_id, str(exc)))
             return False, "Error powering on deployed app {0}".format(deployed_app_name)
 
         try:
-            SetupCommon._wait_for_ip(api, deployed_app_name, wait_for_ip, lock, message_status, reservation_id, logger)
+            DefaultSetupLogic._wait_for_ip(api, deployed_app_name, wait_for_ip, lock, message_status, reservation_id, logger)
         except Exception as exc:
             logger.error("Error refreshing IP on deployed app {0} in sandbox {1}. Error: {2}"
                               .format(deployed_app_name, reservation_id, str(exc)))

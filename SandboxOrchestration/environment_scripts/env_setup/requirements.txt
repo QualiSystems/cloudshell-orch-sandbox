@@ -1,3 +1,1 @@
-cloudshell-automation-api>=8.0.0.0,<8.1.0.0
-cloudshell-core>=2.1.0,<2.2.0
-cloudshell-shell-core>=2.2.0,<2.3.0
+cloudshell-orch-core<1

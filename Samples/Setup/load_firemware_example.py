@@ -1,5 +1,5 @@
-from cloudshell.workflow.orchestration.default_setup_orchestrator import DefaultSetupWorkflow
 from cloudshell.workflow.orchestration.sandbox import Sandbox
+from cloudshell.workflow.orchestration.setup.default_setup_orchestrator import DefaultSetupWorkflow
 
 
 def load_firmware_sequential(sandbox, components):
@@ -22,4 +22,4 @@ nxso_switches = sandbox.components.get_resources_by_model('Generic Chassis Model
 sandbox.workflow.add_to_provisioning(function=load_firmware_sequential,
                                      components=nxso_switches)
 
-sandbox.execute()
+sandbox.execute_setup()

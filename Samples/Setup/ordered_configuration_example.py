@@ -1,5 +1,5 @@
-from cloudshell.workflow.orchestration.default_setup_orchestrator import DefaultSetupWorkflow
 from cloudshell.workflow.orchestration.sandbox import Sandbox
+from cloudshell.workflow.orchestration.setup.default_setup_orchestrator import DefaultSetupWorkflow
 
 
 def main():
@@ -10,7 +10,7 @@ def main():
     DefaultSetupWorkflow().register(sandbox, enable_configuration=False)  # Disable OOTB configuration
     sandbox.workflow.add_to_configuration(function=configure_apps,
                                           components=sandbox.components.apps)
-    sandbox.execute()
+    sandbox.execute_setup()
 
 
 def configure_apps(sandbox, apps):

@@ -1,5 +1,4 @@
-from cloudshell.api.cloudshell_api import AppConfiguration, ConfigParams, ConfigParam, ReservationAppResource
-from logging import Logger
+from cloudshell.api.cloudshell_api import AppConfiguration
 
 
 class AppsConfiguration(object):

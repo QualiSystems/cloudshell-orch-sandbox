@@ -10,34 +10,18 @@ from cloudshell.workflow.profiler.env_profiler import profileit
 from cloudshell.workflow.helpers.resource_helpers import *
 
 
-class EnvironmentTeardown:
+class DefaultTeardownLogic:
     REMOVE_DEPLOYED_RESOURCE_ERROR = 153
 
-    def __init__(self):
-        self.reservation_id = helpers.get_reservation_context_details().id
-        self.logger = qs_logger.get_qs_logger(log_file_prefix="CloudShell Sandbox Teardown",
-                                              log_group=self.reservation_id,
-                                              log_category='Teardown')
-
-    @profileit(scriptName="Teardown")
-    def execute(self):
-        api = helpers.get_api_session()
-        reservation_details = api.GetReservationDetails(self.reservation_id)
-
-        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                            message='Beginning workflow teardown')
-
-        self._disconnect_all_routes_in_reservation(api, reservation_details)
-
-        self._power_off_and_delete_all_vm_resources(api, reservation_details, self.reservation_id)
-
-        self._cleanup_connectivity(api, self.reservation_id)
-
-        self.logger.info("Teardown for reservation {0} completed".format(self.reservation_id))
-        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                            message='Sandbox teardown finished successfully')
-
-    def _disconnect_all_routes_in_reservation(self, api, reservation_details):
+    @staticmethod
+    def disconnect_all_routes_in_reservation(api, reservation_details, reservation_id, logger):
+        """
+        :param CloudShellAPISession api:
+        :param GetReservationDescriptionResponseInfo reservation_details:
+        :param str reservation_id:
+        :param Logger logger:
+        :return:
+        """
         connectors = reservation_details.ReservationDescription.Connectors
         endpoints = []
         for endpoint in connectors:
@@ -47,33 +31,35 @@ class EnvironmentTeardown:
                 endpoints.append(endpoint.Source)
 
         if not endpoints:
-            self.logger.info("No routes to disconnect for reservation {0}".format(self.reservation_id))
+            logger.info("No routes to disconnect for reservation {0}".format(reservation_id))
             return
 
         try:
-            self.logger.info("Executing disconnect routes for reservation {0}".format(self.reservation_id))
-            api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+            logger.info("Executing disconnect routes for reservation {0}".format(reservation_id))
+            api.WriteMessageToReservationOutput(reservationId=reservation_id,
                                                 message="Disconnecting all apps...")
-            api.DisconnectRoutesInReservation(self.reservation_id, endpoints)
+            api.DisconnectRoutesInReservation(reservation_id, endpoints)
 
         except CloudShellAPIError as cerr:
             if cerr.code != "123":  # ConnectionNotFound error code
-                self.logger.error("Error disconnecting all routes in reservation {0}. Error: {1}"
-                                  .format(self.reservation_id, str(cerr)))
-                api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                logger.error("Error disconnecting all routes in reservation {0}. Error: {1}"
+                                  .format(reservation_id, str(cerr)))
+                api.WriteMessageToReservationOutput(reservationId=reservation_id,
                                                     message="Error disconnecting apps. Error: {0}".format(cerr.message))
 
         except Exception as exc:
-            self.logger.error("Error disconnecting all routes in reservation {0}. Error: {1}"
-                              .format(self.reservation_id, str(exc)))
-            api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+            logger.error("Error disconnecting all routes in reservation {0}. Error: {1}"
+                              .format(reservation_id, str(exc)))
+            api.WriteMessageToReservationOutput(reservationId=reservation_id,
                                                 message="Error disconnecting apps. Error: {0}".format(exc.message))
 
-    def _power_off_and_delete_all_vm_resources(self, api, reservation_details, reservation_id):
+    @staticmethod
+    def power_off_and_delete_all_vm_resources(api, reservation_details, reservation_id, logger):
         """
         :param CloudShellAPISession api:
         :param GetReservationDescriptionResponseInfo reservation_details:
         :param str reservation_id:
+        :param Logger logger:
         :return:
         """
         # filter out resources not created in this reservation
@@ -90,8 +76,8 @@ class EnvironmentTeardown:
 
         for resource in resources:
             if resource.VmDetails:
-                result_obj = pool.apply_async(self._power_off_or_delete_deployed_app,
-                                              (api, resource, lock, message_status))
+                result_obj = pool.apply_async(DefaultTeardownLogic._power_off_or_delete_deployed_app,
+                                              (api, resource, lock, message_status, reservation_id, logger))
                 async_results.append(result_obj)
 
         pool.close()
@@ -106,20 +92,36 @@ class EnvironmentTeardown:
         # delete resource - bulk
         if resource_to_delete:
             try:
-                api.RemoveResourcesFromReservation(self.reservation_id, resource_to_delete)
+                api.RemoveResourcesFromReservation(reservation_id, resource_to_delete)
             except CloudShellAPIError as exc:
-                if exc.code == EnvironmentTeardown.REMOVE_DEPLOYED_RESOURCE_ERROR:
-                    self.logger.error(
+                if exc.code == DefaultTeardownLogic.REMOVE_DEPLOYED_RESOURCE_ERROR:
+                    logger.error(
                         "Error executing RemoveResourcesFromReservation command. Error: {0}".format(exc.message))
-                    api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                    api.WriteMessageToReservationOutput(reservationId=reservation_id,
                                                         message=exc.message)
 
-    def _power_off_or_delete_deployed_app(self, api, resource_info, lock, message_status):
+    @staticmethod
+    def cleanup_connectivity(api, reservation_id, logger):
+        """
+        :param CloudShellAPISession api:
+        :param str reservation_id:
+        :param Logger logger:
+        :return:
+        """
+        logger.info("Cleaning-up connectivity for reservation {0}".format(reservation_id))
+        api.WriteMessageToReservationOutput(reservationId=reservation_id,
+                                            message='Cleaning-up connectivity')
+        api.CleanupSandboxConnectivity(reservation_id)
+
+    @staticmethod
+    def _power_off_or_delete_deployed_app(api, resource_info, lock, message_status, reservation_id, logger):
         """
         :param CloudShellAPISession api:
         :param Lock lock:
         :param (dict of str: Boolean) message_status:
         :param ResourceInfo resource_info:
+        :param str reservation_id:
+        :param Logger logger:
         :return:
         """
         resource_name = resource_info.Name
@@ -130,8 +132,8 @@ class EnvironmentTeardown:
                 delete = auto_delete_param.Value
 
             if delete.lower() == "true":
-                self.logger.info("Executing 'Delete' on deployed app {0} in reservation {1}"
-                                 .format(resource_name, self.reservation_id))
+                logger.info("Executing 'Delete' on deployed app {0} in reservation {1}"
+                                 .format(resource_name, reservation_id))
 
                 if not message_status['delete']:
                     with lock:
@@ -139,10 +141,10 @@ class EnvironmentTeardown:
                             message_status['delete'] = True
                             if not message_status['power_off']:
                                 message_status['power_off'] = True
-                                api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                api.WriteMessageToReservationOutput(reservationId=reservation_id,
                                                                     message='Apps are being powered off and deleted...')
                             else:
-                                api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                api.WriteMessageToReservationOutput(reservationId=reservation_id,
                                                                     message='Apps are being deleted...')
 
                 # removed call to destroy_vm_only from this place because it will be called from
@@ -156,8 +158,8 @@ class EnvironmentTeardown:
                     power_off = auto_power_off_param.Value
 
                 if power_off.lower() == "true":
-                    self.logger.info("Executing 'Power Off' on deployed app {0} in reservation {1}"
-                                     .format(resource_name, self.reservation_id))
+                    logger.info("Executing 'Power Off' on deployed app {0} in reservation {1}"
+                                     .format(resource_name, reservation_id))
 
                     if not message_status['power_off']:
                         with lock:
@@ -166,23 +168,12 @@ class EnvironmentTeardown:
                                 api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
                                                                     message='Apps are powering off...')
 
-                    api.ExecuteResourceConnectedCommand(self.reservation_id, resource_name, "PowerOff", "power")
+                    api.ExecuteResourceConnectedCommand(reservation_id, resource_name, "PowerOff", "power")
                 else:
-                    self.logger.info("Auto Power Off is disabled for deployed app {0} in reservation {1}"
-                                     .format(resource_name, self.reservation_id))
+                    logger.info("Auto Power Off is disabled for deployed app {0} in reservation {1}"
+                                     .format(resource_name, reservation_id))
             return None
         except Exception as exc:
-            self.logger.error("Error deleting or powering off deployed app {0} in reservation {1}. Error: {2}"
-                              .format(resource_name, self.reservation_id, str(exc)))
+            logger.error("Error deleting or powering off deployed app {0} in reservation {1}. Error: {2}"
+                              .format(resource_name, reservation_id, str(exc)))
             return None
-
-    def _cleanup_connectivity(self, api, reservation_id):
-        """
-        :param CloudShellAPISession api:
-        :param str reservation_id:
-        :return:
-        """
-        self.logger.info("Cleaning-up connectivity for reservation {0}".format(self.reservation_id))
-        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                            message='Cleaning-up connectivity')
-        api.CleanupSandboxConnectivity(reservation_id)
