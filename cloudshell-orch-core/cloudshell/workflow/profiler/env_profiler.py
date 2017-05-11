@@ -1,6 +1,9 @@
 import cProfile, pstats, os
 
 ### http://stackoverflow.com/questions/5375624/a-decorator-that-profiles-a-method-call-and-logs-the-profiling-result ###
+from cloudshell.workflow import helpers
+
+
 def profileit(scriptName):
     def inner(func):
         from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers

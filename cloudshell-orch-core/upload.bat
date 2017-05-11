@@ -1,0 +1,1 @@
+python setup.py sdist --format=zip upload -r testpypi
