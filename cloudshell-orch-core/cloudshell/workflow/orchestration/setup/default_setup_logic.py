@@ -167,7 +167,8 @@ class DefaultSetupLogic(object):
             api.WriteMessageToReservationOutput(
                 reservationId=reservation_id,
                 message='No resources to power on')
-            DefaultSetupLogic.validate_all_apps_deployed(deploy_results)
+            DefaultSetupLogic.validate_all_apps_deployed(deploy_results=deploy_results,
+                                                         logger=logger)
             return
 
         pool = ThreadPool(len(resources))
