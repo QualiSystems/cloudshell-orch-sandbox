@@ -35,6 +35,7 @@ class Components(object):
 
         self.resources = dict((resource.Name, resource) for resource in reservation_resources)
 
-        for result_item in deployment_results.ResultItems:
-            self.apps[result_item.AppName].set_deployed_app_resource(
-                self.resources[result_item.AppDeploymentyInfo.LogicalResourceName])
+        if deployment_results is not None:
+            for result_item in deployment_results.ResultItems:
+                self.apps[result_item.AppName].set_deployed_app_resource(
+                    self.resources[result_item.AppDeploymentyInfo.LogicalResourceName])
