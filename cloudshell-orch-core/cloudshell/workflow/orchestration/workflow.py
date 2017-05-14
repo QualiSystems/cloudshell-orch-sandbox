@@ -1,3 +1,6 @@
+import inspect
+
+
 class WorkflowObject(object):
     def __init__(self, function, components):
         self.function = function
@@ -12,7 +15,7 @@ class Workflow(object):
     CONFIGURATION_STAGE_NAME = 'Configuration'
     ON_CONFIGURATION_ENDED_STAGE_NAME = 'On configuration ended'
 
-    def __init__(self):
+    def __init__(self, sandbox):
         self._provisioning_functions = []
         """:type : list[WorkflowObject]"""
         self._connectivity_functions = []
@@ -30,23 +33,40 @@ class Workflow(object):
         self._teardown = None
         """:type : WorkflowObject"""
 
+        self.sandbox = sandbox
+
     def add_to_provisioning(self, function, components=None):
+        self._validate_function(function)
         self._provisioning_functions.append(WorkflowObject(function=function, components=components))
 
     def on_provisioning_ended(self, function, components=None):
+        self._validate_function(function)
         self._after_provisioning.append(WorkflowObject(function=function, components=components))
 
     def add_to_connectivity(self, function, components=None):
+        self._validate_function(function)
         self._connectivity_functions.append(WorkflowObject(function=function, components=components))
 
     def on_connectivity_ended(self, function, components=None):
+        self._validate_function(function)
         self._after_connectivity.append(WorkflowObject(function=function, components=components))
 
     def add_to_configuration(self, function, components=None):
+        self._validate_function(function)
         self._configuration_functions.append(WorkflowObject(function=function, components=components))
 
     def on_configuration_ended(self, function, components=None):
+        self._validate_function(function)
         self._after_configuration.append(WorkflowObject(function=function, components=components))
 
     def set_teardown(self, function, components=None):
+        self._validate_function(function)
         self._teardown = WorkflowObject(function=function, components=components)
+
+    def _validate_function(self, func):
+        args = inspect.getargspec(func).args
+        if len(args) != 3:
+            self.sandbox.automation_api.WriteMessageToReservationOutput(reservationId=self.sandbox.id,
+                                                                        message='Sandbox orchestration workflow processes "{0}" should have 2 parameters (sandbox and components), see documentation for more information.'.format(
+                                                                            func.__name__))
+            raise Exception("Sandbox is Active with Errors")
