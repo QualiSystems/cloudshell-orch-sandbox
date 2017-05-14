@@ -15,7 +15,7 @@ class AppsConfiguration(object):
         :param str value:
         :return:
         """
-        if not isinstance(app, App):
+        if isinstance(app, App):
             self.sandbox.components.apps[app.app_request.app_resource.Name].app_request.add_app_config_param(key, value)
             self.sandbox.logger.info("App config param with key: '{0}' and value: '{1}' was added to app-resource '{2}'"
                                      .format(key, value, app.app_request.app_resource.Name))
