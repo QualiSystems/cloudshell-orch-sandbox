@@ -83,6 +83,7 @@ class DefaultSetupLogic(object):
                     api.WriteMessageToReservationOutput(reservationId=reservation_id,
                                                         message='Discovery failed on "{0}": {1}'
                                                         .format(deployed_app_name, exc.message))
+                    api.SetResourceLiveStatus(deployed_app_name, "Error", "Discovery failed")
 
             except Exception as exc:
                 logger.error("Error executing Autoload command on deployed app {0}. Error: {1}"
@@ -90,6 +91,7 @@ class DefaultSetupLogic(object):
                 api.WriteMessageToReservationOutput(reservationId=reservation_id,
                                                     message='Discovery failed on "{0}": {1}'
                                                     .format(deployed_app_name, exc.message))
+                api.SetResourceLiveStatus(deployed_app_name, "Error", "Discovery failed")
 
     @staticmethod
     def deploy_apps_in_reservation(api, reservation_details, reservation_id, logger):
@@ -289,12 +291,14 @@ class DefaultSetupLogic(object):
                               "Will use default settings. Error: {2}".format(deployed_app_name,
                                                                              reservation_id,
                                                                              str(exc)))
+            api.SetResourceLiveStatus(deployed_app_name, "Error", "Getting deployed app details has failed")
 
         try:
             DefaultSetupLogic._power_on(api, deployed_app_name, power_on, lock, message_status, reservation_id, logger)
         except Exception as exc:
             logger.error("Error powering on deployed app {0} in sandbox {1}. Error: {2}"
                               .format(deployed_app_name, reservation_id, str(exc)))
+            api.SetResourceLiveStatus(deployed_app_name, "Error", "Powering on has failed")
             return False, "Error powering on deployed app {0}".format(deployed_app_name)
 
         try:
@@ -302,6 +306,7 @@ class DefaultSetupLogic(object):
         except Exception as exc:
             logger.error("Error refreshing IP on deployed app {0} in sandbox {1}. Error: {2}"
                               .format(deployed_app_name, reservation_id, str(exc)))
+            api.SetResourceLiveStatus(deployed_app_name, "Error", "Refreshing ip has failed")
             return False, "Error refreshing IP deployed app {0}. Error: {1}".format(deployed_app_name, exc.message)
 
         return True, ""
