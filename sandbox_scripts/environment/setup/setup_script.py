@@ -7,6 +7,7 @@ from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 from cloudshell.core.logger.qs_logger import get_qs_logger
 from remap_child_resources_constants import *
 
+
 from sandbox_scripts.helpers.resource_helpers import *
 from sandbox_scripts.profiler.env_profiler import profileit
 
@@ -27,7 +28,7 @@ class EnvironmentSetup(object):
         resource_details_cache = {}
 
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                            message='Beginning sandbox setup')
+                                            message= 'Beginning sandbox setup')
 
         self._prepare_connectivity(api, self.reservation_id)
 
@@ -67,7 +68,8 @@ class EnvironmentSetup(object):
         :param str reservation_id:
         """
         self.logger.info("Preparing connectivity for reservation {0}".format(self.reservation_id))
-        api.WriteMessageToReservationOutput(reservationId=self.reservation_id, message='Preparing connectivity')
+        api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                            message='Preparing connectivity')
         api.PrepareSandboxConnectivity(reservation_id)
 
     def _try_exeucte_autoload(self, api, deploy_result, resource_details_cache):
@@ -81,7 +83,8 @@ class EnvironmentSetup(object):
 
         if deploy_result is None:
             self.logger.info("No apps to discover")
-            api.WriteMessageToReservationOutput(reservationId=self.reservation_id, message='No apps to discover')
+            api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                                message='No apps to discover')
             return
 
         message_written = False
@@ -140,14 +143,14 @@ class EnvironmentSetup(object):
         if not apps or (len(apps) == 1 and not apps[0].Name):
             self.logger.info("No apps found in reservation {0}".format(self.reservation_id))
             api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                                message='No apps to deploy')
+                                                message= 'No apps to deploy')
             return None
 
         app_names = map(lambda x: x.Name, apps)
         app_inputs = map(lambda x: DeployAppInput(x.Name, "Name", x.Name), apps)
 
         api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
-                                            message='Apps deployment started')
+                                            message= 'Apps deployment started')
         self.logger.info(
             "Deploying apps for reservation {0}. App names: {1}".format(reservation_details, ", ".join(app_names)))
 
@@ -248,8 +251,8 @@ class EnvironmentSetup(object):
                     failed_apps.append(conf_res.AppName)
 
             if not failed_apps:
-                api.WriteMessageToReservationOutput(reservationId=reservation_id, message=
-                'Apps were configured successfully.')
+                api.WriteMessageToReservationOutput(reservationId=reservation_id,
+                                                    message='Apps were configured successfully.')
             else:
                 api.WriteMessageToReservationOutput(reservationId=reservation_id, message=
                 'Apps: {0} configuration failed. See logs for more details'.format(
