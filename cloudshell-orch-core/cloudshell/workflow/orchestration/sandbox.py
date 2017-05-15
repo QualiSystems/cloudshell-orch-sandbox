@@ -14,7 +14,7 @@ from cloudshell.workflow.profiler.env_profiler import profileit
 class Sandbox(object):
     def __init__(self):
         self.automation_api = helpers.get_api_session()
-        self.workflow = Workflow()
+        self.workflow = Workflow(self)
 
         self.connectivityContextDetails = helpers.get_connectivity_context_details()
         self.reservationContextDetails = helpers.get_reservation_context_details()
