@@ -45,17 +45,25 @@ class Sandbox(object):
         self.logger.info('Preparing connectivity for sandbox. ')
         DefaultSetupLogic.prepare_connectivity(api, self.id, self.logger)
 
+        self.automation_api.SetSetupStage('Provisioning', self.id)
+
         self._execute_stage(self.workflow._provisioning_functions, Workflow.PROVISIONING_STAGE_NAME)
 
         self._after_stage_ended(self.workflow._after_provisioning, Workflow.ON_PROVISIONING_ENDED_STAGE_NAME)
+
+        self.automation_api.SetSetupStage('Connectivity', self.id)
 
         self._execute_stage(self.workflow._connectivity_functions, Workflow.CONNECTIVITY_STAGE_NAME)
 
         self._after_stage_ended(self.workflow._after_connectivity, Workflow.ON_CONNECTIVITY_ENDED_STAGE_NAME)
 
+        self.automation_api.SetSetupStage('Configuration', self.id)
+
         self._execute_stage(self.workflow._configuration_functions, Workflow.CONFIGURATION_STAGE_NAME)
 
         self._after_stage_ended(self.workflow._after_configuration, Workflow.ON_CONFIGURATION_ENDED_STAGE_NAME)
+
+        self.automation_api.SetSetupStage('Ended', self.id)
 
         self.logger.info('Setup for sandbox {0} completed'.format(self.id))
 
