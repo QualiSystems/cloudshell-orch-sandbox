@@ -85,6 +85,10 @@ class DefaultSetupLogic(object):
                                                         .format(deployed_app_name, exc.message))
                     api.SetResourceLiveStatus(deployed_app_name, "Error", "Discovery failed")
 
+                    # Bug 161222 - we must re-raise the original exception to stop the setup
+                    # if there is a discovery error
+                    raise
+
             except Exception as exc:
                 logger.error("Error executing Autoload command on deployed app {0}. Error: {1}"
                                   .format(deployed_app_name, str(exc)))
@@ -92,6 +96,10 @@ class DefaultSetupLogic(object):
                                                     message='Discovery failed on "{0}": {1}'
                                                     .format(deployed_app_name, exc.message))
                 api.SetResourceLiveStatus(deployed_app_name, "Error", "Discovery failed")
+
+                # Bug 161222 - we must re-raise the original exception to stop the setup
+                # if there is a discovery error
+                raise
 
     @staticmethod
     def deploy_apps_in_reservation(api, reservation_details, reservation_id, logger):
