@@ -18,7 +18,9 @@ class Sandbox(object):
 
         self.connectivityContextDetails = helpers.get_connectivity_context_details()
         self.reservationContextDetails = helpers.get_reservation_context_details()
-        self.globals = self.reservationContextDetails.parameters.global_inputs
+        self.global_inputs = helpers.get_global_inputs()
+        self.additional_info_inputs = helpers.get_resource_additional_info_inputs()
+        self.requirement_inputs = helpers.get_resource_requirement_inputs()
         self.id = self.reservationContextDetails.id
 
         reservation_description = self.automation_api.GetReservationDetails(self.id).ReservationDescription

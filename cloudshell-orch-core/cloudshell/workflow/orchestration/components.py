@@ -24,7 +24,21 @@ class Components(object):
         """
         return [value for key, value in self.resources.iteritems() if model == value.ResourceModelName]
 
-    def add_deployed_apps_info(self, sandbox, deployment_results):
+    def get_services_by_alias(self, alias):
+        """
+        :param str alias:
+        :return:
+        """
+        return [value for key, value in self.services.iteritems() if alias == value.Alias]
+
+    def get_services_by_name(self, name):
+        """
+        :param str name:
+        :return:
+        """
+        return [value for key, value in self.services.iteritems() if name == value.ServiceName]
+
+    def update_deployed_apps_information_after_bulk_deployment(self, sandbox, deployment_results):
         """
         :param Sandbox sandbox:
         :param DeployAppToCloudProviderBulkInfo deployment_results:
