@@ -65,7 +65,9 @@ class Workflow(object):
 
     def _validate_function(self, func):
         args = inspect.getargspec(func).args
-        if len(args) != 3:
+        self.sandbox.logger.info(
+            'Validating custom function "{0}": {1}. '.format(func.__name__, args))
+        if len(args) < 2:
             self.sandbox.automation_api.WriteMessageToReservationOutput(reservationId=self.sandbox.id,
                                                                         message='Sandbox orchestration workflow processes "{0}" should have 2 parameters (sandbox and components), see documentation for more information.'.format(
                                                                             func.__name__))

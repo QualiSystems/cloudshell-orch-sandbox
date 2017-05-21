@@ -48,5 +48,5 @@ class AppsConfiguration(object):
         self.sandbox.logger.info(
             "Configuring apps: {0}".format(', '.join([app_configuration.AppName for app_configuration in apps_configuration])))
 
-        self.sandbox.automation_api.ConfigureApps(reservationId=self.sandbox.reservation_id,
+        self.sandbox.automation_api.ConfigureApps(reservationId=self.sandbox.id,
                                                   appConfigurations=apps_configuration)

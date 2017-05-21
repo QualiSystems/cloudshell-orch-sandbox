@@ -95,7 +95,7 @@ class Sandbox(object):
         except Exception as exc:
             execution_failed = 1
             print exc
-            self.logger.error("Error executing function {0}. detailed error: {1}, {2}".format(func.__name__, str(exc), str(exc.message)))
+            self.logger.error("Error executing function '{0}'. detailed error: {1}, {2}".format(func.__name__, str(exc), str(exc.message)))
         return execution_failed
 
     def _execute_stage(self, workflow_objects, stage_name):
