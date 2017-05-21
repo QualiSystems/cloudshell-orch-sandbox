@@ -13,17 +13,6 @@ class DefaultSetupLogic(object):
     DRIVER_FUNCTION_ERROR = "151"
 
     @staticmethod
-    def prepare_connectivity(api, reservation_id, logger):
-        """
-        :param CloudShellAPISession api:
-        :param str reservation_id:
-        :param logging.Logger logger:
-        """
-        logger.info("Preparing connectivity for sandbox {0}".format(reservation_id))
-        api.WriteMessageToReservationOutput(reservationId=reservation_id, message='Preparing connectivity')
-        api.PrepareSandboxConnectivity(reservation_id)
-
-    @staticmethod
     def try_exeucte_autoload(api, deploy_result, resource_details_cache, reservation_id, logger):
         """
         :param GetReservationDescriptionResponseInfo reservation_details:
