@@ -6,7 +6,6 @@ from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 
 from cloudshell.workflow.orchestration.apps_configuration import AppsConfiguration
 from cloudshell.workflow.orchestration.components import Components
-from cloudshell.workflow.orchestration.setup.default_setup_logic import DefaultSetupLogic
 from cloudshell.workflow.orchestration.workflow import Workflow
 from cloudshell.workflow.profiler.env_profiler import profileit
 
@@ -45,7 +44,8 @@ class Sandbox(object):
 
         ## prepare sandbox stage
         self.logger.info('Preparing connectivity for sandbox. ')
-        DefaultSetupLogic.prepare_connectivity(api, self.id, self.logger)
+        api.WriteMessageToReservationOutput(reservationId=self.id, message='Preparing connectivity')
+        api.PrepareSandboxConnectivity(self.id)
 
         self.automation_api.SetSetupStage('Provisioning', self.id)
 
