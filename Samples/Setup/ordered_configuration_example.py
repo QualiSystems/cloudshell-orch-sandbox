@@ -23,7 +23,7 @@ def configure_apps(sandbox, apps):
     ##Configure databases
     databases = sandbox.components.get_apps_by_name_contains('Database')
 
-    build_id = sandbox.globals['build_id']
+    build_id = sandbox.global_inputs['build_id']
 
     for app in databases:
         sandbox.automation_api.WriteMessageToReservationOutput(reservationId=sandbox.id,
