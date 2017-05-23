@@ -13,17 +13,6 @@ class DefaultSetupLogic(object):
     DRIVER_FUNCTION_ERROR = "151"
 
     @staticmethod
-    def prepare_connectivity(api, reservation_id, logger):
-        """
-        :param CloudShellAPISession api:
-        :param str reservation_id:
-        :param logging.Logger logger:
-        """
-        logger.info("Preparing connectivity for sandbox {0}".format(reservation_id))
-        api.WriteMessageToReservationOutput(reservationId=reservation_id, message='Preparing connectivity')
-        api.PrepareSandboxConnectivity(reservation_id)
-
-    @staticmethod
     def try_exeucte_autoload(api, deploy_result, resource_details_cache, reservation_id, logger):
         """
         :param GetReservationDescriptionResponseInfo reservation_details:
@@ -85,6 +74,10 @@ class DefaultSetupLogic(object):
                                                         .format(deployed_app_name, exc.message))
                     api.SetResourceLiveStatus(deployed_app_name, "Error", "Discovery failed")
 
+                    # Bug 161222 - we must re-raise the original exception to stop the setup
+                    # if there is a discovery error
+                    raise
+
             except Exception as exc:
                 logger.error("Error executing Autoload command on deployed app {0}. Error: {1}"
                                   .format(deployed_app_name, str(exc)))
@@ -92,6 +85,10 @@ class DefaultSetupLogic(object):
                                                     message='Discovery failed on "{0}": {1}'
                                                     .format(deployed_app_name, exc.message))
                 api.SetResourceLiveStatus(deployed_app_name, "Error", "Discovery failed")
+
+                # Bug 161222 - we must re-raise the original exception to stop the setup
+                # if there is a discovery error
+                raise
 
     @staticmethod
     def deploy_apps_in_reservation(api, reservation_details, reservation_id, logger):

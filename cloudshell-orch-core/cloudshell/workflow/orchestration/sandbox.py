@@ -6,7 +6,6 @@ from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 
 from cloudshell.workflow.orchestration.apps_configuration import AppsConfiguration
 from cloudshell.workflow.orchestration.components import Components
-from cloudshell.workflow.orchestration.setup.default_setup_logic import DefaultSetupLogic
 from cloudshell.workflow.orchestration.workflow import Workflow
 from cloudshell.workflow.profiler.env_profiler import profileit
 
@@ -18,7 +17,9 @@ class Sandbox(object):
 
         self.connectivityContextDetails = helpers.get_connectivity_context_details()
         self.reservationContextDetails = helpers.get_reservation_context_details()
-        self.globals = self.reservationContextDetails.parameters.global_inputs
+        self.global_inputs = helpers.get_global_inputs()
+        self.additional_info_inputs = helpers.get_resource_additional_info_inputs()
+        self.requirement_inputs = helpers.get_resource_requirement_inputs()
         self.id = self.reservationContextDetails.id
 
         reservation_description = self.automation_api.GetReservationDetails(self.id).ReservationDescription
@@ -43,19 +44,28 @@ class Sandbox(object):
 
         ## prepare sandbox stage
         self.logger.info('Preparing connectivity for sandbox. ')
-        DefaultSetupLogic.prepare_connectivity(api, self.id, self.logger)
+        api.WriteMessageToReservationOutput(reservationId=self.id, message='Preparing connectivity')
+        api.PrepareSandboxConnectivity(self.id)
+
+        self.automation_api.SetSetupStage('Provisioning', self.id)
 
         self._execute_stage(self.workflow._provisioning_functions, Workflow.PROVISIONING_STAGE_NAME)
 
         self._after_stage_ended(self.workflow._after_provisioning, Workflow.ON_PROVISIONING_ENDED_STAGE_NAME)
 
+        self.automation_api.SetSetupStage('Connectivity', self.id)
+
         self._execute_stage(self.workflow._connectivity_functions, Workflow.CONNECTIVITY_STAGE_NAME)
 
         self._after_stage_ended(self.workflow._after_connectivity, Workflow.ON_CONNECTIVITY_ENDED_STAGE_NAME)
 
+        self.automation_api.SetSetupStage('Configuration', self.id)
+
         self._execute_stage(self.workflow._configuration_functions, Workflow.CONFIGURATION_STAGE_NAME)
 
         self._after_stage_ended(self.workflow._after_configuration, Workflow.ON_CONFIGURATION_ENDED_STAGE_NAME)
+
+        self.automation_api.SetSetupStage('Ended', self.id)
 
         self.logger.info('Setup for sandbox {0} completed'.format(self.id))
 
@@ -85,7 +95,7 @@ class Sandbox(object):
         except Exception as exc:
             execution_failed = 1
             print exc
-            self.logger.error("Error executing function {0}. detailed error: {1}, {2}".format(func.__name__, str(exc), str(exc.message)))
+            self.logger.error("Error executing function '{0}'. detailed error: {1}, {2}".format(func.__name__, str(exc), str(exc.message)))
         return execution_failed
 
     def _execute_stage(self, workflow_objects, stage_name):
