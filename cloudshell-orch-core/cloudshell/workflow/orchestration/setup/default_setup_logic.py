@@ -303,7 +303,7 @@ class DefaultSetupLogic(object):
         except Exception as exc:
             logger.error("Error refreshing IP on deployed app {0} in sandbox {1}. Error: {2}"
                               .format(deployed_app_name, reservation_id, str(exc)))
-            api.SetResourceLiveStatus(deployed_app_name, "Error", "Refreshing ip has failed")
+            api.SetResourceLiveStatus(deployed_app_name, "Error", "Obtaining IP has failed")
             return False, "Error refreshing IP deployed app {0}. Error: {1}".format(deployed_app_name, exc.message)
 
         return True, ""
