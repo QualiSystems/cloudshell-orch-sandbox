@@ -6,4 +6,3 @@ sandbox = Sandbox()
 DefaultSetupWorkflow().register(sandbox)
 
 sandbox.execute_setup()
-
