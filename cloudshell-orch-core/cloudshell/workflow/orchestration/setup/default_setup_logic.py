@@ -334,7 +334,6 @@ class DefaultSetupLogic(object):
 
     @staticmethod
     def _power_on(api, deployed_app_name, power_on, lock, message_status, reservation_id, logger):
-        raise Exception
         if power_on.lower() == "true":
             logger.info("Executing 'Power On' on deployed app {0} in sandbox {1}"
                              .format(deployed_app_name, reservation_id))
