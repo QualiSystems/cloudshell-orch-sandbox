@@ -41,7 +41,7 @@ class Components(object):
         """
         return [value for key, value in self.services.iteritems() if name == value.ServiceName]
 
-    def refresh_sandbox_components_details(self, sandbox):
+    def refresh_components(self, sandbox):
         """
         :param Sandbox sandbox: 
         :return:
@@ -56,7 +56,7 @@ class Components(object):
             for app in reservation_description.Apps:
                 if (app.Name not in self.apps.keys() and
                             len(app.DeploymentPaths) > 0):
-                    # avoid bug in cloudshell-automation-api where an app named None returns even when there are no
+                    # to avoid bug in cloudshell-automation-api where an app named None returns even when there are no
                     # apps in the reservation
                     self.apps[app.Name] = App(app)
 

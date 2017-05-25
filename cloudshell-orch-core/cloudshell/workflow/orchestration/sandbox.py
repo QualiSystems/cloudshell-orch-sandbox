@@ -62,7 +62,7 @@ class Sandbox(object):
 
         self.automation_api.SetSetupStage('Configuration', self.id)
 
-        self.components.refresh_sandbox_components_details(self)
+        self.components.refresh_components(self)
 
         self._execute_stage(self.workflow._configuration_functions, Workflow.CONFIGURATION_STAGE_NAME)
 

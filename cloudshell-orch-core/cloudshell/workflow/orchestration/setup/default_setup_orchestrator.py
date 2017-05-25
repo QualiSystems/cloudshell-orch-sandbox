@@ -44,7 +44,7 @@ class DefaultSetupWorkflow(object):
         DefaultSetupLogic.validate_all_apps_deployed(deploy_results=self._deploy_result,
                                                      logger=sandbox.logger)
 
-        sandbox.components.refresh_sandbox_components_details(sandbox=sandbox)
+        sandbox.components.refresh_components(sandbox=sandbox)
 
 
         DefaultSetupLogic.try_exeucte_autoload(api=api,
