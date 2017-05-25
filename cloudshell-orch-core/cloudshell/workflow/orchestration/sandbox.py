@@ -23,6 +23,7 @@ class Sandbox(object):
         self.id = self.reservationContextDetails.id
 
         reservation_description = self.automation_api.GetReservationDetails(self.id).ReservationDescription
+
         self.components = Components(reservation_description.Resources,
                                      reservation_description.Services,
                                      reservation_description.Apps)
@@ -60,6 +61,8 @@ class Sandbox(object):
         self._after_stage_ended(self.workflow._after_connectivity, Workflow.ON_CONNECTIVITY_ENDED_STAGE_NAME)
 
         self.automation_api.SetSetupStage('Configuration', self.id)
+
+        self.components.refresh_sandbox_components_details(self)
 
         self._execute_stage(self.workflow._configuration_functions, Workflow.CONFIGURATION_STAGE_NAME)
 
@@ -104,7 +107,6 @@ class Sandbox(object):
          :param str stage_name:
          :return:
          """
-
         number_of_workflow_objects = len(workflow_objects)
         self.logger.info('Executing "{0}" stage, {1} workflow processes found. '.format(stage_name, number_of_workflow_objects))
 
