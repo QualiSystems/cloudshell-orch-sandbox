@@ -41,18 +41,27 @@ class Components(object):
         """
         return [value for key, value in self.services.iteritems() if name == value.ServiceName]
 
-    def update_deployed_apps_information_after_bulk_deployment(self, sandbox, deployment_results):
+    def refresh_sandbox_components_details(self, sandbox):
         """
         :param Sandbox sandbox: 
-        :param DeployAppToCloudProviderBulkInfo deployment_results:
         :return:
         """
-        reservation_resources = sandbox.automation_api.GetReservationDetails(
-            sandbox.id).ReservationDescription.Resources
+        reservation_description = sandbox.automation_api.GetReservationDetails(
+            sandbox.id).ReservationDescription
 
-        self.resources = dict((resource.Name, resource) for resource in reservation_resources)
+        self.resources = dict((resource.Name, resource) for resource in reservation_description.Resources)
+        self.services = dict((service.Alias, service) for service in reservation_description.Services)
 
-        for resource_name, resource in self.resources.iteritems():
-            if isinstance(resource.AppDetails, AppInfo):  # if deployed app
-                if resource.AppDetails.AppName in self.apps:
-                    self.apps[resource.AppDetails.AppName].set_deployed_app_resource(resource)
+        if reservation_description.Apps is not None:
+            for app in reservation_description.Apps:
+                if (app.Name not in self.apps.keys() and
+                            len(app.DeploymentPaths) > 0):
+                    # avoid bug in cloudshell-automation-api where an app named None returns even when there are no
+                    # apps in the reservation
+                    self.apps[app.Name] = App(app)
+
+        if self.resources is not None:
+            for resource_name, resource in self.resources.iteritems():
+                if isinstance(resource.AppDetails, AppInfo):  # if deployed app
+                    if resource.AppDetails.AppName in self.apps:
+                        self.apps[resource.AppDetails.AppName].set_deployed_app_resource(resource)
