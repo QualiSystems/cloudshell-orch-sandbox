@@ -2,17 +2,17 @@ import sys
 from multiprocessing.pool import ThreadPool
 
 from cloudshell.core.logger.qs_logger import get_qs_logger
-from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
+from cloudshell.helpers.scripts import cloudshell_scripts_helpers as api_helpers
 
 from cloudshell.workflow.orchestration.apps_configuration import AppsConfiguration
 from cloudshell.workflow.orchestration.components import Components
 from cloudshell.workflow.orchestration.workflow import Workflow
 from cloudshell.workflow.profiler.env_profiler import profileit
-
+from cloudshell.workflow.helpers import sandbox_helpers as helpers
 
 class Sandbox(object):
     def __init__(self):
-        self.automation_api = helpers.get_api_session()
+        self.automation_api = api_helpers.get_api_session()
         self.workflow = Workflow(self)
 
         self.connectivityContextDetails = helpers.get_connectivity_context_details()
