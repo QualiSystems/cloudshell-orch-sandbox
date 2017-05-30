@@ -10,6 +10,7 @@ def get_reservation_context_details_dict():
     """
     return _get_quali_env_variable_object('reservationContext')
 
+
 def get_reservation_context_details():
     """
     Get the reservation details for this execution
@@ -30,6 +31,7 @@ def get_reservation_context_details():
                                             res_dict['id'],
                                             res_dict['environmentPath'])
     return res_details
+
 
 def get_connectivity_context_details():
     """
@@ -101,8 +103,7 @@ def _covert_to_resource_inputs_dictionary(parameters):
 class ResourceInputs:
     def __init__(self):
         self._dictionary = {}
-
-    """:type : dict[str, dict[str, ResourceInputData]]"""
+        """:type : dict[str, dict[str, ResourceInputData]]"""
 
     def __getitem__(self, resource_name):
         """:rtype: dict[str, dict[str, ResourceInputData]]"""
@@ -132,6 +133,7 @@ class ResourceInputData:
         self.param_name = param_name
         """:type : str"""
 
+
 class ConnectivityContextDetails:
     def __init__(self, server_address, cloudshell_api_port,
                  admin_user, admin_pass):
@@ -144,6 +146,7 @@ class ConnectivityContextDetails:
         self.admin_pass = admin_pass
         """:type : str"""
 
+
 class EnvironmentParameters:
     def __init__(self, global_inputs, resource_requirements,
                  resource_additional_info):
@@ -153,6 +156,7 @@ class EnvironmentParameters:
         """:type : ResourceInputs"""
         self.resource_additional_info = resource_additional_info
         """:type : ResourceInputs"""
+
 
 class ReservationContextDetails:
     def __init__(self, environment_name, domain, description,
