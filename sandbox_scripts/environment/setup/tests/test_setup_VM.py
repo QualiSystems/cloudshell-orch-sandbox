@@ -77,12 +77,9 @@ class SetupVMTests(unittest.TestCase):
 
         self.setup_script.execute()
 
-        report_info_calls = [call('Beginning VMs power on')]
+        report_info_calls = [call('Beginning VMs power on'),call(message='No VMs to power on ', write_to_output_window=True)]
         mock_sandboxbase.return_value.report_info.assert_has_calls(report_info_calls)
 
-        logger_debug_calls = [call("Skipping resource 'r1' - not an app, not powering on"),
-                              call("Skipping resource 'r2' - not an app, not powering on")]
-        self.setup_script.logger.debug.assert_has_calls(logger_debug_calls, any_order=True)
 
     @patch('cloudshell.helpers.scripts.cloudshell_scripts_helpers.get_api_session')
     @patch('sandbox_scripts.environment.setup.setup_VM.SandboxBase')
@@ -108,6 +105,11 @@ class SetupVMTests(unittest.TestCase):
 
         mock_sandboxbase.return_value.api_session.GetResourceDetails.side_effect = resource_details_mock_side_effect
 
+        resourcebase1 = Mock()
+        resourcebase1.name = 'r2'
+        resourcebase1.model = 'vcenter static vm'
+        mock_sandboxbase.return_value.get_root_vm_resources.return_value = [resourcebase1]
+
         mock_save.return_value.is_snapshot.return_value = False
 
         self.setup_script.execute()
@@ -116,18 +118,16 @@ class SetupVMTests(unittest.TestCase):
                              call('Apps are powering on... '),
                              call(log_message="Executing 'Power On' on deployed app 'r2' in reservation "
                                               "'5487c6ce-d0b3-43e9-8ee7-e27af8406905'",
-                                  message="Executing 'Power On' on deployed app 'r2' ", write_to_output_window=True)]
+                                  message="Executing 'Power On' on deployed app 'r2' ", write_to_output_window=True),
+                             call("Wait For IP is off for deployed app 'r2' in reservation "
+                                  "'5487c6ce-d0b3-43e9-8ee7-e27af8406905'")]
         mock_sandboxbase.return_value.report_info.assert_has_calls(report_info_calls)
 
         logger_debug_calls = [call("Resource r2 is a static app")]
         self.setup_script.logger.debug.assert_has_calls(logger_debug_calls)
 
-        logger_info_calls = [call("Wait For IP is off for deployed app 'r2' in reservation "
-                                  "'5487c6ce-d0b3-43e9-8ee7-e27af8406905'")]
-        self.setup_script.logger.info.assert_has_calls(logger_info_calls)
-
-        api_calls = [call('5487c6ce-d0b3-43e9-8ee7-e27af8406905', 'r2', 'PowerOn', 'power')]
-        mock_sandboxbase.return_value.api_session.ExecuteResourceConnectedCommand.assert_has_calls(api_calls)
+        api_calls = [call.execute_connected_command(u'5487c6ce-d0b3-43e9-8ee7-e27af8406905', 'PowerOn', 'power')]
+        resourcebase1.assert_has_calls(api_calls)
 
 
     @patch('cloudshell.helpers.scripts.cloudshell_scripts_helpers.get_api_session')
@@ -154,6 +154,11 @@ class SetupVMTests(unittest.TestCase):
 
         mock_sandboxbase.return_value.api_session.GetResourceDetails.side_effect = resource_details_mock_side_effect
 
+        resourcebase1 = Mock()
+        resourcebase1.name = 'r2'
+        resourcebase1.model = 'deployed app'
+        mock_sandboxbase.return_value.get_root_vm_resources.return_value = [resourcebase1]
+
         mock_save.return_value.is_snapshot.return_value = True
 
         self.setup_script.execute()
@@ -167,10 +172,9 @@ class SetupVMTests(unittest.TestCase):
                                   write_to_output_window=True)]
         mock_sandboxbase.return_value.report_info.assert_has_calls(report_info_calls)
 
-        api_calls = [call('5487c6ce-d0b3-43e9-8ee7-e27af8406905', 'r2', 'PowerOn', 'power'),
-                     call('5487c6ce-d0b3-43e9-8ee7-e27af8406905', 'r2', 'remote_refresh_ip', 'remote_connectivity')]
-        mock_sandboxbase.return_value.api_session.ExecuteResourceConnectedCommand.assert_has_calls(api_calls)
-
+        api_calls = [call.execute_connected_command(u'5487c6ce-d0b3-43e9-8ee7-e27af8406905', 'PowerOn', 'power'),
+                    call.execute_connected_command(u'5487c6ce-d0b3-43e9-8ee7-e27af8406905', 'remote_refresh_ip', 'remote_connectivity')]
+        resourcebase1.assert_has_calls(api_calls)
 
 if __name__ == '__main__':
     unittest.main()

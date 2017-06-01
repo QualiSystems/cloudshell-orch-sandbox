@@ -16,6 +16,9 @@ class EnvironmentSetupVM(object):
                                     log_group=self.reservation_id,
                                     log_category='Setup')
 
+    # ---------------------------
+    # ---------------------------
+    def execute(self):
         self.sandbox = SandboxBase(self.reservation_id, self.logger)
         #TODO: don't use networking save and restore to figure if it's a snapshot setup
         self.is_snapshot = False
@@ -23,9 +26,7 @@ class EnvironmentSetupVM(object):
         if save_n_restore_mgr.get_storage_manager():
             if save_n_restore_mgr.is_snapshot():
                 self.is_snapshot = True
-    # ---------------------------
-    # ---------------------------
-    def execute(self):
+
         self.sandbox.report_info('Beginning VMs power on')
         self._run_async_power_on_refresh_ip()
 
@@ -71,13 +72,13 @@ class EnvironmentSetupVM(object):
         :return:
         """
 
-        deployed_app_name = resource.name
+        #deployed_app_name = resource.name
         run_result = rsc_run_result_struct(resource.name)
         power_on = "true"
         wait_for_ip = "true"
 
         if resource.model.lower() == "vcenter static vm":
-            self.logger.debug("Resource {0} is a static app".format(deployed_app_name))
+            self.logger.debug("Resource {0} is a static app".format(resource.name))
             wait_for_ip = "false"
         elif not self.is_snapshot:
             return True, ""
@@ -87,19 +88,19 @@ class EnvironmentSetupVM(object):
         except Exception as exc:
             self.sandbox.report_error("Error powering on deployed app '{0}' in reservation '{1}'. Error: {2}"
                              .format(deployed_app_name, self.reservation_id, str(exc)),raise_error=False)
-            run_result.message = str("Error powering on deployed app '{0}'").format(deployed_app_name)
+            run_result.message = str("Error powering on deployed app '{0}'").format(resource.name)
             run_result.run_result = False
             return run_result
         try:
             if wait_for_ip.lower() == "true":
-                self._wait_for_ip(deployed_app_name, lock, message_status)
+                self._wait_for_ip(resource, lock, message_status)
             else:
                 self.sandbox.report_info("Wait For IP is off for deployed app '{0}' in reservation '{1}'"
-                                 .format(deployed_app_name, self.reservation_id))
+                                 .format(resource.name, self.reservation_id))
         except Exception as exc:
             self.sandbox.report_error("Error refreshing IP on deployed app '{0}' in reservation '{1}'. Error: {2}"
-                              .format(deployed_app_name, self.reservation_id, str(exc)),raise_error=False)
-            run_result.message = str("Error refreshing IP deployed app '{0}'. Error: {1}").format(deployed_app_name, exc.message)
+                              .format(resource.name, self.reservation_id, str(exc)),raise_error=False)
+            run_result.message = str("Error refreshing IP deployed app '{0}'. Error: {1}").format(resource.name, exc.message)
             run_result.run_result = False
 
 
