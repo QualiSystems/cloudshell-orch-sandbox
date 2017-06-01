@@ -9,7 +9,7 @@ from sandbox_scripts.QualiEnvironmentUtils.ConfigFileManager import ConfigFileMa
 from sandbox_scripts.QualiEnvironmentUtils.ConfigPoolManager import ConfigPoolManager
 from sandbox_scripts.helpers.Networking.base_save_restore import *
 from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
-
+from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import rsc_run_result_struct
 
 class NetworkingSaveRestore(object):
     def __init__(self, sandbox):
@@ -83,7 +83,7 @@ class NetworkingSaveRestore(object):
             pool.join()
             for async_result in async_results:
                 res = async_result.get()
-                """:type : load_result_struct"""
+                """:type : rsc_run_result_struct"""
                 if not res.run_result:
                     err = "Failed to load configuration on device " + res.resource_name
                     self.sandbox.report_error(err, write_to_output_window=write_to_output, raise_error=False)
@@ -120,7 +120,7 @@ class NetworkingSaveRestore(object):
         # run_status = True
         saved_artifact_info = None
         additionalinfo = ''
-        load_result = load_result_struct(resource.name)
+        load_result = rsc_run_result_struct(resource.name)
         # Check if needs to load the config to the device
         load_config_to_device = self._is_load_config_to_device(resource, ignore_models=ignore_models)
         if load_config_to_device:
@@ -363,7 +363,7 @@ class NetworkingSaveRestore(object):
         pool.join()
         for async_result in async_results:
             res = async_result.get()
-            """:type : load_result_struct"""
+            """:type : rsc_run_result_struct"""
             if not res.run_result:
                 err = "Failed to save configuration on device " + res.resource_name
                 self.sandbox.report_error(err, write_to_output_window=write_to_output, raise_error=False)
@@ -376,7 +376,7 @@ class NetworkingSaveRestore(object):
     # ----------------------------------
     def _run_asynch_save(self, resource, snapshot_dir, config_type, lock, ignore_models=None):
         message = ""
-        save_result = load_result_struct(resource.name)
+        save_result = rsc_run_result_struct(resource.name)
 
         with lock:
             save_config_for_device = self._is_load_config_to_device(resource, ignore_models=ignore_models)
