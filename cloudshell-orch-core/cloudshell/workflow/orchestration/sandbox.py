@@ -121,17 +121,21 @@ class Sandbox(object):
 
             for async_result in async_results:
                 result = async_result.get()
-                if result == 1:  # failed to execute step
-                    self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
-                                                                        message='<font color="red">Error occurred during "{0}" stage, see full activity feed for more information.</font>'.format(stage_name))
-                    sys.exit(-1)
+                self._validate_workflow_process_result(result, stage_name)
 
         else:
             self.logger.info('Stage: {0}, No workflow process were found.'.format(stage_name))
+
+    def _validate_workflow_process_result(self, result, stage_name):
+        if result == 1:  # failed to execute step
+            self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
+                                                                message='<font color="red">Error occurred during "{0}" stage, see full activity feed for more information.</font>'.format(
+                                                                    stage_name))
+            sys.exit(-1)
 
     def _after_stage_ended(self, workflow_objects, stage_name):
         self.logger.info(
             'Executing "{0}" stage ,{1} workflow processes found. '.format(stage_name, len(workflow_objects)))
         for workflow_object in workflow_objects:
-            self._execute_workflow_process(workflow_object.function,
-                                           workflow_object.components)
+            workflow_result = self._execute_workflow_process(workflow_object.function, workflow_object.components)
+            self._validate_workflow_process_result(workflow_result,stage_name)
