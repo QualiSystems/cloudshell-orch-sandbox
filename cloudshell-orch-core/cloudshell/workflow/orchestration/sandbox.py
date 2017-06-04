@@ -1,5 +1,6 @@
 import sys
 from multiprocessing.pool import ThreadPool
+import traceback
 
 from cloudshell.core.logger.qs_logger import get_qs_logger
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as api_helpers
@@ -95,10 +96,19 @@ class Sandbox(object):
         execution_failed = 0
         try:
             func(self, components)
+
         except Exception as exc:
             execution_failed = 1
-            print exc
-            self.logger.error("Error executing function '{0}'. detailed error: {1}, {2}".format(func.__name__, str(exc), str(exc.message)))
+            error = exc.message
+            if not error or not isinstance(exc.message, str):
+                try:
+                    error = str(exc)
+                except Exception:
+                    pass
+
+            print error
+            self.logger.error("Error executing function '{0}'. detailed error: {1}, {2}".format(func.__name__, str(error), str(traceback.format_exc())))
+
         return execution_failed
 
     def _execute_stage(self, workflow_objects, stage_name):
@@ -121,17 +131,21 @@ class Sandbox(object):
 
             for async_result in async_results:
                 result = async_result.get()
-                if result == 1:  # failed to execute step
-                    self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
-                                                                        message='<font color="red">Error occurred during "{0}" stage, see full activity feed for more information.</font>'.format(stage_name))
-                    sys.exit(-1)
+                self._validate_workflow_process_result(result, stage_name)
 
         else:
             self.logger.info('Stage: {0}, No workflow process were found.'.format(stage_name))
+
+    def _validate_workflow_process_result(self, result, stage_name):
+        if result == 1:  # failed to execute step
+            self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
+                                                                message='<font color="red">Error occurred during "{0}" stage, see full activity feed for more information.</font>'.format(
+                                                                    stage_name))
+            sys.exit(-1)
 
     def _after_stage_ended(self, workflow_objects, stage_name):
         self.logger.info(
             'Executing "{0}" stage ,{1} workflow processes found. '.format(stage_name, len(workflow_objects)))
         for workflow_object in workflow_objects:
-            self._execute_workflow_process(workflow_object.function,
-                                           workflow_object.components)
+            workflow_result = self._execute_workflow_process(workflow_object.function, workflow_object.components)
+            self._validate_workflow_process_result(workflow_result,stage_name)
