@@ -1,5 +1,6 @@
 import sys
 from multiprocessing.pool import ThreadPool
+import traceback
 
 from cloudshell.core.logger.qs_logger import get_qs_logger
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as api_helpers
@@ -98,7 +99,7 @@ class Sandbox(object):
         except Exception as exc:
             execution_failed = 1
             print exc
-            self.logger.error("Error executing function '{0}'. detailed error: {1}, {2}".format(func.__name__, str(exc), str(exc.message)))
+            self.logger.error("Error executing function '{0}'. detailed error: {1}, {2}".format(func.__name__, str(exc), str(traceback.format_exc())))
         return execution_failed
 
     def _execute_stage(self, workflow_objects, stage_name):
