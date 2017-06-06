@@ -29,7 +29,8 @@ def get_reservation_context_details():
                                             res_dict['ownerUser'],
                                             res_dict['ownerPass'],
                                             res_dict['id'],
-                                            res_dict['environmentPath'])
+                                            res_dict['environmentPath'],
+                                            get_permitted_users())
     return res_details
 
 
@@ -58,6 +59,24 @@ def get_global_inputs():
     """
     reservationParams = get_reservation_context_details_dict()['parameters']
     return _covert_to_python_dictionary(reservationParams['globalInputs'])
+
+def get_permitted_users():
+    """
+    Get the list of permitted users for the current reservation
+    :rtype: List[UserDetails]
+    """
+    reservation_permitted_users = get_reservation_context_details_dict()['permittedUsers']
+    return _covert_to_permitted_users_list(reservation_permitted_users)
+
+
+def _covert_to_permitted_users_list(permitted_users):
+    permitted_users_data = []
+    for user in permitted_users:
+        username = user['userName']
+        email = user['email']
+        permitted_users_data.append(UserDetails(username, email))
+    return permitted_users_data
+
 
 
 def get_resource_requirement_inputs():
@@ -161,7 +180,7 @@ class EnvironmentParameters:
 class ReservationContextDetails:
     def __init__(self, environment_name, domain, description,
                  parameters, owner_user, owner_password,
-                 reservation_id, environment_path):
+                 reservation_id, environment_path, permitted_users):
         self.environment_name = environment_name
         """:type : str"""
         self.domain = domain
@@ -177,4 +196,14 @@ class ReservationContextDetails:
         self.id = reservation_id
         """:type : str"""
         self.environment_path = environment_path
+        """:type : str"""
+        self.permitted_users = permitted_users
+        """:type : list[UserDetails]"""
+
+
+class UserDetails:
+    def __init__(self, user_name, email):
+        self.user_name = user_name
+        """:type : str"""
+        self.email = email
         """:type : str"""
