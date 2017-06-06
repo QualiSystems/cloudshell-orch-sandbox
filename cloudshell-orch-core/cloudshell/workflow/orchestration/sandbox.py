@@ -45,7 +45,7 @@ class Sandbox(object):
                                             message='Beginning sandbox setup')
 
         ## prepare sandbox stage
-        self.logger.info('Preparing connectivity for sandbox. ')
+        self.logger.info('Preparing sandbox. ')
         api.WriteMessageToReservationOutput(reservationId=self.id, message='Preparing connectivity')
         api.PrepareSandboxConnectivity(self.id)
 
