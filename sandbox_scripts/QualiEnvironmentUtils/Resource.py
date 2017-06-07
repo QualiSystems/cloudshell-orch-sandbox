@@ -5,7 +5,7 @@ from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import *
 from QualiUtils import *
-import datetime
+import datetime, time
 import json
 from time import sleep
 
@@ -105,17 +105,18 @@ class ResourceBase(object):
             for attempts in range(0, int(health_check_attempts)):
                 try:
                     # Return a detailed description in case of a failure
-                    out = self.execute_command(reservation_id, 'health_check', printOutput=False) #.Output()
+                    out = self.execute_command(reservation_id, 'health_check', printOutput=True) #.Output()
                     if out.Output.find(' passed') == -1 and \
                             (wait_for_success is False or attempts == (int(health_check_attempts) -1)):
                         err = "Health check did not pass for device " + self.name + ". " + out.Output
                         return err
+                    if out.Output.find(' passed') == -1:
+                        time.sleep(30)
                     else:
                         return ""
                 except QualiError as qe:
                     err = "Health check did not pass for device " + self.name + ". " + str(qe)
                     return err
-                sleep(20)
         else:
             return ""
 
