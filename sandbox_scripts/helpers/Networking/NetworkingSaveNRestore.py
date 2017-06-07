@@ -67,6 +67,7 @@ class NetworkingSaveRestore(object):
             health_check_attempts = configsetpool.get_attribute("Health Check Attempts")
         else:
             health_check_attempts = 1
+        self.sandbox.report_info("Health Check Attempts set to %s" % (health_check_attempts))
         root_path = root_path.replace(' ', '_')
         self.sandbox.report_info("RootPath: " + root_path, write_to_output_window=True)
         images_path_dict = self._get_images_path_dict(root_path)
@@ -202,7 +203,9 @@ class NetworkingSaveRestore(object):
                             message += "\n" + resource.name + ": loading config from:" + config_path
                             resource.load_network_config(self.sandbox.id, config_path, 'Running', 'Override')
 
-                    health_check_result = resource.health_check(self.sandbox.id)
+                    health_check_result = resource.health_check(self.sandbox.id,
+                                                                health_check_attempts=1,
+                                                                wait_for_success=False)
                     if health_check_result != '':
                         raise QualiError(self.sandbox.id, resource.name +
                                          " did not pass health check after loading configuration")
