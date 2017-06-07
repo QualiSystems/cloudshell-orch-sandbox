@@ -1,6 +1,9 @@
 from cloudshell.core.logger import qs_logger
 from sandbox_scripts.helpers.Networking.save_restore_mgr import SaveRestoreManager
 from sandbox_scripts.helpers.Networking.NetworkingSaveNRestore import *
+from sandbox_scripts.QualiEnvironmentUtils.Sandbox import SandboxBase
+from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
+from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
 
 
 class EnvironmentTeardownVM:
@@ -81,7 +84,7 @@ class EnvironmentTeardownVM:
         if resource_to_delete:
             try:
                 self.sandbox.api_session.RemoveResourcesFromReservation(self.reservation_id, resource_to_delete)
-            except CloudShellAPIError as exc:
+            except QualiError as exc:
                 if exc.code == EnvironmentTeardownVM.REMOVE_DEPLOYED_RESOURCE_ERROR:
                     self.sandbox.report_error(error_message=exc.message,
                               log_message="Error executing RemoveResourcesFromReservation command. "
