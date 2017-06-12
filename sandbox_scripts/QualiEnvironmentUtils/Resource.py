@@ -96,7 +96,7 @@ class ResourceBase(object):
 
     # ----------------------------------
     # ----------------------------------
-    def health_check(self,reservation_id, health_check_attempts=1, wait_for_success=False):
+    def health_check(self,reservation_id, health_check_attempts=1):
         """
         Run the healthCheck command on the device
         :param str reservation_id:  Reservation id.
@@ -106,8 +106,7 @@ class ResourceBase(object):
                 try:
                     # Return a detailed description in case of a failure
                     out = self.execute_command(reservation_id, 'health_check', printOutput=True) #.Output()
-                    if out.Output.find(' passed') == -1 and \
-                            (wait_for_success is False or attempts == (int(health_check_attempts) -1)):
+                    if out.Output.find(' passed') == -1 and attempts == (int(health_check_attempts) -1):
                         err = "Health check did not pass for device " + self.name + ". " + out.Output
                         return err
                     if out.Output.find(' passed') == -1:
