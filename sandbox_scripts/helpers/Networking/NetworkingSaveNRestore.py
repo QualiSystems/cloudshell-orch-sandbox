@@ -132,7 +132,7 @@ class NetworkingSaveRestore(object):
         if load_config_to_device:
 
             self.sandbox.report_info(resource.name + " starting health check", write_to_output_window=True)
-            health_check_result = resource.health_check(self.sandbox.id, health_check_attempts, wait_for_success=True)
+            health_check_result = resource.health_check(self.sandbox.id, health_check_attempts)
             if health_check_result == "":
                 self.sandbox.report_info(resource.name + " -- Initial Health Check Passed.")
                 try:
@@ -203,9 +203,7 @@ class NetworkingSaveRestore(object):
                             message += "\n" + resource.name + ": loading config from:" + config_path
                             resource.load_network_config(self.sandbox.id, config_path, 'Running', 'Override')
 
-                    health_check_result = resource.health_check(self.sandbox.id,
-                                                                health_check_attempts=1,
-                                                                wait_for_success=False)
+                    health_check_result = resource.health_check(self.sandbox.id, health_check_attempts=1)
                     if health_check_result != '':
                         raise QualiError(self.sandbox.id, resource.name +
                                          " did not pass health check after loading configuration")
