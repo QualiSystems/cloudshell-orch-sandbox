@@ -1,10 +1,9 @@
 from cloudshell.core.logger import qs_logger
 from sandbox_scripts.helpers.Networking.save_restore_mgr import SaveRestoreManager
 from sandbox_scripts.helpers.Networking.NetworkingSaveNRestore import *
-from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from sandbox_scripts.QualiEnvironmentUtils.Sandbox import SandboxBase
-from cloudshell.api.common_cloudshell_api import CloudShellAPIError
-from sandbox_scripts.QualiEnvironmentUtils.Resource import ResourceBase
+from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
+from sandbox_scripts.QualiEnvironmentUtils.QualiUtils import QualiError
 
 
 class EnvironmentTeardownVM:
@@ -15,15 +14,20 @@ class EnvironmentTeardownVM:
         self.logger = qs_logger.get_qs_logger(log_file_prefix="CloudShell Sandbox Teardown",
                                               log_group=self.reservation_id,
                                               log_category='Teardown')
+        self.sandbox = None
+
+    def execute(self):
+
         self.sandbox = SandboxBase(self.reservation_id, self.logger)
 
-    # ---------------------------
-    # ---------------------------
-    def execute(self):
         self.sandbox.report_info("Beginning VMs cleanup")
+
+        reservation_details = self.sandbox.api_session.GetReservationDetails(self.reservation_id)
+
         saveNRestoreTool = SaveRestoreManager(self.sandbox)
 
         filename = "Snapshot_"+self.reservation_id+".txt"
+
         is_snapshot = False
 
         # if the current reservation was saved as snapshot we look it by reservation_id
@@ -36,19 +40,20 @@ class EnvironmentTeardownVM:
                     is_snapshot = True
 
         if is_snapshot:
-            self.delete_VM_or_Power_off(to_delete=False)
-        else:
-            self.delete_VM_or_Power_off(to_delete=True)
+            self.delete_VM_or_Power_off(reservation_details, to_delete = False)
 
-    # ---------------------------
-    # ---------------------------
-    def delete_VM_or_Power_off(self, to_delete=False):
+        else:
+            self.delete_VM_or_Power_off(reservation_details, to_delete =True)
+
+    def delete_VM_or_Power_off(self, reservation_details, to_delete = False):
+
         """
-        :param bool to_delete:
+        :param GetReservationDescriptionResponseInfo reservation_details:
+        :param str reservation_id:
         :return:
         """
         # filter out resources not created in this reservation
-        resources = self.sandbox.get_root_vm_resources()
+        resources = reservation_details.ReservationDescription.Resources
 
         pool = ThreadPool()
         async_results = []
@@ -59,9 +64,12 @@ class EnvironmentTeardownVM:
         }
 
         for resource in resources:
-            result_obj = pool.apply_async(self._power_off_or_delete_deployed_app,
-                                (resource, lock, message_status,to_delete))
-            async_results.append(result_obj)
+            resource_details = self.sandbox.api_session.GetResourceDetails(resource.Name)
+            vm_details = resource_details.VmDetails
+            if vm_details and hasattr(vm_details, "UID") and vm_details.UID:
+                result_obj = pool.apply_async(self._power_off_or_delete_deployed_app,
+                                    (resource_details, lock, message_status,to_delete))
+                async_results.append(result_obj)
 
         pool.close()
         pool.join()
@@ -76,7 +84,7 @@ class EnvironmentTeardownVM:
         if resource_to_delete:
             try:
                 self.sandbox.api_session.RemoveResourcesFromReservation(self.reservation_id, resource_to_delete)
-            except CloudShellAPIError as exc:
+            except QualiError as exc:
                 if exc.code == EnvironmentTeardownVM.REMOVE_DEPLOYED_RESOURCE_ERROR:
                     self.sandbox.report_error(error_message=exc.message,
                               log_message="Error executing RemoveResourcesFromReservation command. "
@@ -84,19 +92,20 @@ class EnvironmentTeardownVM:
                               raise_error=True, write_to_output_window=True)
 
 
-    # ---------------------------
-    # ---------------------------
-    def _power_off_or_delete_deployed_app(self, resource, lock, message_status, to_delete):
+    def _power_off_or_delete_deployed_app(self, resource_info, lock, message_status, to_delete):
         """
         :param Lock lock:
         :param (dict of str: Boolean) message_status:
-        :param ResourceBase resource:
+        :param ResourceInfo resource_info:
         :return:
         """
-        if resource.model.lower() =="vcenter static vm":
+        resource_name = resource_info.Name
+
+        if resource_info.ResourceModelName.lower() =="vcenter static vm":
             to_delete = False
 
         try:
+
             if to_delete:
                 with lock:
                     if not message_status['delete']:
@@ -104,8 +113,10 @@ class EnvironmentTeardownVM:
                         self.sandbox.report_info("Apps are being powered off and deleted...",
                                                  write_to_output_window=True)
 
-                self.sandbox.report_info("Executing 'Delete' on deployed app {0}".format(resource.name))
-                return resource.name
+                self.logger.info("Executing 'Delete' on deployed app {0} in reservation {1}"
+                                 .format(resource_name, self.reservation_id))
+
+                return resource_name
 
             else:
                 with lock:
@@ -115,15 +126,15 @@ class EnvironmentTeardownVM:
                                                  write_to_output_window=True)
 
                 with lock:
-                    self.sandbox.report_info("Executing 'Power Off' on deployed app {0}"
-                                     .format(resource.name))
-                    resource.execute_connected_command(self.sandbox.id,"PowerOff", "power")
+                    self.logger.info("Executing 'Power Off' on deployed app {0}"
+                                     .format(resource_name, self.reservation_id))
+                    self.sandbox.api_session.ExecuteResourceConnectedCommand(self.reservation_id, resource_name,
+                                                                        "PowerOff", "power")
 
                 return None
 
         except Exception as exc:
-            err_msg = "Error deleting or powering off deployed app {0}. Error: {1}".format(
-                resource.name, str(exc))
-            self.sandbox.report_error(err_msg,raise_error=False)
+            self.logger.error("Error deleting or powering off deployed app {0} in reservation {1}. Error: {2}"
+                              .format(resource_name, self.reservation_id, str(exc)))
             return None
 

@@ -1,10 +1,13 @@
 import cloudshell.helpers.scripts.cloudshell_dev_helpers as dev_helpers
 from sandbox_scripts.environment.setup.setup_resources import *
 
-dev_helpers.attach_to_cloudshell_as(user="admin", password="admin", domain="Global",
-                                    reservation_id="c04d3da4-8025-4efe-9f4d-820ba19d20af",
-                                    server_address="localhost")
-os.environ["environment_name"] = "Abstract-ALL"
+# change line 155....in helpers to environment_name= os.environ["environmentName"],
+os.environ["environmentName"] = "Just1Res"
+
+
+dev_helpers.attach_to_cloudshell_as(user="admin", password="xxxx", domain="Global",
+                                    reservation_id="ad024811-7528-42eb-b2c4-d50003951278",
+                                    server_address="svl-dev-quali")
 
 x = EnvironmentSetupResources()
 x.execute()

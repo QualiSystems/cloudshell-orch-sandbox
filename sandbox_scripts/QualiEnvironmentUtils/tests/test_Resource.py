@@ -176,6 +176,39 @@ class ResourceTests(unittest.TestCase):
         ret = self.resource.health_check("5487c6ce-d0b3-43e9-8ee7-e27af8406905")
         self.assertEqual('Health check did not pass for device r1. Health check failed',ret)
 
+    @patch('time.sleep')
+    def test_health_check_failed_twice(self, mock_time):
+        command1 = Mock()
+        command1.Name = 'health_check'
+        self.resource.commands = [command1]
+
+        rd = Mock()
+        rd.Output = "Health check failed"
+        self.mock_api_session.return_value.ExecuteCommand = Mock(return_value=rd)
+        ret = self.resource.health_check("5487c6ce-d0b3-43e9-8ee7-e27af8406905", health_check_attempts=2)
+        self.assertEqual('Health check did not pass for device r1. Health check failed',ret)
+        self.assertEqual(mock_time.call_count,1)
+
+    @patch('time.sleep')
+    def test_health_check_failed_once_succeeds_on_second(self, mock_time):
+        command1 = Mock()
+        command1.Name = 'health_check'
+        self.resource.commands = [command1]
+        self.count = 0
+        def execute_command_return_value(res_id, resource_name, resource_type, command_name, inputs, print_output):
+            rd = Mock()
+            if self.count == 0:
+                rd.Output = "Health check failed"
+                self.count += 1
+            else:
+                rd.Output = "Health check passed"
+            return rd
+
+        self.mock_api_session.return_value.ExecuteCommand.side_effect = execute_command_return_value
+        ret = self.resource.health_check("5487c6ce-d0b3-43e9-8ee7-e27af8406905", health_check_attempts=2)
+        self.assertEqual('',ret, "command was expected to be pass but wasn't")
+        self.assertEqual(mock_time.call_count,1)
+
     def test_health_check_not_found(self):
         ret = self.resource.health_check("5487c6ce-d0b3-43e9-8ee7-e27af8406905")
         self.assertEqual('',ret, "command was expected to be found but wasn't")

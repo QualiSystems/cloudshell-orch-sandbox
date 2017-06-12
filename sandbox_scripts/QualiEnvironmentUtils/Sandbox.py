@@ -27,7 +27,7 @@ class SandboxBase(object):
             self.owner = context.owner_user
             self.Blueprint_name = context.environment_name
             if self.Blueprint_name == '':
-                raise QualiError("Blueprint name empty (from env name)")
+                raise QualiError("NameError","Blueprint name empty (from env name)")
 
             full_path = None
             tp = self.api_session.GetActiveTopologyNames()
@@ -244,6 +244,7 @@ class SandboxBase(object):
         """
             Clear the live status from all the devices
         """
+        #TODO change to honor ignor_models
         root_resources = self.get_root_resources()
         for resource in root_resources:
             self.api_session.SetResourceLiveStatus(resource.name, liveStatusName="Info",

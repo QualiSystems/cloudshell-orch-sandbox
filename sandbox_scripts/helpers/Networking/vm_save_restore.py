@@ -38,7 +38,7 @@ class VMsSaveRestore(BaseSaveRestore):
         root_path = root_path.replace(' ', '_')
 
         self.sandbox.report_info(
-            "Loading image on the devices. This action may take some time",write_to_output_window=True)
+            "Loading image on the VMs. This action may take some time.",write_to_output_window=True)
         root_resources = self.sandbox.get_root_vm_resources()
         """:type : list[ResourceBase]"""
         if len(root_resources) > 0:

@@ -5,9 +5,9 @@ from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import *
 from QualiUtils import *
-import datetime
+import datetime, time
 import json
-
+from time import sleep
 
 class ResourceBase(object):
     def __init__(self, resource_name, resource_alias=''):
@@ -96,23 +96,28 @@ class ResourceBase(object):
 
     # ----------------------------------
     # ----------------------------------
-    def health_check(self,reservation_id):
+    def health_check(self,reservation_id, health_check_attempts=1):
         """
-        Run the healthCheck command on all the devices
+        Run the healthCheck command on the device
         :param str reservation_id:  Reservation id.
         """
         if self.has_command('health_check'):
-            try:
-                # Return a detailed description in case of a failure
-                out = self.execute_command(reservation_id, 'health_check', printOutput=False)
-                if out.Output.find(' passed') == -1:
-                    err = "Health check did not pass for device " + self.name + ". " + out.Output
+            for attempts in range(0, int(health_check_attempts)):
+                try:
+                    # Return a detailed description in case of a failure
+                    out = self.execute_command(reservation_id, 'health_check', printOutput=True) #.Output()
+                    if out.Output.find(' passed') == -1 and attempts == (int(health_check_attempts) -1):
+                        err = "Health check did not pass for device " + self.name + ". " + out.Output
+                        return err
+                    if out.Output.find(' passed') == -1:
+                        time.sleep(30)
+                    else:
+                        return ""
+                except QualiError as qe:
+                    err = "Health check did not pass for device " + self.name + ". " + str(qe)
                     return err
-
-            except QualiError as qe:
-                err = "Health check did not pass for device " + self.name + ". " + str(qe)
-                return err
-        return ""
+        else:
+            return ""
 
     # -----------------------------------------
     # -----------------------------------------

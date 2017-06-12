@@ -4,7 +4,6 @@ import os
 import tempfile
 from multiprocessing.pool import ThreadPool
 from threading import Lock
-
 from sandbox_scripts.QualiEnvironmentUtils.ConfigFileManager import ConfigFileManager
 from sandbox_scripts.QualiEnvironmentUtils.ConfigPoolManager import ConfigPoolManager
 from sandbox_scripts.helpers.Networking.base_save_restore import *
@@ -63,11 +62,16 @@ class NetworkingSaveRestore(object):
             root_path = self.config_files_root + '/' + config_stage + '/'
         if config_set_name != '':
             root_path = root_path + config_set_name.strip() + '/'
-
+        configsetpool = self.sandbox.get_config_set_pool_resource()
+        if configsetpool is not None and configsetpool.attribute_exist("Health Check Attempts"):
+            health_check_attempts = configsetpool.get_attribute("Health Check Attempts")
+        else:
+            health_check_attempts = 1
+        self.sandbox.report_info("Health Check Attempts set to %s" % (health_check_attempts))
         root_path = root_path.replace(' ', '_')
         self.sandbox.report_info("RootPath: " + root_path, write_to_output_window=True)
         images_path_dict = self._get_images_path_dict(root_path)
-        self.sandbox.report_info("\nLoading image and configuration on the devices. This action may take some time",
+        self.sandbox.report_info("Loading image and configuration on the devices. This action may take some time.",
                                  write_to_output_window=True)
         root_resources = self.sandbox.get_root_networking_resources()
         """:type : list[ResourceBase]"""
@@ -75,7 +79,8 @@ class NetworkingSaveRestore(object):
             pool = ThreadPool(len(root_resources))
             lock = Lock()
             async_results = [pool.apply_async(self._run_asynch_load,
-                                              (resource, images_path_dict, root_path, ignore_models, config_stage, lock,
+                                              (resource, images_path_dict, root_path, ignore_models, config_stage,
+                                               health_check_attempts, lock,
                                                use_Config_file_path_attr))
                              for resource in root_resources]
 
@@ -114,7 +119,8 @@ class NetworkingSaveRestore(object):
 
     # ----------------------------------
     # ----------------------------------
-    def _run_asynch_load(self, resource, images_path_dict, root_path, ignore_models, config_stage, lock,
+    def _run_asynch_load(self, resource, images_path_dict, root_path, ignore_models, config_stage,
+                         health_check_attempts, lock,
                          use_Config_file_path_attr):
         message = ""
         # run_status = True
@@ -126,14 +132,14 @@ class NetworkingSaveRestore(object):
         if load_config_to_device:
 
             self.sandbox.report_info(resource.name + " starting health check", write_to_output_window=True)
-            health_check_result = resource.health_check(self.sandbox.id)
+            health_check_result = resource.health_check(self.sandbox.id, health_check_attempts)
             if health_check_result == "":
                 self.sandbox.report_info(resource.name + " -- Initial Health Check Passed.")
                 try:
                     config_path = ''
                     with lock:
                         config_path = self._get_concrete_config_file_path(root_path, resource, config_stage,
-                                                                          write_to_output=True)
+                                                                          write_to_output=False)
                     if use_Config_file_path_attr:
                         resource.set_attribute_value('Config file path', config_path)
                     # TODO - Snapshots currently only restore configuration. We need to restore firmware as well
@@ -149,8 +155,8 @@ class NetworkingSaveRestore(object):
                         if len(images_path_dict) > 0:
                             # check what the device FW version is currently.
                             version = resource.get_version(self.sandbox.id)
-                            self.sandbox.report_info(resource.name + ": current version: " + version,
-                                                     write_to_output_window=False)
+                            self.sandbox.report_info(resource.name + " current version: " + version,
+                                                     write_to_output_window=True)
                             # First try with an firmware image key of concrete resource name!!
                             dict_img_version = ''
                             image_key = ''
@@ -172,14 +178,13 @@ class NetworkingSaveRestore(object):
                                 message += "\n" + resource.name + ": NO firmware version specified in Base FirmwareData.csv"
 
                             # same image version - Only load config (running override)
-                            message += "\n" + resource.name + ": loading configuration from: " + config_path
+                            message += resource.name + ": loading configuration from " + config_path
                             if dict_img_version.lower() == version.lower():
                                 resource.load_network_config(self.sandbox.id, config_path=config_path,
                                                              config_type='Running',
                                                              restore_method='Override')
                             # Different image - Load config to the RUNNING ALSO and load the image
                             else:
-                                message += "\n" + resource.name + ": loading configuration from:" + config_path
                                 resource.load_network_config(self.sandbox.id, config_path,
                                                              config_type='Running',
                                                              restore_method='Override')
@@ -198,7 +203,7 @@ class NetworkingSaveRestore(object):
                             message += "\n" + resource.name + ": loading config from:" + config_path
                             resource.load_network_config(self.sandbox.id, config_path, 'Running', 'Override')
 
-                    health_check_result = resource.health_check(self.sandbox.id)
+                    health_check_result = resource.health_check(self.sandbox.id, health_check_attempts=1)
                     if health_check_result != '':
                         raise QualiError(self.sandbox.id, resource.name +
                                          " did not pass health check after loading configuration")
@@ -216,7 +221,9 @@ class NetworkingSaveRestore(object):
                           ". Unexpected error: " + str(ex)
                     message += err
             else:
-                self.sandbox.report_error(resource.name + " health check failed.", write_to_output_window=True)
+                self.sandbox.report_error(resource.name + " health check failed.",
+                                          write_to_output_window=True,
+                                          send_email=True)
                 load_result.run_result = False
                 err = resource.name + " did not pass health check. Configuration will not be " \
                                       "loaded to the device.\nHealth check error is: " + health_check_result
@@ -367,7 +374,7 @@ class NetworkingSaveRestore(object):
             if not res.run_result:
                 err = "Failed to save configuration on device " + res.resource_name
                 self.sandbox.report_error(err, write_to_output_window=write_to_output, raise_error=False)
-                self.sandbox.report_error(res.message, raise_error=False)
+                self.sandbox.report_error(res.message, raise_error=False, send_email=True)
 
             elif res.message != '':
                 self.sandbox.report_info(res.resource_name + "\n" + res.message)
