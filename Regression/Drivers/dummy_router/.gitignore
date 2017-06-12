@@ -57,13 +57,7 @@ docs/_build/
 
 # PyBuilder
 target/
+cloudshell_config.yml
 
-#Ipython Notebook
-.ipynb_checkpoints
+# PyCharm
 .idea/*
-qpm.ini
-
-# zip files
-*.zip
-SandboxOrchestration/environment_scripts/env_setup/data.json
-

@@ -70,9 +70,4 @@ class image_struct:
         self.path = path
         self.version = version
 
-class load_result_struct:
-    def __init__(self, resource_name):
-        self.run_result = True
-        self.resource_name = resource_name
-        self.message = ""
 
