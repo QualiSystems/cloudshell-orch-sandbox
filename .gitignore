@@ -66,4 +66,5 @@ qpm.ini
 # zip files
 *.zip
 SandboxOrchestration/environment_scripts/env_setup/data.json
-
+sandbox_scripts\QualiEnvironmentUtils\tests\DebugInteractive_setup_resources.py
+sandbox_scripts\QualiEnvironmentUtils\tests\DebugInteractive_teardown_resources.py
