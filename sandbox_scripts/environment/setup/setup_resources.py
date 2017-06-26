@@ -18,8 +18,11 @@ class EnvironmentSetupResources(object):
         sandbox = SandboxBase(self.reservation_id, self.logger)
         saveNRestoreTool = SaveRestoreManager(sandbox)
         sandbox.report_info('Beginning load configuration for resources')
+        #Consider an ignore family capability? This list gets to be a maint issue...?
+        ignore_models=['Generic TFTP server', 'Config Set Pool', 'Generic FTP server',
+                               'netscout switch 3912', 'Subnet-28', 'Subnet-30', 'GitLab']
         try:
-            sandbox.clear_all_resources_live_status()
+            sandbox.clear_all_resources_live_status(ignore_models)
             if sandbox.get_storage_server_resource():
                 # Get the config set name from the orchestration's params
                 config_set_name = ''
@@ -27,9 +30,7 @@ class EnvironmentSetupResources(object):
                     config_set_name = os.environ['Set Name']
                 except:
                     pass
-                #Consider an ignore family capability? This list gets to be a maint issue...?
-                ignore_models=['Generic TFTP server', 'Config Set Pool', 'Generic FTP server',
-                               'netscout switch 3912', 'Subnet-28', 'Subnet-30', 'GitLab']
+
 
                 if saveNRestoreTool.get_storage_manager():
                     if saveNRestoreTool.is_snapshot():
