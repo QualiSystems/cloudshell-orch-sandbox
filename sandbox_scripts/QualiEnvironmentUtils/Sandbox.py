@@ -240,15 +240,15 @@ class SandboxBase(object):
 
     # ----------------------------------
     # ----------------------------------
-    def clear_all_resources_live_status(self):
+    def clear_all_resources_live_status(self,ignore_models):
         """
-            Clear the live status from all the devices
+            Clear the live status from all the devices if not a model in ignore models
         """
-        #TODO change to honor ignor_models
         root_resources = self.get_root_resources()
         for resource in root_resources:
-            self.api_session.SetResourceLiveStatus(resource.name, liveStatusName="Info",
-                                                   additionalInfo='status cleared ' + strftime("%H:%M:%S", gmtime()))
+            if resource.model not in ignore_models:
+                self.api_session.SetResourceLiveStatus(resource.name, liveStatusName="Info",
+                                                       additionalInfo='status cleared ' + strftime("%H:%M:%S", gmtime()))
 
     # ----------------------------------
     # ----------------------------------
