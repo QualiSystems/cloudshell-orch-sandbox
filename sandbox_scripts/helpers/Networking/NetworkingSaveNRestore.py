@@ -1,6 +1,6 @@
 # coding=utf-8
 import csv
-import os
+import os, datetime
 import tempfile
 from multiprocessing.pool import ThreadPool
 from threading import Lock
@@ -44,7 +44,8 @@ class NetworkingSaveRestore(object):
     # e.g. tftp://configs/Base/svl290-gg07-sw1_c3850.cfg
     # ----------------------------------
     def load_config(self, config_stage, config_type, restore_method="Override", config_set_name='', ignore_models=None,
-                    write_to_output=True, remove_temp_files=False, use_Config_file_path_attr=False):
+                    write_to_output=True, remove_temp_files=False, use_Config_file_path_attr=False,
+                    in_teardown_mode=False):
         """
         Load the configuration from config files on the Blueprint's devices
         :param str config_stage:  The stage of the config e.g Gold, Base
@@ -81,7 +82,7 @@ class NetworkingSaveRestore(object):
             async_results = [pool.apply_async(self._run_asynch_load,
                                               (resource, images_path_dict, root_path, ignore_models, config_stage,
                                                health_check_attempts, lock,
-                                               use_Config_file_path_attr))
+                                               use_Config_file_path_attr,in_teardown_mode))
                              for resource in root_resources]
 
             pool.close()
@@ -120,18 +121,35 @@ class NetworkingSaveRestore(object):
     # ----------------------------------
     # ----------------------------------
     def _run_asynch_load(self, resource, images_path_dict, root_path, ignore_models, config_stage,
-                         health_check_attempts, lock,
-                         use_Config_file_path_attr):
+                         health_check_attempts, lock, use_Config_file_path_attr, in_teardown_mode):
         message = ""
         # run_status = True
         saved_artifact_info = None
         additionalinfo = ''
         load_result = rsc_run_result_struct(resource.name)
         # Check if needs to load the config to the device
+        is_power_ctrl_ok = self._is_power_ctrl_ok(resource, ignore_models=ignore_models)
+        if is_power_ctrl_ok:
+            # Attempt PowerOn
+            try:
+                pwr_cmd = resource.has_connected_power_on()
+                if pwr_cmd > "":
+                    resource.execute_connected_command(self.sandbox.id, pwr_cmd, tag='power')
+                    self.sandbox.report_info(resource.name + ' - powered ON',write_to_output_window=True)
+                else:
+                    pwr_cmd = resource.has_power_on()
+                    if pwr_cmd > "":
+                        resource.execute_command(self.sandbox.id, pwr_cmd)
+                        self.sandbox.report_info(resource.name + ' - powered on',write_to_output_window=True)
+                    else:
+                        self.sandbox.report_info(resource.name + ' - no power on command found',
+                                                 write_to_output_window=True)
+            except Exception as ex:
+                print resource.name + " power on fault. " + ex.message
+
         load_config_to_device = self._is_load_config_to_device(resource, ignore_models=ignore_models)
         if load_config_to_device:
-
-            self.sandbox.report_info(resource.name + " starting health check", write_to_output_window=True)
+            self.sandbox.report_info(resource.name + " - starting health check", write_to_output_window=True)
             health_check_result = resource.health_check(self.sandbox.id, health_check_attempts)
             if health_check_result == "":
                 self.sandbox.report_info(resource.name + " -- Initial Health Check Passed.")
@@ -140,6 +158,7 @@ class NetworkingSaveRestore(object):
                     with lock:
                         config_path = self._get_concrete_config_file_path(root_path, resource, config_stage,
                                                                           write_to_output=False)
+                    self.sandbox.report_info("Config path for " + resource.alias + ": " + str(config_path))
                     if use_Config_file_path_attr:
                         resource.set_attribute_value('Config file path', config_path)
                     # TODO - Snapshots currently only restore configuration. We need to restore firmware as well
@@ -172,13 +191,15 @@ class NetworkingSaveRestore(object):
                                 image_key = resource.model.replace(' ', '_')
 
                             if image_key:
+                                #self.sandbox.report_info("Using image key " + str(image_key) + " for " + resource.name)
                                 dict_img_version = images_path_dict[image_key].version
                             else:
                                 # Getting here means no firmware specified in FirmwareData.csv
                                 message += "\n" + resource.name + ": NO firmware version specified in Base FirmwareData.csv"
 
                             # same image version - Only load config (running override)
-                            message += resource.name + ": loading configuration from " + config_path
+                            #message += resource.name + ": loading configuration from " + config_path
+                            self.sandbox.report_info(resource.name + ": loading configuration from " + config_path)
                             if dict_img_version.lower() == version.lower():
                                 resource.load_network_config(self.sandbox.id, config_path=config_path,
                                                              config_type='Running',
@@ -212,8 +233,8 @@ class NetworkingSaveRestore(object):
 
                 except QualiError as qe:
                     load_result.run_result = False
-                    err = "\nFailed to load configuration " + additionalinfo + " for device " + resource.name + ". " + str(
-                        qe)
+                    err = "\nFailed to load configuration " + additionalinfo + " for device " + resource.name + \
+                          ". " + str(qe)
                     message += err
                 except Exception as ex:
                     load_result.run_result = False
@@ -230,6 +251,47 @@ class NetworkingSaveRestore(object):
                 message += err
 
         load_result.message = message
+
+        if is_power_ctrl_ok and in_teardown_mode:
+            # Attempt PowerOFF.
+            # If threshold is a Negative value, no power off.
+            # If threshold is 0-4, power off now
+            # If threshold is >5, check for usesage in that period with a 2minute shift ahead
+            try:
+                PowerOff=False
+                threshold = resource.get_attribute('PowerOff Threshold')
+                if int(threshold) <= 4 and int(threshold) > 0:
+                    threshold = 0
+                self.sandbox.report_info("Using power threshold of " + str(threshold))
+                if int(threshold) > 4:
+                    period_start = (datetime.datetime.now() + datetime.timedelta(minutes=2)).isoformat()
+                    period_end = (datetime.datetime.now() + datetime.timedelta(minutes=int(threshold))).isoformat()
+                    upcoming = resource.get_upcoming(resource.name, period_start=period_start, period_end=period_end)
+                    for element in upcoming.Resources:
+                        if element.Name == resource.name:
+                            if element.Reservations.__len__() > 0:
+                                self.sandbox.report_info(resource.name + ": not powered off due to upcoming use.",
+                                                         write_to_output_window=True)
+                            else:
+                                PowerOff=True
+                if int(threshold) == 0 or PowerOff==True:
+                    pwr_cmd = resource.has_connected_power_off()
+                    if pwr_cmd > "":
+                        resource.execute_connected_command(self.sandbox.id, pwr_cmd, tag='power')
+                        self.sandbox.report_info(resource.name + ': powered OFF',
+                    write_to_output_window=True)
+                    else:
+                        pwr_cmd = resource.has_power_off()
+                        if pwr_cmd > "":
+                            resource.execute_command(self.sandbox.id, pwr_cmd)
+                            self.sandbox.report_info(resource.name + ': powered off',
+                    write_to_output_window=True)
+                        else:
+                            self.sandbox.report_info(resource.name + ': no power_off command found',
+                                                     write_to_output_window=True)
+            except Exception as ex:
+                print ex.message
+
         return load_result
 
     # ----------------------------------
@@ -298,7 +360,8 @@ class NetworkingSaveRestore(object):
         except:
             try:
                 self.storage_mgr.download(tftp_template_config_path, tmp_template_config_file.name)
-            except:
+            except Exception as ex:
+                print ex.message
                 # look for a generic config file for the model
                 tftp_template_config_path = root_path + resource.model + '.tm'
                 tftp_template_config_path = tftp_template_config_path.replace(' ', '_')
@@ -442,6 +505,19 @@ class NetworkingSaveRestore(object):
             if disable_load_config == "True":
                 return False
 
+        if ignore_models:
+            for ignore_model in ignore_models:
+                if resource.model.lower() == ignore_model.lower():
+                    return False
+
+        apps = self.sandbox.get_Apps_resources()
+        for app in apps:
+            if app.Name == resource.name:
+                return False
+
+        return True
+
+    def _is_power_ctrl_ok(self, resource, ignore_models=None):
         if ignore_models:
             for ignore_model in ignore_models:
                 if resource.model.lower() == ignore_model.lower():
