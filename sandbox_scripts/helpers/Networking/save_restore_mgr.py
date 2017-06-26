@@ -20,7 +20,8 @@ class SaveRestoreManager(object):
                                                  ignore_models=ignore_models,
                                                  write_to_output=write_to_output,
                                                  remove_temp_files=remove_temp_files,
-                                                 use_Config_file_path_attr=use_Config_file_path_attr)
+                                                 use_Config_file_path_attr=use_Config_file_path_attr,
+                                                 in_teardown_mode=in_teardown_mode)
 
         self.vm_save_restore.load_config(config_stage=config_stage, config_set_name=config_set_name,
                                          ignore_models=ignore_models,write_to_output=write_to_output,
