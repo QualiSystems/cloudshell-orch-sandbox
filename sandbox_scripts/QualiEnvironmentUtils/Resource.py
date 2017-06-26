@@ -29,6 +29,9 @@ class ResourceBase(object):
 
             self.alias = resource_alias
 
+            self.power_on_wl = ["power_on", "Power On", "Power ON", "PowerOn"]  # whitelist for power on commands
+            self.power_off_wl = ["power_off", "Power Off", "Power OFF", "PowerOff"]  # whitelist for power off commands
+
     # -----------------------------------------
     # -----------------------------------------
     def has_command(self, command_name):
@@ -39,6 +42,38 @@ class ResourceBase(object):
             if command_name == command.Name:
                 return True
         return False
+
+    # -----------------------------------------
+    # -----------------------------------------
+    def has_power_on(self):
+        for command in self.commands:
+            if command.Name in self.power_on_wl:
+                return command.Name
+        return ""
+
+    # -----------------------------------------
+    # -----------------------------------------
+    def has_power_off(self):
+        for command in self.commands:
+            if command.Name in self.power_off_wl:
+                return command.Name
+        return ""
+
+    # -----------------------------------------
+    # -----------------------------------------
+    def has_connected_power_on(self):
+        for command in self.connected_commands:
+            if command.Name in self.power_on_wl:
+                return command.Name
+        return ""
+
+    # -----------------------------------------
+    # -----------------------------------------
+    def has_connected_power_off(self):
+        for command in self.connected_commands:
+            if command.Name in self.power_off_wl:
+                return command.Name
+        return ""
 
     # -----------------------------------------
     # -----------------------------------------
@@ -76,6 +111,19 @@ class ResourceBase(object):
                     return
         except CloudShellAPIError as error:
             raise QualiError(self.name, "Failed to set attribute named or ending-with '" + attribute_name + "'. " + error.message)
+
+    # -----------------------------------------
+    # -----------------------------------------
+    def get_upcoming(self, dev_name, period_start, period_end):
+        try:
+            upcoming = self.api_session.GetResourceAvailabilityInTimeRange(resourcesNames=([dev_name]),
+                                                                          startTime=period_start,
+                                                                          endTime=period_end,
+                                                                          showAllDomains=False)
+        except CloudShellAPIError as error:
+            raise QualiError(self.name, "Failed to get upcoming rsvn list.  " + error.message)
+
+        return upcoming
 
     # -----------------------------------------
     # implement the command to get the neighbors and their ports
