@@ -18,8 +18,10 @@ class EnvironmentTeardownResources:
         sandbox = SandboxBase(self.reservation_id, self.logger)
         saveNRestoreTool = SaveRestoreManager(sandbox)
 
-        sandbox.report_info("Beginning load baseline configuration for resources", write_to_output_window=True)
-        sandbox.clear_all_resources_live_status()
+        sandbox.report_info("Beginning load baseline configuration for resources (teardown)", write_to_output_window=True)
+        ignore_models=['Generic TFTP server', 'Config Set Pool', 'Generic FTP server',
+                               'netscout switch 3912', 'Subnet-28', 'Subnet-30', 'GitLab']
+        sandbox.clear_all_resources_live_status(ignore_models)
         try:
             if saveNRestoreTool.get_storage_manager():
                 ignore_models = ['Generic TFTP server', 'Config Set Pool', 'Generic FTP server', 'netscout switch 3912',
