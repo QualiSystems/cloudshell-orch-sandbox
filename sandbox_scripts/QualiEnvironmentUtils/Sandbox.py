@@ -240,7 +240,7 @@ class SandboxBase(object):
 
     # ----------------------------------
     # ----------------------------------
-    def clear_all_resources_live_status(self,ignore_models):
+    def clear_all_resources_live_status(self, ignore_models=[]):
         """
             Clear the live status from all the devices if not a model in ignore models
         """
