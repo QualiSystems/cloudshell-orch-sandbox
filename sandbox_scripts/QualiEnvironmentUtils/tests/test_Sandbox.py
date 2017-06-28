@@ -210,6 +210,23 @@ class SandboxTests(unittest.TestCase):
                  call('r2', additionalInfo='status cleared 12:00:01', liveStatusName='Info')]
         self.mock_api_session.return_value.SetResourceLiveStatus.assert_has_calls(calls)
 
+    @patch('sandbox_scripts.QualiEnvironmentUtils.Sandbox.ResourceBase')
+    def test_clear_all_resources_live_status_two_devices(self,mock_resourcebase):
+        resource1 = Mock()
+        resource1.name = "r1"
+        resource1.model = "m1"
+        resource2 = Mock()
+        resource2.name = "r2"
+        resource2.model = "m2"
+        rr = Mock()
+        rr = [resource1, resource2]
+        self.sandbox.get_root_resources = Mock(return_value=rr)
+
+        with freeze_time("2017-01-17 12:00:01"):
+            self.sandbox.clear_all_resources_live_status(ignore_models=['m1'])
+        calls = [call('r2', additionalInfo='status cleared 12:00:01', liveStatusName='Info')]
+        self.mock_api_session.return_value.SetResourceLiveStatus.assert_has_calls(calls)
+
     #================================================================
     #test activate_connectors
     def test_activate_connectors_no_connectors_no_output(self):
