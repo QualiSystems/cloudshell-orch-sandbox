@@ -8,6 +8,8 @@ class WorkflowObject(object):
 
 
 class Workflow(object):
+    PREPARATION_STAGE_NAME = 'Preparation'
+    ON_PREPARATION_ENDED_STAGE_NAME = 'On preparation ended'
     PROVISIONING_STAGE_NAME = 'Provisioning'
     ON_PROVISIONING_ENDED_STAGE_NAME = 'On provisioning ended'
     CONNECTIVITY_STAGE_NAME = 'Connectivity'
@@ -16,6 +18,8 @@ class Workflow(object):
     ON_CONFIGURATION_ENDED_STAGE_NAME = 'On configuration ended'
 
     def __init__(self, sandbox):
+        self._preparation_functions = []
+        """:type : list[WorkflowObject]"""
         self._provisioning_functions = []
         """:type : list[WorkflowObject]"""
         self._connectivity_functions = []
@@ -23,6 +27,8 @@ class Workflow(object):
         self._configuration_functions = []
         """:type : list[WorkflowObject]"""
 
+        self._after_preparation = []
+        """:type : list[WorkflowObject]"""
         self._after_provisioning = []
         """:type : list[WorkflowObject]"""
         self._after_connectivity = []
@@ -34,6 +40,14 @@ class Workflow(object):
         """:type : WorkflowObject"""
 
         self.sandbox = sandbox
+
+    def add_to_preparation(self, function, components=None):
+        self._validate_function(function)
+        self._preparation_functions.append(WorkflowObject(function=function, components=components))
+
+    def on_preparation_ended(self, function, components=None):
+        self._validate_function(function)
+        self._after_preparation.append(WorkflowObject(function=function, components=components))
 
     def add_to_provisioning(self, function, components=None):
         self._validate_function(function)
