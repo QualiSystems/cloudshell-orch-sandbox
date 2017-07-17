@@ -52,6 +52,12 @@ class Sandbox(object):
         api.WriteMessageToReservationOutput(reservationId=self.id, message='Preparing connectivity')
         api.PrepareSandboxConnectivity(self.id)
 
+        self.automation_api.SetSetupStage('Preparation', self.id)
+
+        self._execute_stage(self.workflow._preparation_functions, Workflow.PREPARATION_STAGE_NAME)
+
+        self._after_stage_ended(self.workflow._after_provisioning, Workflow.ON_PREPARATION_ENDED_STAGE_NAME)
+
         self.automation_api.SetSetupStage('Provisioning', self.id)
 
         self._execute_stage(self.workflow._provisioning_functions, Workflow.PROVISIONING_STAGE_NAME)
