@@ -56,7 +56,7 @@ class Sandbox(object):
 
         self._execute_stage(self.workflow._preparation_functions, Workflow.PREPARATION_STAGE_NAME)
 
-        self._after_stage_ended(self.workflow._after_provisioning, Workflow.ON_PREPARATION_ENDED_STAGE_NAME)
+        self._after_stage_ended(self.workflow._after_preparation, Workflow.ON_PREPARATION_ENDED_STAGE_NAME)
 
         self.automation_api.SetSetupStage('Provisioning', self.id)
 
