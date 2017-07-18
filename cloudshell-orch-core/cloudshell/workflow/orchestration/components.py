@@ -1,5 +1,4 @@
-from cloudshell.api.cloudshell_api import AppInfo, ResourceInfoVmDetails
-
+from cloudshell.api.cloudshell_api import AppInfo, ResourceInfoVmDetails, ReservedResourceInfo, ServiceInstance
 from cloudshell.workflow.orchestration.app import App
 
 
@@ -23,28 +22,28 @@ class Components(object):
     def get_apps_by_name_contains(self, name):
         """
         :param str name:
-        :return:
+        :rtype: list[App]
         """
         return [value for key, value in self.apps.iteritems() if name in key]
 
     def get_resources_by_model(self, model):
         """
         :param str model:
-        :return:
+        :rtype: list[ReservedResourceInfo]
         """
         return [value for key, value in self.resources.iteritems() if model == value.ResourceModelName]
 
     def get_services_by_alias(self, alias):
         """
         :param str alias:
-        :return:
+        :rtype: list[ServiceInstance]
         """
         return [value for key, value in self.services.iteritems() if alias == value.Alias]
 
     def get_services_by_name(self, name):
         """
         :param str name:
-        :return:
+        :rtype: list[ServiceInstance]
         """
         return [value for key, value in self.services.iteritems() if name == value.ServiceName]
 
@@ -63,8 +62,8 @@ class Components(object):
             for app in reservation_description.Apps:
                 if (app.Name not in self.apps.keys() and
                             len(app.DeploymentPaths) > 0):
-                            # to avoid bug in cloudshell-automation-api where an app named None returns even when
-                            # there are no apps in the reservation
+                    # to avoid bug in cloudshell-automation-api where an app named None returns even when
+                    # there are no apps in the reservation
                     self.apps[app.Name] = App(app)
 
         if self.resources is not None:
