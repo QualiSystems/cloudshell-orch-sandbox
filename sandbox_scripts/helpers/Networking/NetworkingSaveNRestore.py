@@ -156,20 +156,18 @@ class NetworkingSaveRestore(object):
                 try:
                     config_path = ''
                     with lock:
-                        config_path = self._get_concrete_config_file_path(root_path, resource, config_stage,
+                        if config_stage == 'Snapshots':
+                            config_path = root_path + resource.name + '_' + resource.model + '.cfg'
+                            self.sandbox.report_info("Using " + str(config_path))
+                        else:
+                            config_path = self._get_concrete_config_file_path(root_path, resource, config_stage,
                                                                           write_to_output=False)
-                    self.sandbox.report_info("Config path for " + resource.alias + ": " + str(config_path))
+                            self.sandbox.report_info("Config path for " + resource.alias + ": " + str(config_path))
                     if use_Config_file_path_attr:
                         resource.set_attribute_value('Config file path', config_path)
                     # TODO - Snapshots currently only restore configuration. We need to restore firmware as well
                     if config_stage.lower() == 'snapshots':
-                        if resource.has_command('orchestration_restore'):
-                            dest_name = resource.name + '_' + resource.model + '_artifact.txt'
-                            dest_name = dest_name.replace(' ', '-')
-                            saved_artifact_info = self.storage_mgr.download_artifact_info(config_path, dest_name)
-                            resource.orchestration_restore(self.sandbox.id, config_path, saved_artifact_info)
-                        else:
-                            resource.load_network_config(self.sandbox.id, config_path, 'Running', 'Override')
+                        resource.load_network_config(self.sandbox.id, config_path, 'Running', 'Override')
                     else:
                         if len(images_path_dict) > 0:
                             # check what the device FW version is currently.
@@ -341,10 +339,7 @@ class NetworkingSaveRestore(object):
         if config_set_pool_resource is not None:
             config_set_pool_manager = ConfigPoolManager(sandbox=self.sandbox, pool_resource=config_set_pool_resource)
             config_set_pool_data = config_set_pool_manager.pool_data
-        if config_stage == 'snapshots':
-            config_path = root_path + resource.name + '_' + resource.model + '.cfg'
-        else:
-            config_path = root_path + resource.alias + '_' + resource.model + '.cfg'
+        config_path = root_path + resource.alias + '_' + resource.model + '.cfg'
         config_path = config_path.replace(' ', '_')
         # Look for a template config file
         tmp_template_config_file = tempfile.NamedTemporaryFile(delete=False)
@@ -415,10 +410,14 @@ class NetworkingSaveRestore(object):
         env_dir = ""
         try:
             env_dir = self.config_files_root + '/Snapshots/' + snapshot_name.strip()
-            if not self.storage_mgr.dir_exist(env_dir):
+            if self.storage_mgr.dir_exist(env_dir):
+                self.sandbox.report_info("Directory for snapshot already exists:\n" + env_dir,
+                                         write_to_output_window=True)
+            else:
                 self.storage_mgr.create_dir(env_dir, write_to_output=True)
+                self.sandbox.report_info("Configs saving to\n" + env_dir, write_to_output_window=True)
         except QualiError as e:
-            self.sandbox.report_error("Save snapshot failed. " + str(e),
+            self.sandbox.report_error("Save snapshot failed attempting to make dir. " + str(e),
                                       write_to_output_window=write_to_output, raise_error=True)
 
         root_resources = self.sandbox.get_root_networking_resources()
@@ -440,7 +439,7 @@ class NetworkingSaveRestore(object):
                 self.sandbox.report_error(res.message, raise_error=False, send_email=True)
 
             elif res.message != '':
-                self.sandbox.report_info(res.resource_name + "\n" + res.message)
+                self.sandbox.report_info(res.message, write_to_output_window=True)
 
     # ----------------------------------
     # ----------------------------------
@@ -452,23 +451,13 @@ class NetworkingSaveRestore(object):
             save_config_for_device = self._is_load_config_to_device(resource, ignore_models=ignore_models)
         if save_config_for_device:
             try:
-                message += '\nSaving configuration for device: ' + resource.name
-                if resource.has_command('orchestration_save'):
-                    config_path = snapshot_dir.replace('\\', '/')
-                    saved_artifact_info = resource.orchestration_save(self.sandbox.id, config_path, config_type)
-                    if saved_artifact_info != "":
-                        dest_name = resource.name + '_' + resource.model + '_artifact.txt'
-                        dest_name = dest_name.replace(' ', '-')
-                        with lock:
-                            self.storage_mgr.save_artifact_info(saved_artifact_info, config_path, dest_name,
-                                                                write_to_output=True)
-                else:
-                    file_name = resource.save_network_config(self.sandbox.id, snapshot_dir, config_type)
-                    # rename file on the storage server
-                    file_path = snapshot_dir + '/' + file_name
-                    to_name = resource.name + '_' + resource.model + '.cfg'
-                    with lock:
-                        self.storage_mgr.rename_file(file_path, to_name)
+                file_name = resource.save_network_config(self.sandbox.id, snapshot_dir, config_type)
+                # rename file on the storage server
+                file_path = snapshot_dir + '/' + file_name
+                to_name = resource.name + '_' + resource.model + '.cfg'
+                with lock:
+                    self.storage_mgr.rename_file(file_path, to_name)
+                message += 'Saved config for device: ' + resource.name
 
             except QualiError as qe:
                 save_result.run_result = False
