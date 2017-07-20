@@ -187,6 +187,32 @@ class SandboxBase(object):
 
         return root_resources
 
+    # ----------------------------------
+    #created 28 June so we have all alias names accessible for substitution
+    def get_all_resources(self):
+        """
+            Get the resources
+            :rtype: list[ResourceBase]
+        """
+        all_resources = []
+        all_resources_names_dict = {}
+        details = self.get_details()
+        resources = details.ReservationDescription.Resources
+        topo_resources = details.ReservationDescription.TopologiesReservedResources
+        # Loop over all devices in the sandbox and add to a dictionary all root devices:
+        for resource in resources:
+            all_resources_names_dict[resource.Name] = 1
+
+        # instantiate a resource object for each root device
+        for a_resource_name in all_resources_names_dict.keys():
+            a_resource_alias = ''
+            for topo_resource in topo_resources:
+                if topo_resource.Name == a_resource_name:
+                    a_resource_alias = topo_resource.Alias
+                    break
+            all_resources.append(ResourceBase(a_resource_name, a_resource_alias))
+
+        return all_resources
 
     # ----------------------------------
     # ----------------------------------
@@ -386,6 +412,22 @@ class SandboxBase(object):
         
     # -----------------------------------------
     # -----------------------------------------
+    def setcategorysnapshots(self, snapshot_name):
+        try:
+            snapshot_name = str("Snapshots/" + snapshot_name)
+            self.api_session.SetTopologyCategory(snapshot_name, "Snapshots")
+        except CloudShellAPIError as error:
+            err = "Failed to set category to Snapshots. " + error.message
+            self.report_error(error_message=err, raise_error=True, write_to_output_window=True)
+
+    # -----------------------------------------
+    # -----------------------------------------
+    def update_description(self, description):
+        # No api exists yet for this feature
+        return
+
+    # -----------------------------------------
+    # ------------- ---------------------------
     def save_sandbox_as_blueprint(self, blueprint_name, write_to_output=True):
         try:
             # TODO - fullpath should be passed as a param to the function and not hard coded
