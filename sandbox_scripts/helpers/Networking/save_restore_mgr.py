@@ -34,6 +34,8 @@ class SaveRestoreManager(object):
         self.networking_save_restore.save_config(snapshot_name=snapshot_name,config_type=config_type,
                                                  ignore_models=ignore_models,write_to_output=write_to_output)
 
+
+
         self.vm_save_restore.save_config(snapshot_name=snapshot_name , config_type=config_type,
                                          ignore_models=ignore_models, write_to_output=write_to_output)
 
