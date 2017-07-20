@@ -90,7 +90,7 @@ class StorageManager(object):
     # ----------------------------------
     # ----------------------------------
     def dir_exist(self, dir_name):
-        self.storage_client.dir_exist(dir_name)
+        return self.storage_client.dir_exist(dir_name)
 
     # ----------------------------------
     # ----------------------------------
