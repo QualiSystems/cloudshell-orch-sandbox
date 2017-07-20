@@ -235,44 +235,26 @@ class ResourceBase(object):
         :param config_type:  StartUp or Running
         """
         #TODO modify the function to identify the command name and its params (similar behavior as in load_network_config)
-        # Run executeCommand with the restore command and its params (ConfigPath,RestoreMethod)
+        # Run executeCommand for the Save command and its params
         try:
-            command_inputs = [InputNameValue('source_filename', str(config_type)),
-                                InputNameValue('destination_host', str(config_path))]
+            command_inputs = [InputNameValue('folder_path', str(config_path)),
+                                InputNameValue('configuration_type', str(config_type))]
 
             if self.attribute_exist('VRF Management Name'):
                 vrf_name = self.get_attribute('VRF Management Name')
                 if vrf_name !='':
-                    command_inputs.append(InputNameValue('vrf', str(vrf_name)))
+                    command_inputs.append(InputNameValue('vrf_management_name', str(vrf_name)))
 
-            config_name = self.execute_command(reservation_id, 'Save',
+            config_name = self.execute_command(reservation_id, 'save',
                                                commandInputs=command_inputs,
-                                               printOutput=True).Output
+                                               printOutput=False).Output
 
             #TODO check the output is the created file name
             return config_name
+        except QualiError as qerror:
+            raise QualiError(self.name, "Failed to save configuration: " + qerror.message)
         except:
-            try:
-                command_inputs = [InputNameValue('source_filename', str(config_type)),
-                                    InputNameValue('destination_host', str(config_path))]
-
-                if self.attribute_exist('VRF Management Name'):
-                    vrf_name = self.get_attribute('VRF Management Name')
-                    if vrf_name !='':
-                        command_inputs.append(InputNameValue('vrf', str(vrf_name)))
-
-                config_name = self.execute_command(reservation_id, 'save',
-                                                   commandInputs=command_inputs,
-                                                   printOutput=True).Output
-
-                #TODO check the output is the created file name
-                config_name = config_name.rstrip(',')
-                return config_name
-
-            except QualiError as qerror:
-                raise QualiError(self.name, "Failed to save configuration: " + qerror.message)
-            except:
-                raise QualiError(self.name, "Failed to save configuration. Unexpected error:" + str(sys.exc_info()[0]))
+            raise QualiError(self.name, "Failed to save configuration. Unexpected error:" + str(sys.exc_info()[0]))
 
     # -----------------------------------------
     # -----------------------------------------
@@ -334,24 +316,19 @@ class ResourceBase(object):
             config_name = None
 
             if self.is_app():
-
                 for command in self.connected_commands:
                     if 'orchestration_save' == command.Name:
                         tag = command.Tag
-
                         config_name = self.execute_connected_command(reservation_id, 'orchestration_save', tag,
                                                                      commandInputs=['shallow',''], printOutput=False)
-
                         return config_name.Output
 
             else:
                 if self.has_command('orchestration_save'):
-
                     config_name = self.execute_command(reservation_id, 'orchestration_save',
                                                commandInputs=[InputNameValue('custom_params', json_str),
                                                               InputNameValue('mode','shallow')],
                                                printOutput=False)
-
                     return config_name.Output
 
             if config_name:
