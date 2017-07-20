@@ -63,17 +63,17 @@ class ConfigFileManager:
                 # param_val = resource.get_attribute(param)
                 concrete_config_data = concrete_config_data.replace(param, param_val)
 
-            # Replacement of params from types: {Device:ALIAS:Attribute_name}
+            # Replacement of params from types: {Device:ALIAS:Attribute_name} WHERE ALIAS is at any structure level
             it = re.finditer(r'\{Device:[^}]*\}', concrete_config_data, flags=re.IGNORECASE)
-            root_resources = None
+            the_resources = None
             for match in it:
                 param = match.group()
                 junk, sb_alias, alias_attribname = param.split(":")
                 alias_attribname = alias_attribname.replace("}", "")
                 concrete_name = ''
-                if root_resources is None:  # fetch once the resources
-                    root_resources = sandbox.get_root_networking_resources()
-                for resource in root_resources:
+                if the_resources is None:  # fetch once the resources
+                    the_resources = sandbox.get_all_resources()
+                for resource in the_resources:
                     if resource.alias == sb_alias:
                         concrete_name = resource.name
                         if resource.attribute_exist(alias_attribname):
