@@ -124,8 +124,10 @@ class VMsSaveRestore(BaseSaveRestore):
 
         env_dir = ""
         try:
-            env_dir = self.config_files_root + '/Snapshots/' + snapshot_name.strip()
-            if not self.storage_mgr.dir_exist(env_dir):
+            env_dir = self.config_files_root + '/Snapshots/' + snapshot_name
+            if self.storage_mgr.dir_exist(env_dir):
+                pass
+            else:
                 self.storage_mgr.create_dir(env_dir, write_to_output=True)
         except QualiError as e:
             self.sandbox.report_error("Save snapshot failed. " + str(e),
@@ -133,24 +135,25 @@ class VMsSaveRestore(BaseSaveRestore):
 
         root_resources = self.sandbox.get_root_vm_resources()
         """:type : list[ResourceBase]"""
-        pool = ThreadPool(len(root_resources))
-        lock = Lock()
-        async_results = [pool.apply_async(self._run_asynch_save,
-                                          (resource, env_dir, config_type, lock, ignore_models))
+        if len(root_resources) == 0:
+            self.sandbox.report_info("No VMs found to snapshot.", write_to_output_window=True)
+        else:
+            pool = ThreadPool(len(root_resources))
+            lock = Lock()
+            async_results = [pool.apply_async(self._run_asynch_save,
+                                              (resource, env_dir, config_type, lock, ignore_models))
                          for resource in root_resources]
-
-        pool.close()
-        pool.join()
-        for async_result in async_results:
-            res = async_result.get()
-            """:type : rsc_run_result_struct"""
-            if not res.run_result:
-                err = "Failed to save configuration on device " + res.resource_name
-                self.sandbox.report_error(err, write_to_output_window=write_to_output, raise_error=False)
-                self.sandbox.report_error(res.message, raise_error=False)
-
-            elif res.message != '':
-                self.sandbox.report_info(res.resource_name + "\n" + res.message)
+            pool.close()
+            pool.join()
+            for async_result in async_results:
+                res = async_result.get()
+                """:type : rsc_run_result_struct"""
+                if not res.run_result:
+                    err = "Failed to save configuration on device " + res.resource_name
+                    self.sandbox.report_error(err, write_to_output_window=write_to_output, raise_error=False)
+                    self.sandbox.report_error(res.message, raise_error=False)
+                elif res.message != '':
+                    self.sandbox.report_info(res.message, write_to_output_window=True)
 
     # ----------------------------------
     # ----------------------------------
