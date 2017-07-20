@@ -160,7 +160,7 @@ class ConfigFileManagerTests(unittest.TestCase):
         resource = ResourceBase(resource_name='myresource', resource_alias='OtherDevice')
 
         sandbox = Mock()
-        sandbox.get_root_networking_resources.return_value = [resource]
+        sandbox.get_all_resources.return_value = [resource]
 
         tmp_template_config_file_data = """{Device:OtherDevice:Pool1}"""
 
@@ -187,7 +187,7 @@ class ConfigFileManagerTests(unittest.TestCase):
         resource = ResourceBase(resource_name='myresource', resource_alias='OtherDevice')
 
         sandbox = Mock()
-        sandbox.get_root_networking_resources.return_value = [resource]
+        sandbox.get_all_resources.return_value = [resource]
 
         tmp_template_config_file_data = """{Device:OtherDevice:Pool123}"""
 
@@ -218,7 +218,7 @@ class ConfigFileManagerTests(unittest.TestCase):
         resource = ResourceBase(resource_name='myresource', resource_alias='OtherDevice')
 
         sandbox = Mock()
-        sandbox.get_root_networking_resources.return_value = [resource]
+        sandbox.get_all_resources.return_value = [resource]
 
         tmp_template_config_file_data = """{Device:OtherDevice2:Pool1}"""
 
