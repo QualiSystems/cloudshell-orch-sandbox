@@ -25,6 +25,8 @@ class Sandbox(object):
 
         reservation_description = self.automation_api.GetReservationDetails(self.id).ReservationDescription
 
+        self.name = reservation_description.Name
+
         self.components = Components(reservation_description.Resources,
                                      reservation_description.Services,
                                      reservation_description.Apps)
@@ -56,19 +58,19 @@ class Sandbox(object):
 
         self._execute_stage(self.workflow._preparation_functions, Workflow.PREPARATION_STAGE_NAME)
 
-        self._after_stage_ended(self.workflow._after_preparation, Workflow.ON_PREPARATION_ENDED_STAGE_NAME)
+        self._executes_stage_sequentially(self.workflow._after_preparation, Workflow.ON_PREPARATION_ENDED_STAGE_NAME)
 
         self.automation_api.SetSetupStage('Provisioning', self.id)
 
         self._execute_stage(self.workflow._provisioning_functions, Workflow.PROVISIONING_STAGE_NAME)
 
-        self._after_stage_ended(self.workflow._after_provisioning, Workflow.ON_PROVISIONING_ENDED_STAGE_NAME)
+        self._executes_stage_sequentially(self.workflow._after_provisioning, Workflow.ON_PROVISIONING_ENDED_STAGE_NAME)
 
         self.automation_api.SetSetupStage('Connectivity', self.id)
 
         self._execute_stage(self.workflow._connectivity_functions, Workflow.CONNECTIVITY_STAGE_NAME)
 
-        self._after_stage_ended(self.workflow._after_connectivity, Workflow.ON_CONNECTIVITY_ENDED_STAGE_NAME)
+        self._executes_stage_sequentially(self.workflow._after_connectivity, Workflow.ON_CONNECTIVITY_ENDED_STAGE_NAME)
 
         self.automation_api.SetSetupStage('Configuration', self.id)
 
@@ -76,7 +78,7 @@ class Sandbox(object):
 
         self._execute_stage(self.workflow._configuration_functions, Workflow.CONFIGURATION_STAGE_NAME)
 
-        self._after_stage_ended(self.workflow._after_configuration, Workflow.ON_CONFIGURATION_ENDED_STAGE_NAME)
+        self._executes_stage_sequentially(self.workflow._after_configuration, Workflow.ON_CONFIGURATION_ENDED_STAGE_NAME)
 
         self.automation_api.SetSetupStage('Ended', self.id)
 
@@ -87,13 +89,17 @@ class Sandbox(object):
 
     @profileit(scriptName='Teardown')
     def execute_teardown(self):
-        if self.workflow._teardown is None:
+        if self.workflow._teardown_functions is None:
             self.logger.info('No teardown process was configured for the sandbox')
 
         else:
+            self.logger.info('Before Teardown execution started')
+
+            self._executes_stage_sequentially(self.workflow._before_teardown, Workflow.BEFORE_TEARDOWN_STAGE_NAME)
+
             self.logger.info('Teardown execution started')
 
-            self._execute_workflow_process(self.workflow._teardown.function, self.workflow._teardown.components)
+            self._execute_stage(self.workflow._teardown_functions, Workflow.TEARDOWN_STAGE_NAME)
 
             self.logger.info('Teardown for sandbox {0} completed'.format(self.id))
 
@@ -152,7 +158,7 @@ class Sandbox(object):
                                                                     stage_name))
             sys.exit(-1)
 
-    def _after_stage_ended(self, workflow_objects, stage_name):
+    def _executes_stage_sequentially(self, workflow_objects, stage_name):
         self.logger.info(
             'Executing "{0}" stage ,{1} workflow processes found. '.format(stage_name, len(workflow_objects)))
         for workflow_object in workflow_objects:
