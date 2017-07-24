@@ -36,12 +36,11 @@ class VMsSaveRestore(BaseSaveRestore):
             root_path = root_path + config_set_name.strip() + '/'
 
         root_path = root_path.replace(' ', '_')
-
-        self.sandbox.report_info(
-            "Loading image on the VMs. This action may take some time.",write_to_output_window=True)
         root_resources = self.sandbox.get_root_vm_resources()
         """:type : list[ResourceBase]"""
         if len(root_resources) > 0:
+            self.sandbox.report_info("Loading image on the VMs. This action may take some time.",
+                                     write_to_output_window=True)
             pool = ThreadPool(len(root_resources))
             async_results = [pool.apply_async(self._run_asynch_load,
                                               (resource, root_path, ignore_models, in_teardown_mode))
@@ -60,7 +59,7 @@ class VMsSaveRestore(BaseSaveRestore):
                 elif res.message != '':
                     self.sandbox.report_info(res.resource_name + "\n" + res.message)
         else:
-            self.sandbox.report_info("No VM resources found to process")
+            self.sandbox.report_info("No VM resources found to process", write_to_output_window=True)
 
     # ----------------------------------
     # ----------------------------------
