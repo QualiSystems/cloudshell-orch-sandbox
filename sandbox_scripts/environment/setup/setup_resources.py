@@ -20,7 +20,7 @@ class EnvironmentSetupResources(object):
         sandbox.report_info('Beginning load configuration for resources')
         #Consider an ignore family capability? This list gets to be a maint issue...?
         ignore_models=['Generic TFTP server', 'Config Set Pool', 'Generic FTP server',
-                               'netscout switch 3912', 'Subnet-28', 'Subnet-30', 'GitLab']
+                               'netscout switch 3912', 'Subnet-28', 'Subnet-30', 'GitLab', 'SSID_Pool' ]
         try:
             sandbox.clear_all_resources_live_status(ignore_models)
             if sandbox.get_storage_server_resource():
@@ -30,7 +30,6 @@ class EnvironmentSetupResources(object):
                     config_set_name = os.environ['Set Name']
                 except:
                     pass
-
 
                 if saveNRestoreTool.get_storage_manager():
                     if saveNRestoreTool.is_snapshot():
