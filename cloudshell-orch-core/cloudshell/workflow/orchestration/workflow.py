@@ -46,42 +46,82 @@ class Workflow(object):
         self.sandbox = sandbox
 
     def add_to_preparation(self, function, components=None):
+        """
+        :param function:
+        :param components: list of components: App, ReservedResourceInfo or ServiceInstance
+        """
         self._validate_function(function)
         self._preparation_functions.append(WorkflowObject(function=function, components=components))
 
     def on_preparation_ended(self, function, components=None):
+        """
+        :param function:
+        :param components: list of components: App, ReservedResourceInfo or ServiceInstance
+        """
         self._validate_function(function)
         self._after_preparation.append(WorkflowObject(function=function, components=components))
 
     def add_to_provisioning(self, function, components=None):
+        """
+        :param function:
+        :param components: list of components: App, ReservedResourceInfo or ServiceInstance
+        """
         self._validate_function(function)
         self._provisioning_functions.append(WorkflowObject(function=function, components=components))
 
     def on_provisioning_ended(self, function, components=None):
+        """
+        :param function:
+        :param components: list of components: App, ReservedResourceInfo or ServiceInstance
+        """
         self._validate_function(function)
         self._after_provisioning.append(WorkflowObject(function=function, components=components))
 
     def add_to_connectivity(self, function, components=None):
+        """
+        :param function:
+        :param components: list of components: App, ReservedResourceInfo or ServiceInstance
+        """
         self._validate_function(function)
         self._connectivity_functions.append(WorkflowObject(function=function, components=components))
 
     def on_connectivity_ended(self, function, components=None):
+        """
+        :param function:
+        :param components: list of components: App, ReservedResourceInfo or ServiceInstance
+        """
         self._validate_function(function)
         self._after_connectivity.append(WorkflowObject(function=function, components=components))
 
     def add_to_configuration(self, function, components=None):
+        """
+        :param function:
+        :param components: list of components: App, ReservedResourceInfo or ServiceInstance
+        """
         self._validate_function(function)
         self._configuration_functions.append(WorkflowObject(function=function, components=components))
 
     def on_configuration_ended(self, function, components=None):
+        """
+        :param function:
+        :param components: list of components: App, ReservedResourceInfo or ServiceInstance
+        """
         self._validate_function(function)
         self._after_configuration.append(WorkflowObject(function=function, components=components))
 
     def add_to_teardown(self, function, components=None):
+        """
+        :param function:
+        :param components: list of components: App, ReservedResourceInfo or ServiceInstance
+        """
         self._validate_function(function)
         self._teardown_functions.append(WorkflowObject(function=function, components=components))
 
     def before_teardown_started(self, function, components=None):
+        """
+        :param function:
+        :param components: list of components: App, ReservedResourceInfo or ServiceInstance
+        """
         self._validate_function(function)
         self._before_teardown.append(WorkflowObject(function=function, components=components))
 
