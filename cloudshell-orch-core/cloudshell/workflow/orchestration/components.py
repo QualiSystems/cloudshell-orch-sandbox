@@ -4,7 +4,7 @@ from cloudshell.workflow.orchestration.app import App
 
 class Components(object):
     def __init__(self, resources, services, apps):
-        self.apps = dict((app.Name, App(app)) for app in apps if len(app.DeploymentPaths) > 0)  # avoid bug in
+        self.apps = {app.Name : App(app)) for app in apps if len(app.DeploymentPaths) > 0}  # avoid bug in
         # cloudshell-automation-api where an app named None returns even when there are no apps in the reservation
         """:type : dict[str, App]"""
         self.resources = {}
