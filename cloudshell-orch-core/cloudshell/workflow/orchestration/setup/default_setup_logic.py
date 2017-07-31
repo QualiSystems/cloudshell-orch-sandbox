@@ -202,7 +202,7 @@ class DefaultSetupLogic(object):
         """
         logger.info('App configuration started ...')
         try:
-            configuration_result = api.ConfigureApps(reservationId=reservation_id)
+            configuration_result = api.ConfigureApps(reservationId=reservation_id, printOutput=True)
 
             if not configuration_result.ResultItems:
                 api.WriteMessageToReservationOutput(reservationId=reservation_id, message='No apps to configure')
