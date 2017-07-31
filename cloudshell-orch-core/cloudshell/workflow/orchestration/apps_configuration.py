@@ -55,4 +55,5 @@ class AppsConfiguration(object):
             "Configuring apps: {0}".format(', '.join([app_configuration.AppName for app_configuration in apps_configuration])))
 
         self.sandbox.automation_api.ConfigureApps(reservationId=self.sandbox.id,
-                                                  appConfigurations=apps_configuration)
+                                                  appConfigurations=apps_configuration,
+                                                  printOutput=True)
