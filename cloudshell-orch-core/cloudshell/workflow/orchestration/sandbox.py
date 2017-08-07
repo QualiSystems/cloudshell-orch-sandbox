@@ -50,11 +50,12 @@ class Sandbox(object):
                                             message='Beginning sandbox setup')
 
         ## prepare sandbox stage
+
+        self.automation_api.SetSetupStage('Preparation', self.id)
+
         self.logger.info('Preparing sandbox. ')
         api.WriteMessageToReservationOutput(reservationId=self.id, message='Preparing connectivity')
         api.PrepareSandboxConnectivity(self.id)
-
-        self.automation_api.SetSetupStage('Preparation', self.id)
 
         self._execute_stage(self.workflow._preparation_functions, Workflow.PREPARATION_STAGE_NAME)
 
