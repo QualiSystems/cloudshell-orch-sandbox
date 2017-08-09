@@ -12,7 +12,7 @@ class DefaultTeardownWorkflow(object):
         :return:
         """
         sandbox.logger.info("Adding default teardown orchestration")
-        sandbox.workflow.set_teardown(self.default_teardown, None)
+        sandbox.workflow.add_to_teardown(self.default_teardown, None)
 
     def default_teardown(self, sandbox, components):
         """

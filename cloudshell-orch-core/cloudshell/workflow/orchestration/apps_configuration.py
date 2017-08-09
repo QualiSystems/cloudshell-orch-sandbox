@@ -28,6 +28,12 @@ class AppsConfiguration(object):
         :param list[App] apps:
         :return:
         """
+
+        if not all(isinstance(app, App) for app in apps):
+            self.sandbox.logger.error("apply_apps_configurations should get list of Apps, please refer to the "
+                                      "CloudShell DevGuide for more information")
+            raise Exception("Sandbox is Active with Errors")
+
         apps_configuration = []
 
         for app in apps:
@@ -49,4 +55,5 @@ class AppsConfiguration(object):
             "Configuring apps: {0}".format(', '.join([app_configuration.AppName for app_configuration in apps_configuration])))
 
         self.sandbox.automation_api.ConfigureApps(reservationId=self.sandbox.id,
-                                                  appConfigurations=apps_configuration)
+                                                  appConfigurations=apps_configuration,
+                                                  printOutput=True)
