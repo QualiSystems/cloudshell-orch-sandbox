@@ -16,9 +16,9 @@ class AppsConfiguration(object):
         :return:
         """
         if isinstance(app, App):
-            self.sandbox.components.apps[app.app_request.app_resource.Name].app_request.add_app_config_param(key, value)
+            self.sandbox.components.apps[app.deployed_app.Name].app_request.add_app_config_param(key, value)
             self.sandbox.logger.info("App config param with key: '{0}' and value: '{1}' was added to app-resource '{2}'"
-                                     .format(key, value, app.app_request.app_resource.Name))
+                                     .format(key, value, app.deployed_app.Name))
         else:
             self.sandbox.logger.error("set_config_param: app parameter is not from the correct type")
             raise Exception("Sandbox is Active with Errors")
