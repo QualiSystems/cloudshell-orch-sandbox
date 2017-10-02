@@ -1,6 +1,7 @@
 from cloudshell.api.cloudshell_api import AppConfiguration
 
 from cloudshell.workflow.orchestration.app import App
+from cloudshell.workflow.orchestration.setup.default_setup_logic import DefaultSetupLogic
 
 
 class AppsConfiguration(object):
@@ -16,9 +17,20 @@ class AppsConfiguration(object):
         :return:
         """
         if isinstance(app, App):
-            self.sandbox.components.apps[app.deployed_app.Name].app_request.add_app_config_param(key, value)
-            self.sandbox.logger.info("App config param with key: '{0}' and value: '{1}' was added to app-resource '{2}'"
-                                     .format(key, value, app.deployed_app.Name))
+            # If deployed in this execution
+            if app.app_request.app_resource is not None:
+                self.sandbox.components.apps[app.app_request.app_resource.Name].app_request.add_app_config_param(key,
+                                                                                                                 value)
+                self.sandbox.logger.info(
+                    "App config param with key: '{0}' and value: '{1}' was added to app-resource '{2}'"
+                        .format(key, value, app.app_request.app_resource.Name))
+
+            else:
+                self.sandbox.components.apps[app.deployed_app.Name].app_request.add_app_config_param(key, value)
+                self.sandbox.logger.info(
+                    "App config param with key: '{0}' and value: '{1}' was added to app-resource '{2}'"
+                        .format(key, value, app.deployed_app.Name))
+
         else:
             self.sandbox.logger.error("set_config_param: app parameter is not from the correct type")
             raise Exception("Sandbox is Active with Errors")
@@ -52,8 +64,10 @@ class AppsConfiguration(object):
                         app.deployed_app.Name))
 
         self.sandbox.logger.info(
-            "Configuring apps: {0}".format(', '.join([app_configuration.AppName for app_configuration in apps_configuration])))
+            "Configuring apps: {0}".format(
+                ', '.join([app_configuration.AppName for app_configuration in apps_configuration])))
 
-        self.sandbox.automation_api.ConfigureApps(reservationId=self.sandbox.id,
-                                                  appConfigurations=apps_configuration,
-                                                  printOutput=True)
+        DefaultSetupLogic.configure_apps(api=self.sandbox.automation_api,
+                                         reservation_id=self.sandbox.id,
+                                         logger=self.sandbox.logger,
+                                         appConfigurations=apps_configuration)
