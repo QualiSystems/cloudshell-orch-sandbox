@@ -193,8 +193,9 @@ class DefaultSetupLogic(object):
                                                      logger=logger)
 
     @staticmethod
-    def configure_apps(api, reservation_id, logger):
+    def configure_apps(api, reservation_id, logger, appConfigurations=[]):
         """
+        :param appConfigurations:
         :param CloudShellAPISession api:
         :param str reservation_id:
         :param logging.Logger logger:
@@ -202,7 +203,7 @@ class DefaultSetupLogic(object):
         """
         logger.info('App configuration started ...')
         try:
-            configuration_result = api.ConfigureApps(reservationId=reservation_id, printOutput=True)
+            configuration_result = api.ConfigureApps(reservationId=reservation_id, printOutput=True, appConfigurations=appConfigurations)
 
             if not configuration_result.ResultItems:
                 api.WriteMessageToReservationOutput(reservationId=reservation_id, message='No apps to configure')
