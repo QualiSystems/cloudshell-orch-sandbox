@@ -155,7 +155,7 @@ class Sandbox(object):
     def _validate_workflow_process_result(self, result, stage_name):
         if result == 1:  # failed to execute step
             self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
-                                                                message='<font color="red">Error occurred during "{0}" stage, see full activity feed for more information.</font>'.format(
+                                                                message='<font color="red">Error occurred during "{0}" stage, See additional entries in the Activity Feed for more information.</font>'.format(
                                                                     stage_name))
             sys.exit(-1)
 
