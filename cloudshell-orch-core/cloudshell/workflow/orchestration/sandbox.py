@@ -50,10 +50,6 @@ class Sandbox(object):
         api.WriteMessageToReservationOutput(reservationId=self.id,
                                             message='Beginning sandbox setup')
 
-
-        api.WriteMessageToReservationOutput(reservationId=self.id,
-                                            message='TOMERRRRRRRRRRRRRRRRRR')
-
         ## prepare sandbox stage
 
         self.automation_api.SetSetupStage('Preparation', self.id)
