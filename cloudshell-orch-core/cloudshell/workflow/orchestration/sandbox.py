@@ -124,10 +124,9 @@ class Sandbox(object):
                 except Exception:
                     pass
 
-            print error
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            self.logger.error(repr(traceback.format_exception(exc_type, exc_value, exc_traceback)))
-            self.logger.error("Error executing function '{0}'. detailed error: {1}".format(func.__name__, str(error)))
+            if self.suppress_exceptions:
+                print error
+            self.logger.exception("Error was thrown during orchestration execution: ")
 
         return execution_failed
 
