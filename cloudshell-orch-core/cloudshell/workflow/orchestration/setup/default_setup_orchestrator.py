@@ -64,7 +64,7 @@ class DefaultSetupWorkflow(object):
 
         reservation_details = api.GetReservationDetails(sandbox.id)
 
-        DefaultSetupLogic.connect_all_routes_in_reservation(api=api,
+        connect_results = DefaultSetupLogic.connect_all_routes_in_reservation(api=api,
                                                             reservation_details=reservation_details,
                                                             reservation_id=sandbox.id,
                                                             resource_details_cache=self._resource_details_cache,
@@ -76,6 +76,12 @@ class DefaultSetupWorkflow(object):
                                                         resource_details_cache=self._resource_details_cache,
                                                         reservation_id=sandbox.id,
                                                         logger=sandbox.logger)
+
+        DefaultSetupLogic.refresh_vm_details(api=api,
+                                             reservation_details=reservation_details,
+                                             connect_results=connect_results,
+                                             resource_details_cache=self._resource_details_cache,
+                                             logger=sandbox.logger)
 
     def default_configuration(self, sandbox, components):
         """

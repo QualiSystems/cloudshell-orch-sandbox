@@ -193,6 +193,75 @@ class DefaultSetupLogic(object):
                                                      logger=logger)
 
     @staticmethod
+    def refresh_vm_details(api, reservation_details, connect_results, resource_details_cache, logger):
+        """
+        :param CloudShellAPISession api:
+        :param GetReservationDescriptionResponseInfo reservation_details:
+        :param list connectivity_data:
+        :param (dict of str: ResourceInfo) resource_details_cache:
+        :param logging.Logger logger:
+        :return:
+        """
+        deployed_apps_to_refresh_names = []
+        reservation_id = reservation_details.ReservationDescription.Id
+        deployed_app_names = \
+            DefaultSetupLogic.get_resource_names_deployed_in_reservation(reservation_details, reservation_id)
+
+        for deployed_app_name in deployed_app_names:
+            resource_details = get_resource_details_from_cache_or_server(api, deployed_app_name, resource_details_cache)
+
+            if not DefaultSetupLogic._is_deployed_app(resource_details):
+                continue
+
+            if DefaultSetupLogic._has_wait_for_ip_attribute(resource_details):
+                deployed_apps_to_refresh_names.append(deployed_app_name)
+                continue
+
+            elif DefaultSetupLogic._was_connected_during_setup(connect_results, deployed_app_name):
+                deployed_apps_to_refresh_names.append(deployed_app_name)
+                continue
+
+        try:
+            if len(deployed_apps_to_refresh_names) > 0:
+                logger.info('Refreshing VM Details for {0}'.format(', '.join(deployed_apps_to_refresh_names)))
+                api.RefreshVMDetails(reservation_id, deployed_apps_to_refresh_names)
+        except Exception as e:
+            logger.error("Failed to refresh VM details:\ndeployed apps: {0}\nmessage: {1}"
+                         .format(', '.join(deployed_apps_to_refresh_names), e.message))
+            raise Exception("Failed to refresh VM Details")
+
+    @staticmethod
+    def _has_wait_for_ip_attribute(resource_details):
+        # wait for ip is a parameter that can be on app (but doesnt have to be)
+        # only in case
+        wait_for_ip_param = get_vm_custom_param(resource_details, "wait_for_ip")
+        is_wait_for_app = True if wait_for_ip_param and wait_for_ip_param.Value.lower() == 'true' else False
+        return is_wait_for_app
+
+    @staticmethod
+    def _was_connected_during_setup(connect_results, deployed_app_name):
+        # get first or default route in which deployed_app_name is in source or target
+        # thus, we check if the deployed app was part of a route that was connected during setup
+        name = deployed_app_name.lower()
+        return next((True for result in connect_results.Routes
+                     if result.Source.lower() == name or result.Target.lower() == name), False)
+
+    @staticmethod
+    def _is_deployed_app(resource_details):
+        # all deployed apps have vm details and uid
+        vm_details = get_vm_details(resource_details)
+        is_deployed_app = True if hasattr(vm_details, "UID") else False
+        return is_deployed_app
+
+    @staticmethod
+    def get_resource_names_deployed_in_reservation(reservation_details, reservation_id):
+        deployed_resource_names = [res.Name for res in
+                                   get_resources_created_in_res(reservation_details=reservation_details,
+                                                                reservation_id=reservation_id) if
+                                   not '\\' in res.Name and not '/' in res.Name]
+        return deployed_resource_names
+
+    @staticmethod
     def configure_apps(api, reservation_id, logger, appConfigurations=[]):
         """
         :param appConfigurations:
@@ -260,8 +329,8 @@ class DefaultSetupLogic(object):
         wait_for_ip = "true"
 
         try:
-            logger.debug("Getting resource details for resource {0} in sandbox {1}"
-                              .format(deployed_app_name, reservation_id))
+            logger.debug("Getting resource details for resource {0} in sandbox {1}".format(deployed_app_name,
+                                                                                           reservation_id))
 
             resource_details = get_resource_details_from_cache_or_server(api, deployed_app_name, resource_details_cache)
             # check if deployed app
