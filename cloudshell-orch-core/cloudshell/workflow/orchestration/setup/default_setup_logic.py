@@ -243,8 +243,9 @@ class DefaultSetupLogic(object):
         # get first or default route in which deployed_app_name is in source or target
         # thus, we check if the deployed app was part of a route that was connected during setup
         name = deployed_app_name.lower()
-        return next((True for result in connect_results.Routes
-                     if result.Source.lower() == name or result.Target.lower() == name), False)
+        return hasattr(connect_results, 'Routes') \
+               and next((True for result in connect_results.Routes
+                         if result.Source.lower() == name or result.Target.lower() == name), False)
 
     @staticmethod
     def _is_deployed_app(resource_details):
