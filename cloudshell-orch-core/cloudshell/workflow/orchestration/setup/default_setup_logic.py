@@ -5,8 +5,6 @@ from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 
 from cloudshell.workflow.helpers.resource_helpers import *
-from remap_child_resources_constants import *
-
 
 class DefaultSetupLogic(object):
     NO_DRIVER_ERR = "129"
@@ -30,6 +28,7 @@ class DefaultSetupLogic(object):
             return
 
         message_written = False
+        successfully_autoloaded_apps_names = []
 
         for deployed_app in deploy_result.ResultItems:
             if not deployed_app.Success:
@@ -55,17 +54,12 @@ class DefaultSetupLogic(object):
                     message_written = True
 
                 api.AutoLoad(deployed_app_name)
+                successfully_autoloaded_apps_names.append(deployed_app_name)
 
-                # for devices that are autoloaded and have child resources attempt to call "Connect child resources"
-                # which copies CVCs from app to deployed app ports.
-                api.ExecuteCommand(reservation_id, deployed_app_name,
-                                   TARGET_TYPE_RESOURCE,
-                                   REMAP_CHILD_RESOURCES, [])
 
             except CloudShellAPIError as exc:
                 if exc.code not in (DefaultSetupLogic.NO_DRIVER_ERR,
-                                    DefaultSetupLogic.DRIVER_FUNCTION_ERROR,
-                                    MISSING_COMMAND_ERROR):
+                                    DefaultSetupLogic.DRIVER_FUNCTION_ERROR):
                     logger.error(
                         "Error executing Autoload command on deployed app {0}. Error: {1}".format(deployed_app_name,
                                                                                                   exc.rawxml))
@@ -89,6 +83,10 @@ class DefaultSetupLogic(object):
                 # Bug 161222 - we must re-raise the original exception to stop the setup
                 # if there is a discovery error
                 raise
+
+        # for devices that are autoloaded and have child resources attempt to call "Connect child resources"
+        # which copies CVCs from app to deployed app ports.
+        DefaultSetupLogic.remap_connections(api=api, reservation_id=reservation_id, apps_names=successfullyAutoloadedAppsNames,logger=logger)
 
     @staticmethod
     def deploy_apps_in_reservation(api, reservation_details, reservation_id, logger):
@@ -261,6 +259,49 @@ class DefaultSetupLogic(object):
                                                                 reservation_id=reservation_id) if
                                    not '\\' in res.Name and not '/' in res.Name]
         return deployed_resource_names
+
+    @staticmethod
+    def remap_connections(api, reservation_id, apps_names, logger):
+        """
+        :param CloudShellAPISession api:
+        :param str reservation_id:
+        :param list[str] apps_names:
+        :param logging.Logger logger:
+        :return:
+        """
+        logger.info('Remap connections started ...')
+
+        try:
+
+            remap_result = api.RemapConnections(reservationId=reservation_id, resourcesFullPath=apps_names,
+                                                printOutput=True)
+
+            if not remap_result.ResultItems:
+                logger.info('No resources connections remapped')
+                return
+
+            failed_apps = []
+            for remap_result_item in remap_result.ResultItems:
+                if remap_result_item.Success:
+                    message = "Resource '{0}' connections remapped successfully".format(remap_result_item.ResourceName)
+                    logger.info(message)
+                else:
+                    message = "Resource '{0}' remapping operation failed due to {1}".format(
+                        remap_result_item.ResourceName, remap_result_item.Error)
+                    logger.error(message)
+                    failed_apps.append(remap_result_item.ResourceName)
+
+            if not failed_apps:
+                api.WriteMessageToReservationOutput(reservationId=reservation_id,
+                                                    message='Resource connections remapped successfully.')
+            else:
+                api.WriteMessageToReservationOutput(reservationId=reservation_id,
+                                                    message='Failed to remap connections for resources: {0}. See logs for more details'.format(",".join(failed_apps)))
+                raise Exception("Sandbox is Active with Errors - Remap connections operation failed.")
+
+        except Exception as ex:
+            logger.error("Error in remap connections. Error: {0}".format(str(ex)))
+            raise
 
     @staticmethod
     def configure_apps(api, reservation_id, logger, appConfigurations=[]):
