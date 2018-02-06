@@ -5,8 +5,6 @@ from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 
 from cloudshell.workflow.helpers.resource_helpers import *
-from remap_child_resources_constants import *
-
 
 class DefaultSetupLogic(object):
     NO_DRIVER_ERR = "129"
@@ -30,7 +28,7 @@ class DefaultSetupLogic(object):
             return
 
         message_written = False
-        successfullyAutoloadedAppsNames = []
+        successfully_autoloaded_apps_names = []
 
         for deployed_app in deploy_result.ResultItems:
             if not deployed_app.Success:
@@ -56,13 +54,12 @@ class DefaultSetupLogic(object):
                     message_written = True
 
                 api.AutoLoad(deployed_app_name)
-                successfullyAutoloadedAppsNames.append(deployed_app_name)
+                successfully_autoloaded_apps_names.append(deployed_app_name)
 
 
             except CloudShellAPIError as exc:
                 if exc.code not in (DefaultSetupLogic.NO_DRIVER_ERR,
-                                    DefaultSetupLogic.DRIVER_FUNCTION_ERROR,
-                                    MISSING_COMMAND_ERROR):
+                                    DefaultSetupLogic.DRIVER_FUNCTION_ERROR):
                     logger.error(
                         "Error executing Autoload command on deployed app {0}. Error: {1}".format(deployed_app_name,
                                                                                                   exc.rawxml))
@@ -296,7 +293,7 @@ class DefaultSetupLogic(object):
 
             if not failed_apps:
                 api.WriteMessageToReservationOutput(reservationId=reservation_id,
-                                                    message='Resources connections have being remapped successfully.')
+                                                    message='Resource connections remapped successfully.')
             else:
                 api.WriteMessageToReservationOutput(reservationId=reservation_id,
                                                     message='Failed to remap connections for resources: {0}. See logs for more details'.format(",".join(failed_apps)))
