@@ -1,5 +1,6 @@
 from cloudshell.api.cloudshell_api import ConfigParam
-
+from cloudshell.api.cloudshell_api import ReservedResourceInfo
+from cloudshell.api.cloudshell_api import ReservationAppResource
 
 class AppResourceRequestInfo(object):
     def __init__(self, app_resource):
@@ -10,7 +11,6 @@ class AppResourceRequestInfo(object):
 
     def add_app_config_param(self, key, value):
         self.appConfiguration.append(ConfigParam(key, value))
-
 
 class App(object):
     def __init__(self, app_request):
