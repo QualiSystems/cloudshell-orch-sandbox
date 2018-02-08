@@ -86,7 +86,7 @@ class DefaultSetupLogic(object):
 
         # for devices that are autoloaded and have child resources attempt to call "Connect child resources"
         # which copies CVCs from app to deployed app ports.
-        DefaultSetupLogic.remap_connections(api=api, reservation_id=reservation_id, apps_names=successfullyAutoloadedAppsNames,logger=logger)
+        DefaultSetupLogic.remap_connections(api=api, reservation_id=reservation_id, apps_names=successfully_autoloaded_apps_names,logger=logger)
 
     @staticmethod
     def deploy_apps_in_reservation(api, reservation_details, reservation_id, logger):
