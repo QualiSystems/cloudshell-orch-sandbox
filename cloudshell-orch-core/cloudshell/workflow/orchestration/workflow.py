@@ -7,6 +7,11 @@ class WorkflowObject(object):
         self.components = components
 
 
+class WorkFlowException(Exception):
+    def __init__(self, *args):
+        Exception.__init__(self, *args)
+
+
 class Workflow(object):
     PREPARATION_STAGE_NAME = 'Preparation'
     ON_PREPARATION_ENDED_STAGE_NAME = 'On preparation ended'

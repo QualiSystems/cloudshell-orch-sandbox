@@ -10,12 +10,14 @@ from cloudshell.workflow.orchestration.components import Components
 from cloudshell.workflow.orchestration.workflow import Workflow
 from cloudshell.workflow.profiler.env_profiler import profileit
 from cloudshell.workflow.helpers import sandbox_helpers as helpers
+from cloudshell.workflow.orchestration.workflow import WorkFlowException
 
 class Sandbox(object):
     def __init__(self):
         self.automation_api = api_helpers.get_api_session()
         self.workflow = Workflow(self)
         self.suppress_exceptions = True
+        self._exception = None
 
         self.connectivityContextDetails = helpers.get_connectivity_context_details()
         self.reservationContextDetails = helpers.get_reservation_context_details()
@@ -118,6 +120,7 @@ class Sandbox(object):
             self.logger.info("except Exception as exc")
             execution_failed = 1
             error = exc.message
+            self._exception = exc
             if not error or not isinstance(error, str):
                 try:
                     error = str(exc)
@@ -156,12 +159,14 @@ class Sandbox(object):
             self.logger.info('Stage: {0}, No workflow process were found.'.format(stage_name))
 
     def _validate_workflow_process_result(self, result, stage_name):
-        msg = 'Error occurred during "{0}" stage, See additional entries in the Activity Feed for more information.'.format(stage_name)
         if result == 1:  # failed to execute step
+            self.logger.info("error: " + str(self._exception))
             if self.suppress_exceptions:
+                msg = 'Error occurred during "{0}" stage, See additional entries in the Activity Feed for more information.'.format(stage_name)
                 self.automation_api.WriteMessageToReservationOutput(reservationId=self.id, message='<font color="red">{0}</font>'.format(msg))
                 sys.exit(-1)
-            raise Exception(msg)
+            msg = 'Error of type "{0}" occurred during "{1}" stage, with message "{2}". '.format(type(self._exception).__name__, stage_name, self._exception.message)
+            raise WorkFlowException(msg)
 
     def _executes_stage_sequentially(self, workflow_objects, stage_name):
         self.logger.info(
