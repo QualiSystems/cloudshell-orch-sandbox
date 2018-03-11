@@ -73,6 +73,7 @@ qpm.ini
 .pypirc
 */.idea/*
 .vs/*
+/.idea/*
 
 # zip files
 *.zip
