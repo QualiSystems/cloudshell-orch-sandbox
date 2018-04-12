@@ -33,7 +33,7 @@ class DefaultTeardownWorkflow(object):
         DefaultTeardownLogic.power_off_and_delete_all_vm_resources(api = api,
                                                                    reservation_details =reservation_details,
                                                                    reservation_id=sandbox.id,
-                                                                   logger=sandbox.logger)
+                                                                   logger=sandbox.logger, components=sandbox.components)
 
         DefaultTeardownLogic.cleanup_connectivity(api=api,
                                                   reservation_id=sandbox.id,

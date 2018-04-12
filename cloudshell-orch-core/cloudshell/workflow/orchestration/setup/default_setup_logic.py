@@ -11,7 +11,7 @@ class DefaultSetupLogic(object):
     DRIVER_FUNCTION_ERROR = "151"
 
     @staticmethod
-    def try_exeucte_autoload(api, deploy_result, resource_details_cache, reservation_id, logger):
+    def try_exeucte_autoload(api, deploy_result, resource_details_cache, reservation_id, logger, components):
         """
         :param GetReservationDescriptionResponseInfo reservation_details:
         :param CloudShellAPISession api:
@@ -39,9 +39,10 @@ class DefaultSetupLogic(object):
             resource_details_cache[deployed_app_name] = resource_details
 
             autoload = "true"
-            autoload_param = get_vm_custom_param(resource_details, "autoload")
-            if autoload_param:
-                autoload = autoload_param.Value
+            paramsList = components.apps[deployed_app.AppName].deployed_app.VmDetails.VmCustomParams
+            autoLoadParms = [i for i in paramsList if i.Name == "autoload"]
+            if autoLoadParms:
+                autoload = autoLoadParms[0].Value
             if autoload.lower() != "true":
                 logger.info("Apps discovery is disabled on deployed app {0}".format(deployed_app_name))
                 continue
@@ -147,7 +148,7 @@ class DefaultSetupLogic(object):
 
     @staticmethod
     def run_async_power_on_refresh_ip(api, reservation_details, deploy_results, resource_details_cache,
-                                       reservation_id, logger):
+                                       reservation_id, logger,components):
         """
         :param CloudShellAPISession api:
         :param GetReservationDescriptionResponseInfo reservation_details:
@@ -158,7 +159,6 @@ class DefaultSetupLogic(object):
         :return:
         """
         # filter out resources not created in this reservation
-
         resources = get_resources_created_in_res(reservation_details=reservation_details, reservation_id=reservation_id)
         if len(resources) == 0:
             api.WriteMessageToReservationOutput(
@@ -176,7 +176,7 @@ class DefaultSetupLogic(object):
         }
 
         async_results = [pool.apply_async(DefaultSetupLogic._power_on_refresh_ip,
-                                          (api, lock, message_status, resource, deploy_results, resource_details_cache, reservation_id, logger))
+                                          (api, lock, message_status, resource, deploy_results, resource_details_cache, reservation_id, logger, components))
                          for resource in resources]
 
         pool.close()
@@ -353,7 +353,7 @@ class DefaultSetupLogic(object):
                     raise Exception("Sandbox is Active with Errors - " + deploy_res.Error)
 
     @staticmethod
-    def _power_on_refresh_ip(api, lock, message_status, resource, deploy_result, resource_details_cache, reservation_id, logger):
+    def _power_on_refresh_ip(api, lock, message_status, resource, deploy_result, resource_details_cache, reservation_id, logger, components):
         """
         :param CloudShellAPISession api:
         :param Lock lock:
@@ -381,13 +381,18 @@ class DefaultSetupLogic(object):
                 logger.debug("Resource {0} is not a deployed app, nothing to do with it".format(deployed_app_name))
                 return True, ""
 
-            auto_power_on_param = get_vm_custom_param(resource_details, "auto_power_on")
-            if auto_power_on_param:
-                power_on = auto_power_on_param.Value
+            for k,v in components.apps.items():
+                if v.deployed_app.Name == resource.Name:
+                    app = v
+                    break
+            paramsList = app.deployed_app.VmDetails.VmCustomParams
+            autoPowerOnParms = [i for i in paramsList if i.Name == "auto_power_on"]
+            if autoPowerOnParms:
+                power_on = autoPowerOnParms[0].Value
 
-            wait_for_ip_param = get_vm_custom_param(resource_details, "wait_for_ip")
-            if wait_for_ip_param:
-                wait_for_ip = wait_for_ip_param.Value
+            waitForIpParam = [i for i in paramsList if i.Name == "wait_for_ip"]
+            if waitForIpParam:
+                wait_for_ip = waitForIpParam[0].Value
 
             # check if we have deployment data
             if deploy_result is not None:
