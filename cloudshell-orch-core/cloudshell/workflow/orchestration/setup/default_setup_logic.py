@@ -158,13 +158,17 @@ class DefaultSetupLogic(object):
         :param logging.Logger logger:
         :return:
         """
-        if len(components.apps) == 0:
+        # filter out resources not created in this reservation
+        resources = get_resources_created_in_res(reservation_details=reservation_details, reservation_id=reservation_id)
+        if len(resources) == 0:
             api.WriteMessageToReservationOutput(
                 reservationId=reservation_id,
                 message='No resources to power on')
-        return
-        pool = ThreadPool(len(components.apps))
+            DefaultSetupLogic.validate_all_apps_deployed(deploy_results=deploy_results,
+                                                         logger=logger)
+            return
 
+        pool = ThreadPool(len(resources))
         lock = Lock()
         message_status = {
             "power_on": False,
@@ -172,9 +176,8 @@ class DefaultSetupLogic(object):
         }
 
         async_results = [pool.apply_async(DefaultSetupLogic._power_on_refresh_ip,
-                                          (api, lock, message_status, v.deployed_app, deploy_results, resource_details_cache, reservation_id, logger))
-                         for k,v in components.apps.items()]
-
+                                          (api, lock, message_status, resource, deploy_results, resource_details_cache, reservation_id, logger, components))
+                         for resource in resources]
 
         pool.close()
         pool.join()
@@ -350,7 +353,7 @@ class DefaultSetupLogic(object):
                     raise Exception("Sandbox is Active with Errors - " + deploy_res.Error)
 
     @staticmethod
-    def _power_on_refresh_ip(api, lock, message_status, resource, deploy_result, resource_details_cache, reservation_id, logger):
+    def _power_on_refresh_ip(api, lock, message_status, resource, deploy_result, resource_details_cache, reservation_id, logger, components):
         """
         :param CloudShellAPISession api:
         :param Lock lock:
@@ -378,13 +381,18 @@ class DefaultSetupLogic(object):
                 logger.debug("Resource {0} is not a deployed app, nothing to do with it".format(deployed_app_name))
                 return True, ""
 
-            auto_power_on_param = get_vm_custom_param(resource_details, "auto_power_on")
-            if auto_power_on_param:
-                power_on = auto_power_on_param.Value
+            for k,v in components.apps.items():
+                if v.deployed_app.Name == resource.Name:
+                    app = v
+                    break
+            paramsList = app.deployed_app.VmDetails.VmCustomParams
+            autoPowerOnParms = [i for i in paramsList if i.Name == "auto_power_on"]
+            if autoPowerOnParms:
+                power_on = autoPowerOnParms[0].Value
 
-            wait_for_ip_param = get_vm_custom_param(resource_details, "wait_for_ip")
-            if wait_for_ip_param:
-                wait_for_ip = wait_for_ip_param.Value
+            waitForIpParam = [i for i in paramsList if i.Name == "wait_for_ip"]
+            if waitForIpParam:
+                wait_for_ip = waitForIpParam[0].Value
 
             # check if we have deployment data
             if deploy_result is not None:
