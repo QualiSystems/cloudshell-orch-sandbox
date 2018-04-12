@@ -51,7 +51,7 @@ class DefaultSetupWorkflow(object):
                                                deploy_result=self._deploy_result,
                                                resource_details_cache=self._resource_details_cache,
                                                reservation_id=sandbox.id,
-                                               logger=sandbox.logger)
+                                               logger=sandbox.logger, components = sandbox.components)
 
     def default_connectivity(self, sandbox, components):
         """
@@ -75,7 +75,8 @@ class DefaultSetupWorkflow(object):
                                                         deploy_results=self._deploy_result,
                                                         resource_details_cache=self._resource_details_cache,
                                                         reservation_id=sandbox.id,
-                                                        logger=sandbox.logger)
+                                                        logger=sandbox.logger,
+                                                        components=sandbox.components)
 
         DefaultSetupLogic.refresh_vm_details(api=api,
                                              reservation_details=reservation_details,

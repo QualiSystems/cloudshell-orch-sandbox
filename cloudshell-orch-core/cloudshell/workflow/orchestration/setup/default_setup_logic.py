@@ -11,7 +11,7 @@ class DefaultSetupLogic(object):
     DRIVER_FUNCTION_ERROR = "151"
 
     @staticmethod
-    def try_exeucte_autoload(api, deploy_result, resource_details_cache, reservation_id, logger):
+    def try_exeucte_autoload(api, deploy_result, resource_details_cache, reservation_id, logger, components):
         """
         :param GetReservationDescriptionResponseInfo reservation_details:
         :param CloudShellAPISession api:
@@ -39,9 +39,10 @@ class DefaultSetupLogic(object):
             resource_details_cache[deployed_app_name] = resource_details
 
             autoload = "true"
-            autoload_param = get_vm_custom_param(resource_details, "autoload")
-            if autoload_param:
-                autoload = autoload_param.Value
+            paramsList = components.apps[deployed_app.AppName].deployed_app.VmDetails.VmCustomParams
+            autoLoadParms = [i for i in paramsList if i.Name == "autoload"]
+            if autoLoadParms:
+                autoload = autoLoadParms[0].Value
             if autoload.lower() != "true":
                 logger.info("Apps discovery is disabled on deployed app {0}".format(deployed_app_name))
                 continue
@@ -147,7 +148,7 @@ class DefaultSetupLogic(object):
 
     @staticmethod
     def run_async_power_on_refresh_ip(api, reservation_details, deploy_results, resource_details_cache,
-                                       reservation_id, logger):
+                                       reservation_id, logger,components):
         """
         :param CloudShellAPISession api:
         :param GetReservationDescriptionResponseInfo reservation_details:
@@ -157,18 +158,13 @@ class DefaultSetupLogic(object):
         :param logging.Logger logger:
         :return:
         """
-        # filter out resources not created in this reservation
-
-        resources = get_resources_created_in_res(reservation_details=reservation_details, reservation_id=reservation_id)
-        if len(resources) == 0:
+        if len(components.apps) == 0:
             api.WriteMessageToReservationOutput(
                 reservationId=reservation_id,
                 message='No resources to power on')
-            DefaultSetupLogic.validate_all_apps_deployed(deploy_results=deploy_results,
-                                                         logger=logger)
-            return
+        return
+        pool = ThreadPool(len(components.apps))
 
-        pool = ThreadPool(len(resources))
         lock = Lock()
         message_status = {
             "power_on": False,
@@ -176,8 +172,9 @@ class DefaultSetupLogic(object):
         }
 
         async_results = [pool.apply_async(DefaultSetupLogic._power_on_refresh_ip,
-                                          (api, lock, message_status, resource, deploy_results, resource_details_cache, reservation_id, logger))
-                         for resource in resources]
+                                          (api, lock, message_status, v.deployed_app, deploy_results, resource_details_cache, reservation_id, logger))
+                         for k,v in components.apps.items()]
+
 
         pool.close()
         pool.join()
