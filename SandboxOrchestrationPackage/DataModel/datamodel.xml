@@ -11,5 +11,8 @@
       <ns0:ScriptDescriptor Alias="Save script" CategoryName="Hidden Commands" Name="Default Sandbox Save 3.0" Version="2.0.0">
       <ns0:ScriptInputs />
     </ns0:ScriptDescriptor>
+    <ns0:ScriptDescriptor Alias="Restore script" CategoryName="Hidden Commands" Name="Default Sandbox Restore 3.0" Version="2.0.0">
+      <ns0:ScriptInputs />
+    </ns0:ScriptDescriptor>
   </ns0:ScriptDescriptors>
 </ns0:DataModelInfo>

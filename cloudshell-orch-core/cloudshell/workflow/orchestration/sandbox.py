@@ -184,3 +184,8 @@ class Sandbox(object):
         new_saved_sandbox_description = self.reservationLifecycleDetails.saved_sandbox_description
         self._execute_save_internally(new_saved_sandbox_name, new_saved_sandbox_description)
 
+    def execute_restore(self):
+        self.automation_api.WriteMessageToReservationOutput(self.id, "restore process started...(not yet implemented)")
+
+
+
