@@ -46,6 +46,13 @@ def get_connectivity_context_details():
                                       con_dict['adminPass'])
 
 
+def get_lifecycle_context_details():
+    lifecycle_dict = _get_quali_env_variable_object('reservationLifecycleContext')
+    return ReservationLifecycleContext(lifecycle_dict['reservationId'],
+                                       lifecycle_dict['savedSandboxName'],
+                                       lifecycle_dict['savedSandboxDescription'])
+
+
 def _get_quali_env_variable_object(name):
     json_string = os.environ[name]
     json_object = json.loads(json_string)
@@ -139,6 +146,16 @@ class ResourceInputs:
 
     def iteritems(self):
         return self.__iter__()
+
+
+class ReservationLifecycleContext:
+    def __init__(self, reservation_id, saved_sandbox_name, saved_sandbox_description):
+        self.reservation_id = reservation_id
+        """:type : str"""
+        self.saved_sandbox_name = saved_sandbox_name
+        """:type : str"""
+        self.saved_sandbox_description = saved_sandbox_description
+        """:type : str"""
 
 
 class ResourceInputData:

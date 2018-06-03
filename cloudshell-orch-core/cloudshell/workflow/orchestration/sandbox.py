@@ -21,6 +21,7 @@ class Sandbox(object):
 
         self.connectivityContextDetails = helpers.get_connectivity_context_details()
         self.reservationContextDetails = helpers.get_reservation_context_details()
+        self.reservationLifecycleDetails = helpers.get_lifecycle_context_details()
         self.global_inputs = helpers.get_global_inputs()
         self.additional_info_inputs = helpers.get_resource_additional_info_inputs()
         self.requirement_inputs = helpers.get_resource_requirement_inputs()
@@ -174,3 +175,12 @@ class Sandbox(object):
         for workflow_object in workflow_objects:
             workflow_result = self._execute_workflow_process(workflow_object.function, workflow_object.components)
             self._validate_workflow_process_result(workflow_result,stage_name)
+
+    def _execute_save_internally(self, save_sandbox_name, save_sandbox_description):
+        self.automation_api.SaveSandbox(self.id, save_sandbox_name, save_sandbox_description)
+
+    def execute_save(self):
+        new_saved_sandbox_name = self.reservationLifecycleDetails.saved_sandbox_name
+        new_saved_sandbox_description = self.reservationLifecycleDetails.saved_sandbox_description
+        self._execute_save_internally(new_saved_sandbox_name, new_saved_sandbox_description)
+
