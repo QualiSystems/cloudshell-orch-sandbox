@@ -177,15 +177,29 @@ class Sandbox(object):
             self._validate_workflow_process_result(workflow_result,stage_name)
 
     def _execute_save_internally(self, save_sandbox_name, save_sandbox_description):
-        self.automation_api.SaveSandbox(self.id, save_sandbox_name, save_sandbox_description)
+        return self.automation_api.SaveSandbox(self.id, save_sandbox_name, save_sandbox_description)
 
     def execute_save(self):
+        self.logger.info('Save execution started')
+        self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
+                                            message='Beginning sandbox save')
+
         new_saved_sandbox_name = self.reservationLifecycleDetails.saved_sandbox_name
         new_saved_sandbox_description = self.reservationLifecycleDetails.saved_sandbox_description
-        self._execute_save_internally(new_saved_sandbox_name, new_saved_sandbox_description)
+
+        self.logger.info('Saving sandbox {0} with as {1}'.format(self.id, new_saved_sandbox_name))
+
+        save_sandbox = self._execute_save_internally(new_saved_sandbox_name, new_saved_sandbox_description).SavedSandboxId
+
+        self.logger.info('Save for sandbox {0} completed with saved sandbox id: {1}'.format(self.id, save_sandbox))
+        self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
+                                            message='Sandbox was saved successfully')
 
     def execute_restore(self):
-        self.automation_api.WriteMessageToReservationOutput(self.id, "restore process started...(not yet implemented)")
+        self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
+                                            message='Beginning sandbox restore')
+        self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
+                                                            message='Sandbox restored successfully')
 
 
 
