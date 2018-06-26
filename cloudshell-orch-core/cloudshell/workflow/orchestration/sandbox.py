@@ -46,51 +46,34 @@ class Sandbox(object):
 
     @profileit(scriptName='Setup')
     def execute_setup(self):
-        api = self.automation_api
-
         self.logger.info('Setup execution started')
-
-        api.WriteMessageToReservationOutput(reservationId=self.id,
+        self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
                                             message='Beginning sandbox setup')
+        self.execute_stages()
+        self.logger.info('Setup for sandbox {0} completed'.format(self.id))
+        self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
+                                            message='Sandbox setup finished successfully')
 
-        ## prepare sandbox stage
-
+    def execute_stages(self):
+        api = self.automation_api
         self.automation_api.SetSetupStage('Preparation', self.id)
-
         self.logger.info('Preparing sandbox. ')
         api.WriteMessageToReservationOutput(reservationId=self.id, message='Preparing connectivity')
         api.PrepareSandboxConnectivity(self.id)
-
         self._execute_stage(self.workflow._preparation_functions, Workflow.PREPARATION_STAGE_NAME)
-
         self._executes_stage_sequentially(self.workflow._after_preparation, Workflow.ON_PREPARATION_ENDED_STAGE_NAME)
-
         self.automation_api.SetSetupStage('Provisioning', self.id)
-
         self._execute_stage(self.workflow._provisioning_functions, Workflow.PROVISIONING_STAGE_NAME)
-
         self._executes_stage_sequentially(self.workflow._after_provisioning, Workflow.ON_PROVISIONING_ENDED_STAGE_NAME)
-
         self.automation_api.SetSetupStage('Connectivity', self.id)
-
         self._execute_stage(self.workflow._connectivity_functions, Workflow.CONNECTIVITY_STAGE_NAME)
-
         self._executes_stage_sequentially(self.workflow._after_connectivity, Workflow.ON_CONNECTIVITY_ENDED_STAGE_NAME)
-
         self.automation_api.SetSetupStage('Configuration', self.id)
-
         self.components.refresh_components(self)
-
         self._execute_stage(self.workflow._configuration_functions, Workflow.CONFIGURATION_STAGE_NAME)
-
-        self._executes_stage_sequentially(self.workflow._after_configuration, Workflow.ON_CONFIGURATION_ENDED_STAGE_NAME)
-
+        self._executes_stage_sequentially(self.workflow._after_configuration,
+                                          Workflow.ON_CONFIGURATION_ENDED_STAGE_NAME)
         self.automation_api.SetSetupStage('Ended', self.id)
-
-        self.logger.info('Setup for sandbox {0} completed'.format(self.id))
-
-        api.WriteMessageToReservationOutput(reservationId=self.id,
-                                            message='Sandbox setup finished successfully')
 
     @profileit(scriptName='Teardown')
     def execute_teardown(self):
@@ -196,10 +179,17 @@ class Sandbox(object):
                                             message='Sandbox was saved successfully')
 
     def execute_restore(self):
+        self.logger.info('Restore execution started')
+
         self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
                                             message='Beginning sandbox restore')
+        self.execute_stages()
+
+        self.logger.info('Restore for sandbox {0} completed'.format(self.id))
+
         self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
                                                             message='Sandbox restored successfully')
+
 
 
 
