@@ -2,6 +2,7 @@ import sys
 from multiprocessing.pool import ThreadPool
 import traceback
 
+from cloudshell.api.cloudshell_api import CloudShellAPISession
 from cloudshell.core.logger.qs_logger import get_qs_logger
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as api_helpers
 
@@ -11,6 +12,7 @@ from cloudshell.workflow.orchestration.workflow import Workflow
 from cloudshell.workflow.profiler.env_profiler import profileit
 from cloudshell.workflow.helpers import sandbox_helpers as helpers
 from cloudshell.workflow.orchestration.workflow import WorkFlowException
+
 
 class Sandbox(object):
     def __init__(self):
@@ -48,11 +50,11 @@ class Sandbox(object):
     def execute_setup(self):
         self.logger.info('Setup execution started')
         self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
-                                            message='Beginning sandbox setup')
+                                                            message='Beginning sandbox setup')
         self.execute_stages()
         self.logger.info('Setup for sandbox {0} completed'.format(self.id))
         self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
-                                            message='Sandbox setup finished successfully')
+                                                            message='Sandbox setup finished successfully')
 
     def execute_stages(self):
         api = self.automation_api
@@ -92,7 +94,7 @@ class Sandbox(object):
             self.logger.info('Teardown for sandbox {0} completed'.format(self.id))
 
             self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
-                                                message='Sandbox teardown finished successfully')
+                                                                message='Sandbox teardown finished successfully')
 
     def _execute_workflow_process(self, func, components):
         self.logger.info("Executing method: {0}. ".format(func.__name__))
@@ -124,13 +126,15 @@ class Sandbox(object):
          :return:
          """
         number_of_workflow_objects = len(workflow_objects)
-        self.logger.info('Executing "{0}" stage, {1} workflow processes found. '.format(stage_name, number_of_workflow_objects))
+        self.logger.info(
+            'Executing "{0}" stage, {1} workflow processes found. '.format(stage_name, number_of_workflow_objects))
 
         if number_of_workflow_objects > 0:
             pool = ThreadPool(number_of_workflow_objects)
 
             async_results = [pool.apply_async(self._execute_workflow_process, (workflow_object.function,
-                                                                               workflow_object.components)) for workflow_object in workflow_objects]
+                                                                               workflow_object.components)) for
+                             workflow_object in workflow_objects]
 
             pool.close()
             pool.join()
@@ -146,10 +150,13 @@ class Sandbox(object):
         if result == 1:  # failed to execute step
             self.logger.info("error: " + str(self._exception))
             if self.suppress_exceptions:
-                msg = 'Error occurred during "{0}" stage, See additional entries in the Activity Feed for more information.'.format(stage_name)
-                self.automation_api.WriteMessageToReservationOutput(reservationId=self.id, message='<font color="red">{0}</font>'.format(msg))
+                msg = 'Error occurred during "{0}" stage, See additional entries in the Activity Feed for more information.'.format(
+                    stage_name)
+                self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
+                                                                    message='<font color="red">{0}</font>'.format(msg))
                 sys.exit(-1)
-            msg = 'Error of type "{0}" occurred during "{1}" stage, with message "{2}". '.format(type(self._exception).__name__, stage_name, self._exception.message)
+            msg = 'Error of type "{0}" occurred during "{1}" stage, with message "{2}". '.format(
+                type(self._exception).__name__, stage_name, self._exception.message)
             raise WorkFlowException(msg)
 
     def _executes_stage_sequentially(self, workflow_objects, stage_name):
@@ -157,39 +164,44 @@ class Sandbox(object):
             'Executing "{0}" stage ,{1} workflow processes found. '.format(stage_name, len(workflow_objects)))
         for workflow_object in workflow_objects:
             workflow_result = self._execute_workflow_process(workflow_object.function, workflow_object.components)
-            self._validate_workflow_process_result(workflow_result,stage_name)
+            self._validate_workflow_process_result(workflow_result, stage_name)
 
     def _execute_save_internally(self, save_sandbox_name, save_sandbox_description):
-        return self.automation_api.SaveSandbox(self.id, save_sandbox_name, save_sandbox_description)
+        """
+        Save sandbox as the current user
+        :rtype: SaveSandboxResponseInfo
+        """
+        save_session = CloudShellAPISession(host=self.connectivityContextDetails.server_address,
+                                            token_id=self.reservationLifecycleDetails.currentUserAuthToken,
+                                            domain=self.reservationLifecycleDetails.currentUserDomain,
+                                            cloudshell_api_scheme=self.connectivityContextDetails.tsAPIScheme)
+        return save_session.SaveSandbox(self.id, save_sandbox_name, save_sandbox_description)
 
     def execute_save(self):
         self.logger.info('Save execution started')
         self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
-                                            message='Beginning sandbox save')
+                                                            message='Beginning sandbox save')
 
         new_saved_sandbox_name = self.reservationLifecycleDetails.saved_sandbox_name
         new_saved_sandbox_description = self.reservationLifecycleDetails.saved_sandbox_description
 
         self.logger.info('Saving sandbox {0} with as {1}'.format(self.id, new_saved_sandbox_name))
 
-        save_sandbox = self._execute_save_internally(new_saved_sandbox_name, new_saved_sandbox_description).SavedSandboxId
+        save_sandbox = self._execute_save_internally(new_saved_sandbox_name,
+                                                     new_saved_sandbox_description).SavedSandboxId
 
         self.logger.info('Save for sandbox {0} completed with saved sandbox id: {1}'.format(self.id, save_sandbox))
         self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
-                                            message='Sandbox was saved successfully')
+                                                            message='Sandbox was saved successfully')
 
     def execute_restore(self):
         self.logger.info('Restore execution started')
 
         self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
-                                            message='Beginning sandbox restore')
+                                                            message='Beginning sandbox restore')
         self.execute_stages()
 
         self.logger.info('Restore for sandbox {0} completed'.format(self.id))
 
         self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
                                                             message='Sandbox restored successfully')
-
-
-
-

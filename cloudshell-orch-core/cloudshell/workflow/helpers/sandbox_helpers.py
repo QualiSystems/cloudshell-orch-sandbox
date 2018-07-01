@@ -43,15 +43,17 @@ def get_connectivity_context_details():
     return ConnectivityContextDetails(con_dict['serverAddress'],
                                       con_dict['tsAPIPort'],
                                       con_dict['adminUser'],
-                                      con_dict['adminPass'])
+                                      con_dict['adminPass'],
+                                      con_dict.get("tsAPIScheme", "http"))
 
 
 def get_lifecycle_context_details():
     lifecycle_dict = _get_quali_env_variable_object('reservationLifecycleContext')
     return ReservationLifecycleContext(lifecycle_dict['reservationId'],
                                        lifecycle_dict['savedSandboxName'],
-                                       lifecycle_dict['savedSandboxDescription'])
-
+                                       lifecycle_dict['savedSandboxDescription'],
+                                       lifecycle_dict['currentUserAuthToken'],
+                                       lifecycle_dict['currentUserDomain'])
 
 def _get_quali_env_variable_object(name):
     json_string = os.environ[name]
@@ -149,12 +151,16 @@ class ResourceInputs:
 
 
 class ReservationLifecycleContext:
-    def __init__(self, reservation_id, saved_sandbox_name, saved_sandbox_description):
+    def __init__(self, reservation_id, saved_sandbox_name, saved_sandbox_description, currentUserAuthToken, currentUserDomain):
         self.reservation_id = reservation_id
         """:type : str"""
         self.saved_sandbox_name = saved_sandbox_name
         """:type : str"""
         self.saved_sandbox_description = saved_sandbox_description
+        """:type : str"""
+        self.currentUserAuthToken = currentUserAuthToken
+        """:type : str"""
+        self.currentUserDomain = currentUserDomain
         """:type : str"""
 
 
@@ -172,7 +178,7 @@ class ResourceInputData:
 
 class ConnectivityContextDetails:
     def __init__(self, server_address, cloudshell_api_port,
-                 admin_user, admin_pass):
+                 admin_user, admin_pass, tsAPIScheme):
         self.server_address = server_address
         """:type : str"""
         self.cloudshell_api_port = cloudshell_api_port
@@ -180,6 +186,8 @@ class ConnectivityContextDetails:
         self.admin_user = admin_user
         """:type : str"""
         self.admin_pass = admin_pass
+        """:type : str"""
+        self.tsAPIScheme = tsAPIScheme
         """:type : str"""
 
 
