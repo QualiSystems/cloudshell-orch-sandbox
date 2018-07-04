@@ -171,11 +171,7 @@ class Sandbox(object):
         Save sandbox as the current user
         :rtype: SaveSandboxResponseInfo
         """
-        save_session = CloudShellAPISession(host=self.connectivityContextDetails.server_address,
-                                            token_id=self.reservationLifecycleDetails.currentUserAuthToken,
-                                            domain=self.reservationLifecycleDetails.currentUserDomain,
-                                            cloudshell_api_scheme=self.connectivityContextDetails.tsAPIScheme)
-        return save_session.SaveSandbox(self.id, save_sandbox_name, save_sandbox_description)
+        return self.automation_api.SaveSandbox(self.id, save_sandbox_name, save_sandbox_description, self.reservationLifecycleDetails.currentUserName)
 
     def execute_save(self):
         self.logger.info('Save execution started')
