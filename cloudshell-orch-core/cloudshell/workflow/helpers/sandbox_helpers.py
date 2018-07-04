@@ -51,9 +51,7 @@ def get_lifecycle_context_details():
     lifecycle_dict = _get_quali_env_variable_object('reservationLifecycleContext')
     return ReservationLifecycleContext(lifecycle_dict['reservationId'],
                                        lifecycle_dict['savedSandboxName'],
-                                       lifecycle_dict['savedSandboxDescription'],
-                                       lifecycle_dict['currentUserAuthToken'],
-                                       lifecycle_dict['currentUserDomain'])
+                                       lifecycle_dict['currentUserName'])
 
 def _get_quali_env_variable_object(name):
     json_string = os.environ[name]
@@ -151,16 +149,14 @@ class ResourceInputs:
 
 
 class ReservationLifecycleContext:
-    def __init__(self, reservation_id, saved_sandbox_name, saved_sandbox_description, currentUserAuthToken, currentUserDomain):
+    def __init__(self, reservation_id, saved_sandbox_name, saved_sandbox_description, currentUserName):
         self.reservation_id = reservation_id
         """:type : str"""
         self.saved_sandbox_name = saved_sandbox_name
         """:type : str"""
         self.saved_sandbox_description = saved_sandbox_description
         """:type : str"""
-        self.currentUserAuthToken = currentUserAuthToken
-        """:type : str"""
-        self.currentUserDomain = currentUserDomain
+        self.currentUserName = currentUserName
         """:type : str"""
 
 
