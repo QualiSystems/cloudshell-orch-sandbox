@@ -39,8 +39,9 @@ class DefaultSetupLogic(object):
             resource_details_cache[deployed_app_name] = resource_details
 
             autoload = "true"
-            paramsList = components.apps[deployed_app.AppName].deployed_app.VmDetails.VmCustomParams
-            autoLoadParms = [i for i in paramsList if i.Name == "autoload"]
+            paramsList = components.apps[deployed_app.AppName].app_request.app_resource.DeploymentPaths[0].DeploymentService.Attributes
+
+            autoLoadParms = [i for i in paramsList if i.Name == "Autoload"]
             if autoLoadParms:
                 autoload = autoLoadParms[0].Value
             if autoload.lower() != "true":
@@ -385,12 +386,14 @@ class DefaultSetupLogic(object):
                 if v.deployed_app.Name == resource.Name:
                     app = v
                     break
-            paramsList = app.deployed_app.VmDetails.VmCustomParams
-            autoPowerOnParms = [i for i in paramsList if i.Name == "auto_power_on"]
+
+
+            paramsList = components.apps[resource.AppDetails.AppName].app_request.app_resource.DeploymentPaths[0].DeploymentService.Attributes
+            autoPowerOnParms = [i for i in paramsList if i.Name == "Auto Power On"]
             if autoPowerOnParms:
                 power_on = autoPowerOnParms[0].Value
 
-            waitForIpParam = [i for i in paramsList if i.Name == "wait_for_ip"]
+            waitForIpParam = [i for i in paramsList if i.Name == "Wait for IP"]
             if waitForIpParam:
                 wait_for_ip = waitForIpParam[0].Value
 
