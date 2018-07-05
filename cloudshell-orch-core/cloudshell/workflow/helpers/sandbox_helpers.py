@@ -51,6 +51,7 @@ def get_lifecycle_context_details():
     lifecycle_dict = _get_quali_env_variable_object('reservationLifecycleContext')
     return ReservationLifecycleContext(lifecycle_dict['reservationId'],
                                        lifecycle_dict['savedSandboxName'],
+                                       lifecycle_dict['savedSandboxDescription'],
                                        lifecycle_dict['currentUserName'])
 
 def _get_quali_env_variable_object(name):
