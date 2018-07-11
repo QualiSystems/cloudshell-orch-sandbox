@@ -171,7 +171,13 @@ class Sandbox(object):
         Save sandbox as the current user
         :rtype: SaveSandboxResponseInfo
         """
-        return self.automation_api.SaveSandbox(self.id, save_sandbox_name, save_sandbox_description, self.reservationLifecycleDetails.currentUserName)
+        try:
+            result = self.automation_api.SaveSandbox(self.id, save_sandbox_name, save_sandbox_description, self.reservationLifecycleDetails.currentUserName)
+        except Exception as e:
+            self.logger.error(e.message)
+            self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
+                                                                message='<font color="red">{0}</font>'.format(e.message))
+            sys.exit(e.message)
 
     def execute_save(self):
         self.logger.info('Save execution started')
