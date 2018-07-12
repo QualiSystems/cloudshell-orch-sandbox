@@ -178,6 +178,7 @@ class Sandbox(object):
             self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
                                                                 message='<font color="red">{0}</font>'.format(e.message))
             sys.exit(e.message)
+        return result
 
     def execute_save(self):
         self.logger.info('Save execution started')
