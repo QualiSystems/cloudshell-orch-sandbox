@@ -127,8 +127,8 @@ class DefaultTeardownLogic:
         resource_name = resource_info.Name
         try:
             delete = "true"
-            paramsList = components.apps[resource_name].deployed_app.VmDetails.VmCustomParams
-            autoDeleteParms = [i for i in paramsList if i.Name == "auto_delete"]
+            paramsList = components.apps[resource_name].app_request.app_resource.DeploymentPaths[0].DeploymentService.Attributes
+            autoDeleteParms = [i for i in paramsList if i.Name == "Auto Delete"]
             if autoDeleteParms:
                 delete = autoDeleteParms[0].Value
 
@@ -154,8 +154,8 @@ class DefaultTeardownLogic:
                 return resource_name
             else:
                 power_off = "true"
-                paramsList = components.apps[resource_name].deployed_app.VmDetails.VmCustomParams
-                autoPowerOffParms = [i for i in paramsList if i.Name == "auto_power_off"]
+                paramsList = components.apps[resource_name].app_request.app_resource.DeploymentPaths[0].DeploymentService.Attributes
+                autoPowerOffParms = [i for i in paramsList if i.Name == "Auto Power Off"]
                 if autoPowerOffParms:
                     power_off = autoPowerOffParms[0].Value
 
