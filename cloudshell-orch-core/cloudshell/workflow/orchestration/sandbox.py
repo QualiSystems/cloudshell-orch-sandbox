@@ -29,7 +29,7 @@ class Sandbox(object):
         self.requirement_inputs = helpers.get_resource_requirement_inputs()
         self.id = self.reservationContextDetails.id
 
-        reservation_description = self.automation_api.GetReservationDetails(reservationId=self.id, disableCache=True).ReservationDescription
+        reservation_description = self.automation_api.GetReservationDetails(self.id).ReservationDescription
 
         self.name = reservation_description.Name
 
