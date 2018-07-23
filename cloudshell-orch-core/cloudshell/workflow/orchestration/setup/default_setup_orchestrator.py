@@ -35,7 +35,7 @@ class DefaultSetupWorkflow(object):
 
         sandbox.logger.info("Executing default provisioning")
 
-        reservation_details = api.GetReservationDetails(sandbox.id)
+        reservation_details = api.GetReservationDetails(reservationId=sandbox.id, disableCache=True)
         self._deploy_result = DefaultSetupLogic.deploy_apps_in_reservation(api=api,
                                                                            reservation_details=reservation_details,
                                                                            reservation_id=sandbox.id,
@@ -62,7 +62,7 @@ class DefaultSetupWorkflow(object):
 
         sandbox.logger.info("Executing default connectivity")
 
-        reservation_details = api.GetReservationDetails(sandbox.id)
+        reservation_details = api.GetReservationDetails(reservationId=sandbox.id, disableCache=True)
 
         connect_results = DefaultSetupLogic.connect_all_routes_in_reservation(api=api,
                                                             reservation_details=reservation_details,
