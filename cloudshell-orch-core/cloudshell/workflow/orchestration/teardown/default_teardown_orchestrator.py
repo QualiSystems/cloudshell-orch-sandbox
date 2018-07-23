@@ -20,7 +20,7 @@ class DefaultTeardownWorkflow(object):
         :return:
         """
         api = sandbox.automation_api
-        reservation_details = api.GetReservationDetails(sandbox.id)
+        reservation_details = api.GetReservationDetails(reservationId=sandbox.id, disableCache=True)
 
         api.WriteMessageToReservationOutput(reservationId=sandbox.id,
                                             message='Beginning sandbox teardown')
