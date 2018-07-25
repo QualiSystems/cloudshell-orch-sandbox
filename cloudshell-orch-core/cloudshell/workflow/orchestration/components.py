@@ -53,7 +53,7 @@ class Components(object):
         :return:
         """
         reservation_description = sandbox.automation_api.GetReservationDetails(
-            sandbox.id).ReservationDescription
+            reservationId=sandbox.id, disableCache=True).ReservationDescription
 
         self.resources = dict((resource.Name, resource) for resource in reservation_description.Resources)
         self.services = dict((service.Alias, service) for service in reservation_description.Services)

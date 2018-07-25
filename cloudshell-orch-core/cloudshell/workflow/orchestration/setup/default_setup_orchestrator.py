@@ -35,7 +35,7 @@ class DefaultSetupWorkflow(object):
 
         sandbox.logger.info("Executing default provisioning")
 
-        reservation_details = api.GetReservationDetails(sandbox.id)
+        reservation_details = api.GetReservationDetails(reservationId=sandbox.id, disableCache=True)
         self._deploy_result = DefaultSetupLogic.deploy_apps_in_reservation(api=api,
                                                                            reservation_details=reservation_details,
                                                                            reservation_id=sandbox.id,
@@ -51,7 +51,7 @@ class DefaultSetupWorkflow(object):
                                                deploy_result=self._deploy_result,
                                                resource_details_cache=self._resource_details_cache,
                                                reservation_id=sandbox.id,
-                                               logger=sandbox.logger)
+                                               logger=sandbox.logger, components = sandbox.components)
 
     def default_connectivity(self, sandbox, components):
         """
@@ -62,7 +62,7 @@ class DefaultSetupWorkflow(object):
 
         sandbox.logger.info("Executing default connectivity")
 
-        reservation_details = api.GetReservationDetails(sandbox.id)
+        reservation_details = api.GetReservationDetails(reservationId=sandbox.id, disableCache=True)
 
         connect_results = DefaultSetupLogic.connect_all_routes_in_reservation(api=api,
                                                             reservation_details=reservation_details,
@@ -75,7 +75,8 @@ class DefaultSetupWorkflow(object):
                                                         deploy_results=self._deploy_result,
                                                         resource_details_cache=self._resource_details_cache,
                                                         reservation_id=sandbox.id,
-                                                        logger=sandbox.logger)
+                                                        logger=sandbox.logger,
+                                                        components=sandbox.components)
 
         DefaultSetupLogic.refresh_vm_details(api=api,
                                              reservation_details=reservation_details,

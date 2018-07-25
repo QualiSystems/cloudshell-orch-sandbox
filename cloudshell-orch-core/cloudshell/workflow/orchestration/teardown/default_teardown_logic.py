@@ -54,7 +54,7 @@ class DefaultTeardownLogic:
                                                 message="Error disconnecting apps. Error: {0}".format(exc.message))
 
     @staticmethod
-    def power_off_and_delete_all_vm_resources(api, reservation_details, reservation_id, logger):
+    def power_off_and_delete_all_vm_resources(api, reservation_details, reservation_id, logger, components):
         """
         :param CloudShellAPISession api:
         :param GetReservationDescriptionResponseInfo reservation_details:
@@ -77,7 +77,7 @@ class DefaultTeardownLogic:
         for resource in resources:
             if resource.VmDetails:
                 result_obj = pool.apply_async(DefaultTeardownLogic._power_off_or_delete_deployed_app,
-                                              (api, resource, lock, message_status, reservation_id, logger))
+                                              (api, resource, lock, message_status, reservation_id, logger, components))
                 async_results.append(result_obj)
 
         pool.close()
@@ -114,7 +114,7 @@ class DefaultTeardownLogic:
         api.CleanupSandboxConnectivity(reservation_id)
 
     @staticmethod
-    def _power_off_or_delete_deployed_app(api, resource_info, lock, message_status, reservation_id, logger):
+    def _power_off_or_delete_deployed_app(api, resource_info, lock, message_status, reservation_id, logger, components):
         """
         :param CloudShellAPISession api:
         :param Lock lock:
@@ -127,9 +127,10 @@ class DefaultTeardownLogic:
         resource_name = resource_info.Name
         try:
             delete = "true"
-            auto_delete_param = get_vm_custom_param(resource_info, "auto_delete")
-            if auto_delete_param:
-                delete = auto_delete_param.Value
+            paramsList = components.apps[resource_name].deployed_app.VmDetails.VmCustomParams
+            autoDeleteParms = [i for i in paramsList if i.Name == "auto_delete"]
+            if autoDeleteParms:
+                delete = autoDeleteParms[0].Value
 
             if delete.lower() == "true":
                 logger.info("Executing 'Delete' on deployed app {0} in reservation {1}"
@@ -153,9 +154,10 @@ class DefaultTeardownLogic:
                 return resource_name
             else:
                 power_off = "true"
-                auto_power_off_param = get_vm_custom_param(resource_info, "auto_power_off")
-                if auto_power_off_param:
-                    power_off = auto_power_off_param.Value
+                paramsList = components.apps[resource_name].deployed_app.VmDetails.VmCustomParams
+                autoPowerOffParms = [i for i in paramsList if i.Name == "auto_power_off"]
+                if autoPowerOffParms:
+                    power_off = autoPowerOffParms[0].Value
 
                 if power_off.lower() == "true":
                     logger.info("Executing 'Power Off' on deployed app {0} in reservation {1}"
@@ -165,7 +167,7 @@ class DefaultTeardownLogic:
                         with lock:
                             if not message_status['power_off']:
                                 message_status['power_off'] = True
-                                api.WriteMessageToReservationOutput(reservationId=self.reservation_id,
+                                api.WriteMessageToReservationOutput(reservationId=reservation_id,
                                                                     message='Apps are powering off...')
 
                     api.ExecuteResourceConnectedCommand(reservation_id, resource_name, "PowerOff", "power")
