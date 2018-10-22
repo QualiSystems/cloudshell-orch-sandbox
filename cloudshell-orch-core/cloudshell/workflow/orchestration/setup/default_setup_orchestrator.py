@@ -46,7 +46,6 @@ class DefaultSetupWorkflow(object):
 
         sandbox.components.refresh_components(sandbox=sandbox)
 
-
         DefaultSetupLogic.try_exeucte_autoload(api=api,
                                                deploy_result=self._deploy_result,
                                                resource_details_cache=self._resource_details_cache,
@@ -82,7 +81,8 @@ class DefaultSetupWorkflow(object):
                                              reservation_details=reservation_details,
                                              connect_results=connect_results,
                                              resource_details_cache=self._resource_details_cache,
-                                             logger=sandbox.logger)
+                                             logger=sandbox.logger,
+                                             components=sandbox.components)
 
     def default_configuration(self, sandbox, components):
         """
