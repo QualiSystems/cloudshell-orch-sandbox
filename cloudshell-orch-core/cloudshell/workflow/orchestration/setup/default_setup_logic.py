@@ -212,8 +212,9 @@ class DefaultSetupLogic(object):
                                                      logger=logger)
 
     @staticmethod
-    def refresh_vm_details(api, reservation_details, connect_results, resource_details_cache, logger):
+    def refresh_vm_details(api, reservation_details, connect_results, resource_details_cache, logger, components):
         """
+        :param list components: list of components: App, ReservedResourceInfo or ServiceInstance
         :param CloudShellAPISession api:
         :param GetReservationDescriptionResponseInfo reservation_details:
         :param list connectivity_data:
@@ -232,7 +233,7 @@ class DefaultSetupLogic(object):
             if not DefaultSetupLogic._is_deployed_app(resource_details):
                 continue
 
-            if DefaultSetupLogic._has_wait_for_ip_attribute(resource_details):
+            if DefaultSetupLogic._has_wait_for_ip_attribute(components, resource_details, logger):
                 deployed_apps_to_refresh_names.append(deployed_app_name)
                 continue
 
@@ -250,12 +251,33 @@ class DefaultSetupLogic(object):
             raise Exception("Failed to refresh VM Details")
 
     @staticmethod
-    def _has_wait_for_ip_attribute(resource_details):
-        # wait for ip is a parameter that can be on app (but doesnt have to be)
-        # only in case
-        wait_for_ip_param = get_vm_custom_param(resource_details, "wait_for_ip")
-        is_wait_for_app = True if wait_for_ip_param and wait_for_ip_param.Value.lower() == 'true' else False
-        return is_wait_for_app
+    def _has_wait_for_ip_attribute(components, resource_details, logger):
+        """
+        Check if wait for ip is set to True
+        wait for ip is a parameter that can be on app (but doesnt have to be)
+
+        :param Components components: list of components: App, ReservedResourceInfo or ServiceInstance
+        :param resource_details:
+        :param logging.Logger logger:
+        :return:
+        """
+        attribute_key = "Wait for IP"
+
+        reserved_resource = components.resources.get(resource_details.Name)
+        app = components.apps.get(reserved_resource.AppDetails.AppName)
+        if not app:
+            # App object is not in cache. It means that this app wasnt deployed during the setup run. Returning false.
+            return False
+
+        deployment_attributes = DefaultSetupLogic._get_deployment_attributes(app)
+        wait_for_ip_attr = DefaultSetupLogic._get_attribute_from_deployed_app_gen_agnostic(attribute_key,
+                                                                                           deployment_attributes)
+        wait_for_ip = False
+        if wait_for_ip_attr:
+            # logical resource attribute can overwrite default wait for ip
+            wait_for_ip = wait_for_ip_attr[0].Value
+
+        return wait_for_ip
 
     @staticmethod
     def _was_connected_during_setup(connect_results, deployed_app_name):
