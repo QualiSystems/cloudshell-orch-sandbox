@@ -69,6 +69,11 @@ class DefaultSetupWorkflow(object):
                                                             resource_details_cache=self._resource_details_cache,
                                                             logger=sandbox.logger)
 
+        DefaultSetupLogic.activate_routes(api=api,
+                                        reservation_details=reservation_details,
+                                        reservation_id=sandbox.id,
+                                        logger=sandbox.logger)
+
         DefaultSetupLogic.run_async_power_on_refresh_ip(api=api,
                                                         reservation_details=reservation_details,
                                                         deploy_results=self._deploy_result,

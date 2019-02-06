@@ -167,6 +167,44 @@ class DefaultSetupLogic(object):
         return res
 
     @staticmethod
+    def activate_routes(api, reservation_details, reservation_id, logger):
+        """
+        :param CloudShellAPISession api:
+        :param GetReservationDescriptionResponseInfo reservation_details:
+        :param str reservation_id:
+        :param logging.Logger logger:
+        """
+        routes = reservation_details.ReservationDescription.RequestedRoutesInfo
+        bi_endpoints = []
+        uni_endpoints = []
+        for route_endpoint in routes:
+            if route_endpoint.Target and route_endpoint.Source:
+                if route_endpoint.RouteType == 'bi':
+                    bi_endpoints.append(route_endpoint.Target)
+                    bi_endpoints.append(route_endpoint.Source)
+                elif route_endpoint.RouteType == 'uni':
+                    uni_endpoints.append(route_endpoint.Target)
+                    uni_endpoints.append(route_endpoint.Source)
+
+        if not bi_endpoints and not uni_endpoints:
+            logger.info("No routes to connect for sandbox {0}".format(reservation_id))
+            return
+
+        logger.info("Executing connect routes for sandbox {0}".format(reservation_id))
+
+        api.WriteMessageToReservationOutput(reservationId=reservation_id,
+                                            message='Connecting all routes')
+
+        logger.debug("Connecting bi_endpoints: {0}".format(",".join(bi_endpoints)))
+
+        if bi_endpoints:
+            api.ConnectRoutesInReservation(reservation_id, bi_endpoints, 'bi')
+
+        logger.debug("Connecting uni_endpoints: {0}".format(",".join(uni_endpoints)))
+        if uni_endpoints:
+            api.ConnectRoutesInReservation(reservation_id, uni_endpoints, 'uni')
+
+    @staticmethod
     def run_async_power_on_refresh_ip(api, reservation_details, deploy_results, resource_details_cache,
                                       reservation_id, logger, components):
         """
