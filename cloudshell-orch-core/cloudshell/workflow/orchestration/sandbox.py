@@ -41,7 +41,7 @@ class Sandbox(object):
         self.apps_configuration = AppsConfiguration(sandbox=self)
 
     def get_user_param(self, param_name):
-        api_helpers.get_user_param(param_name)
+        return api_helpers.get_user_param(param_name)
 
     @profileit(scriptName='Setup')
     def execute_setup(self):
