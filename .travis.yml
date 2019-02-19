@@ -10,5 +10,6 @@ install:
     - pip install -r cloudshell-orch-core/requirements.txt -i https://testpypi.python.org/pypi
 
 script:
+    - pushd cloudshell-orch-core
     - python setup.py test
     - pip install cloudshell-orch-core -f dist
