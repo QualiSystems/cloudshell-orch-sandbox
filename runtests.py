@@ -8,7 +8,7 @@ c = nose.config.Config()
 c.plugins=DefaultPluginManager()
 c.srcDirs = ['cloudshell-orch-core']
 
-c.ignoreFiles.append(re.compile(r'^setup\.py$'))
+#c.ignoreFiles.append(re.compile(r'^setup\.py$'))
 
 if not nose.run(config=c):
     sys.exit(1)

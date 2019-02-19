@@ -1,3 +1,5 @@
+import sys
+
 from setuptools import setup, find_packages
 import os
 
@@ -10,14 +12,18 @@ with open('requirements.txt') as f_required:
 with open('test_requirements.txt') as f_tests:
     required_for_tests = f_tests.read().splitlines()
 
+if (sys.version_info < (3,0)):
+    required_for_tests.append("mock")
+
 setup(
         name="cloudshell-orch-core",
         author="Quali",
         author_email="support@qualisystems.com",
         packages=find_packages(),
         package_data={'': ['*.txt']},
-        test_requires=required_for_tests,
-        test_suite='nose.collector',
+        tests_require=required_for_tests,
+        #test_suite='nose.collector',
+        #test_suite="tests.tests.tomer",
         install_requires=required,
         version=version_from_file,
         include_package_data=True,
