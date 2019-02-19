@@ -1,0 +1,19 @@
+language: python
+python:
+- '2.7'
+- '3.6'
+
+before_install:
+    - pip install -r cloudshell-orch-core/test_requirements.txt
+
+install:
+    - pip install -r cloudshell-orch-core/requirements.txt -i https://testpypi.python.org/pypi
+
+script:
+    - pushd cloudshell-orch-core
+    - python setup.py develop
+    - python setup.py test
+    - python setup.py sdist --format zip
+    - popd
+    - python runtests.py --exclude cloudshell --verbose
+    - pip install cloudshell-orch-core -f dist

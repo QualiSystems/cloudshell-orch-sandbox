@@ -114,7 +114,7 @@ class Sandbox(object):
                     pass
 
             if self.suppress_exceptions:
-                print error
+                print (error)
             self.logger.exception("Error was thrown during orchestration execution: ")
 
         return execution_failed

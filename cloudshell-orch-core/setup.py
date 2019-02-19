@@ -7,17 +7,25 @@ with open(os.path.join('version.txt')) as version_file:
 with open('requirements.txt') as f_required:
     required = f_required.read().splitlines()
 
+with open('test_requirements.txt') as f_tests:
+    required_for_tests = f_tests.read().splitlines()
+
 setup(
         name="cloudshell-orch-core",
         author="Quali",
         author_email="support@qualisystems.com",
         packages=find_packages(),
         package_data={'': ['*.txt']},
+        test_requires=required_for_tests,
+        test_suite='nose.collector',
         install_requires=required,
         version=version_from_file,
         include_package_data=True,
         keywords="sandbox cloud cloudshell",
         classifiers=[
+            "Development Status :: 5 - Production/Stable",
+            "Programming Language :: Python :: 2.7",
+            "Programming Language :: Python :: 3.0",
             "Topic :: Software Development :: Libraries",
             "License :: OSI Approved :: Apache Software License",
         ]
