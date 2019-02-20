@@ -24,28 +24,28 @@ class Components(object):
         :param str name:
         :rtype: list[App]
         """
-        return [value for key, value in self.apps.iteritems() if name in key]
+        return [value for key, value in self.apps.items() if name in key]
 
     def get_resources_by_model(self, model):
         """
         :param str model:
         :rtype: list[ReservedResourceInfo]
         """
-        return [value for key, value in self.resources.iteritems() if model == value.ResourceModelName]
+        return [value for key, value in self.resources.items() if model == value.ResourceModelName]
 
     def get_services_by_alias(self, alias):
         """
         :param str alias:
         :rtype: list[ServiceInstance]
         """
-        return [value for key, value in self.services.iteritems() if alias == value.Alias]
+        return [value for key, value in self.services.items() if alias == value.Alias]
 
     def get_services_by_name(self, name):
         """
         :param str name:
         :rtype: list[ServiceInstance]
         """
-        return [value for key, value in self.services.iteritems() if name == value.ServiceName]
+        return [value for key, value in self.services.items() if name == value.ServiceName]
 
     def refresh_components(self, sandbox):
         """
@@ -67,7 +67,7 @@ class Components(object):
                     self.apps[app.Name] = App(app)
 
         if self.resources is not None:
-            for resource_name, resource in self.resources.iteritems():
+            for resource_name, resource in self.resources.items():
                 if isinstance(resource.AppDetails, AppInfo):  # if deployed app but not static VM
                     if resource.AppDetails.AppName in self.apps:
                         self.apps[resource.AppDetails.AppName].set_deployed_app_resource(resource)
