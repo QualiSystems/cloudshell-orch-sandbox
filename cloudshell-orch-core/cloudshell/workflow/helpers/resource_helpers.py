@@ -45,9 +45,9 @@ def get_resources_created_in_res(reservation_details, reservation_id):
     :param str reservation_id:
     :return:
     """
-    resources = filter(
+    resources = list(filter(
             lambda x: x.CreatedInReservation and x.CreatedInReservation.lower() == reservation_id.lower(),
-            reservation_details.ReservationDescription.Resources)
+            reservation_details.ReservationDescription.Resources))
     return resources
 
 
@@ -60,7 +60,7 @@ def find_resource_by_name(reservation_details, resource_name):
     """
     resource_name = resource_name.lower()
 
-    resources = filter(lambda x: x.Name.lower() == resource_name, reservation_details.ReservationDescription.Resources)
+    resources = list(filter(lambda x: x.Name.lower() == resource_name, reservation_details.ReservationDescription.Resources))
     if len(resources) > 0:
         return resources[0]
     return None
