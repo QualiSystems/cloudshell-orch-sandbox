@@ -2,9 +2,10 @@ import logging
 import unittest
 
 from cloudshell.api import cloudshell_api
-from cloudshell.core.logger import qs_logger, interprocess_logger
-from cloudshell.core.logger.qs_logger import get_qs_logger
 import multiprocessing
+
+from cloudshell.logging import interprocess_logger
+
 from cloudshell.workflow.orchestration.sandbox import Sandbox
 
 import sys

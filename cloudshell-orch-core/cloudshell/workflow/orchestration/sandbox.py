@@ -2,9 +2,8 @@ import sys
 from multiprocessing.pool import ThreadPool
 import traceback
 
-from cloudshell.api.cloudshell_api import CloudShellAPISession
-from cloudshell.core.logger.qs_logger import get_qs_logger
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as api_helpers
+from cloudshell.logging.qs_logger import get_qs_logger
 
 from cloudshell.workflow.orchestration.apps_configuration import AppsConfiguration
 from cloudshell.workflow.orchestration.components import Components
