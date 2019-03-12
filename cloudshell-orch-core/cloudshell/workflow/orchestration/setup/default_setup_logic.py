@@ -84,7 +84,7 @@ class DefaultSetupLogic(object):
                              .format(deployed_app_name, str(exc)))
                 api.WriteMessageToReservationOutput(reservationId=reservation_id,
                                                     message='Discovery failed on "{0}": {1}'
-                                                    .format(deployed_app_name, exc.message))
+                                                    .format(deployed_app_name, str(exc)))
                 api.SetResourceLiveStatus(deployed_app_name, "Error", "Discovery failed")
 
                 # Bug 161222 - we must re-raise the original exception to stop the setup
@@ -125,8 +125,8 @@ class DefaultSetupLogic(object):
                                                 message='No apps to deploy')
             return None
 
-        app_names = map(lambda x: x.Name, apps)
-        app_inputs = map(lambda x: DeployAppInput(x.Name, "Name", x.Name), apps)
+        app_names = list(map(lambda x: x.Name, apps))
+        app_inputs = list(map(lambda x: DeployAppInput(x.Name, "Name", x.Name), apps))
 
         api.WriteMessageToReservationOutput(reservationId=reservation_id,
                                             message='Apps deployment started')
@@ -285,7 +285,7 @@ class DefaultSetupLogic(object):
                 api.RefreshVMDetails(reservation_id, deployed_apps_to_refresh_names)
         except Exception as e:
             logger.error("Failed to refresh VM details:\ndeployed apps: {0}\nmessage: {1}"
-                         .format(', '.join(deployed_apps_to_refresh_names), e.message))
+                         .format(', '.join(deployed_apps_to_refresh_names), str(e)))
             raise Exception("Failed to refresh VM Details")
 
     @staticmethod
@@ -517,7 +517,7 @@ class DefaultSetupLogic(object):
             logger.error("Error refreshing IP on deployed app {0} in sandbox {1}. Error: {2}"
                          .format(deployed_app_name, reservation_id, str(exc)))
             api.SetResourceLiveStatus(deployed_app_name, "Error", "Obtaining IP has failed")
-            return False, "Error refreshing IP deployed app {0}. Error: {1}".format(deployed_app_name, exc.message)
+            return False, "Error refreshing IP deployed app {0}. Error: {1}".format(deployed_app_name, str(exc))
 
         return True, ""
 

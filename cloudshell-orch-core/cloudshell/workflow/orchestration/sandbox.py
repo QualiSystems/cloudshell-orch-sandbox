@@ -104,7 +104,11 @@ class Sandbox(object):
         except Exception as exc:
             self.logger.info("except Exception as exc")
             execution_failed = 1
-            error = exc.message
+            if not hasattr(exc, 'message'): #python 3
+                error = str(exc)
+                self.logger.info("type of exc is {}".format(str(type(exc))))
+            else: 
+                error = exc.message
             self._exception = exc
             if not error or not isinstance(error, str):
                 try:
@@ -155,7 +159,7 @@ class Sandbox(object):
                                                                     message='<font color="red">{0}</font>'.format(msg))
                 sys.exit(-1)
             msg = 'Error of type "{0}" occurred during "{1}" stage, with message "{2}". '.format(
-                type(self._exception).__name__, stage_name, self._exception.message)
+                type(self._exception).__name__, stage_name, str(self._exception))
             raise WorkFlowException(msg)
 
     def _executes_stage_sequentially(self, workflow_objects, stage_name):
@@ -173,10 +177,10 @@ class Sandbox(object):
         try:
             result = self.automation_api.SaveSandbox(self.id, save_sandbox_name, save_sandbox_description, self.reservationLifecycleDetails.currentUserName)
         except Exception as e:
-            self.logger.error(e.message)
+            self.logger.error(str(e))
             self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
-                                                                message='<font color="red">{0}</font>'.format(e.message))
-            sys.exit(e.message)
+                                                                message='<font color="red">{0}</font>'.format(str(e)))
+            sys.exit(str(e))
         return result
 
     def execute_save(self):
