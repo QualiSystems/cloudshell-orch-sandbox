@@ -180,11 +180,11 @@ class DefaultSetupLogic(object):
         for route_endpoint in routes:
             if route_endpoint.Target and route_endpoint.Source:
                 if route_endpoint.RouteType == 'bi':
-                    bi_endpoints.append(route_endpoint.Target)
                     bi_endpoints.append(route_endpoint.Source)
+                    bi_endpoints.append(route_endpoint.Target)
                 elif route_endpoint.RouteType == 'uni':
-                    uni_endpoints.append(route_endpoint.Target)
                     uni_endpoints.append(route_endpoint.Source)
+                    uni_endpoints.append(route_endpoint.Target)
 
         if not bi_endpoints and not uni_endpoints:
             logger.info("No routes to connect for sandbox {0}".format(reservation_id))
