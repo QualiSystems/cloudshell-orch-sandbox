@@ -30,7 +30,8 @@ def get_reservation_context_details():
                                             res_dict['ownerPass'],
                                             res_dict['id'],
                                             res_dict['environmentPath'],
-                                            get_permitted_users())
+                                            get_permitted_users(),
+                                            res_dict['runningUser'])
     return res_details
 
 
@@ -202,7 +203,7 @@ class EnvironmentParameters:
 class ReservationContextDetails:
     def __init__(self, environment_name, domain, description,
                  parameters, owner_user, owner_password,
-                 reservation_id, environment_path, permitted_users):
+                 reservation_id, environment_path, permitted_users, running_user):
         self.environment_name = environment_name
         """:type : str"""
         self.domain = domain
@@ -221,6 +222,8 @@ class ReservationContextDetails:
         """:type : str"""
         self.permitted_users = permitted_users
         """:type : list[UserDetails]"""
+        self.running_user = running_user
+        """:type : str"""
 
 
 class UserDetails:

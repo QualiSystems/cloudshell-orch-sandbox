@@ -3,10 +3,7 @@ from multiprocessing.pool import ThreadPool
 from threading import Lock
 
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
-from cloudshell.core.logger import qs_logger
-from cloudshell.helpers.scripts import cloudshell_scripts_helpers as helpers
 
-from cloudshell.workflow.profiler.env_profiler import profileit
 from cloudshell.workflow.helpers.resource_helpers import *
 
 
@@ -51,7 +48,7 @@ class DefaultTeardownLogic:
             logger.error("Error disconnecting all routes in reservation {0}. Error: {1}"
                               .format(reservation_id, str(exc)))
             api.WriteMessageToReservationOutput(reservationId=reservation_id,
-                                                message="Error disconnecting apps. Error: {0}".format(exc.message))
+                                                message="Error disconnecting apps. Error: {0}".format(str(exc)))
 
     @staticmethod
     def power_off_and_delete_all_vm_resources(api, reservation_details, reservation_id, logger, components):

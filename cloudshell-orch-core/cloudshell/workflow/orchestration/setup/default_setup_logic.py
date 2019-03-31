@@ -84,7 +84,7 @@ class DefaultSetupLogic(object):
                              .format(deployed_app_name, str(exc)))
                 api.WriteMessageToReservationOutput(reservationId=reservation_id,
                                                     message='Discovery failed on "{0}": {1}'
-                                                    .format(deployed_app_name, exc.message))
+                                                    .format(deployed_app_name, str(exc)))
                 api.SetResourceLiveStatus(deployed_app_name, "Error", "Discovery failed")
 
                 # Bug 161222 - we must re-raise the original exception to stop the setup
@@ -125,8 +125,8 @@ class DefaultSetupLogic(object):
                                                 message='No apps to deploy')
             return None
 
-        app_names = map(lambda x: x.Name, apps)
-        app_inputs = map(lambda x: DeployAppInput(x.Name, "Name", x.Name), apps)
+        app_names = list(map(lambda x: x.Name, apps))
+        app_inputs = list(map(lambda x: DeployAppInput(x.Name, "Name", x.Name), apps))
 
         api.WriteMessageToReservationOutput(reservationId=reservation_id,
                                             message='Apps deployment started')
@@ -165,6 +165,44 @@ class DefaultSetupLogic(object):
                                             message='Connecting all apps')
         res = api.ConnectRoutesInReservation(reservation_id, endpoints, 'bi')
         return res
+
+    @staticmethod
+    def activate_routes(api, reservation_details, reservation_id, logger):
+        """
+        :param CloudShellAPISession api:
+        :param GetReservationDescriptionResponseInfo reservation_details:
+        :param str reservation_id:
+        :param logging.Logger logger:
+        """
+        routes = reservation_details.ReservationDescription.RequestedRoutesInfo
+        bi_endpoints = []
+        uni_endpoints = []
+        for route_endpoint in routes:
+            if route_endpoint.Target and route_endpoint.Source:
+                if route_endpoint.RouteType == 'bi':
+                    bi_endpoints.append(route_endpoint.Source)
+                    bi_endpoints.append(route_endpoint.Target)
+                elif route_endpoint.RouteType == 'uni':
+                    uni_endpoints.append(route_endpoint.Source)
+                    uni_endpoints.append(route_endpoint.Target)
+
+        if not bi_endpoints and not uni_endpoints:
+            logger.info("No routes to connect for sandbox {0}".format(reservation_id))
+            return
+
+        logger.info("Executing connect routes for sandbox {0}".format(reservation_id))
+
+        api.WriteMessageToReservationOutput(reservationId=reservation_id,
+                                            message='Connecting all routes')
+
+        logger.debug("Connecting bi_endpoints: {0}".format(",".join(bi_endpoints)))
+
+        if bi_endpoints:
+            api.ConnectRoutesInReservation(reservation_id, bi_endpoints, 'bi')
+
+        logger.debug("Connecting uni_endpoints: {0}".format(",".join(uni_endpoints)))
+        if uni_endpoints:
+            api.ConnectRoutesInReservation(reservation_id, uni_endpoints, 'uni')
 
     @staticmethod
     def run_async_power_on_refresh_ip(api, reservation_details, deploy_results, resource_details_cache,
@@ -212,8 +250,9 @@ class DefaultSetupLogic(object):
                                                      logger=logger)
 
     @staticmethod
-    def refresh_vm_details(api, reservation_details, connect_results, resource_details_cache, logger):
+    def refresh_vm_details(api, reservation_details, connect_results, resource_details_cache, logger, components):
         """
+        :param list components: list of components: App, ReservedResourceInfo or ServiceInstance
         :param CloudShellAPISession api:
         :param GetReservationDescriptionResponseInfo reservation_details:
         :param list connectivity_data:
@@ -232,7 +271,7 @@ class DefaultSetupLogic(object):
             if not DefaultSetupLogic._is_deployed_app(resource_details):
                 continue
 
-            if DefaultSetupLogic._has_wait_for_ip_attribute(resource_details):
+            if DefaultSetupLogic._has_wait_for_ip_attribute(components, resource_details, logger):
                 deployed_apps_to_refresh_names.append(deployed_app_name)
                 continue
 
@@ -246,16 +285,37 @@ class DefaultSetupLogic(object):
                 api.RefreshVMDetails(reservation_id, deployed_apps_to_refresh_names)
         except Exception as e:
             logger.error("Failed to refresh VM details:\ndeployed apps: {0}\nmessage: {1}"
-                         .format(', '.join(deployed_apps_to_refresh_names), e.message))
+                         .format(', '.join(deployed_apps_to_refresh_names), str(e)))
             raise Exception("Failed to refresh VM Details")
 
     @staticmethod
-    def _has_wait_for_ip_attribute(resource_details):
-        # wait for ip is a parameter that can be on app (but doesnt have to be)
-        # only in case
-        wait_for_ip_param = get_vm_custom_param(resource_details, "wait_for_ip")
-        is_wait_for_app = True if wait_for_ip_param and wait_for_ip_param.Value.lower() == 'true' else False
-        return is_wait_for_app
+    def _has_wait_for_ip_attribute(components, resource_details, logger):
+        """
+        Check if wait for ip is set to True
+        wait for ip is a parameter that can be on app (but doesnt have to be)
+
+        :param Components components: list of components: App, ReservedResourceInfo or ServiceInstance
+        :param resource_details:
+        :param logging.Logger logger:
+        :return:
+        """
+        attribute_key = "Wait for IP"
+
+        reserved_resource = components.resources.get(resource_details.Name)
+        app = components.apps.get(reserved_resource.AppDetails.AppName)
+        if not app:
+            # App object is not in cache. It means that this app wasnt deployed during the setup run. Returning false.
+            return False
+
+        deployment_attributes = DefaultSetupLogic._get_deployment_attributes(app)
+        wait_for_ip_attr = DefaultSetupLogic._get_attribute_from_deployed_app_gen_agnostic(attribute_key,
+                                                                                           deployment_attributes)
+        wait_for_ip = False
+        if wait_for_ip_attr:
+            # logical resource attribute can overwrite default wait for ip
+            wait_for_ip = wait_for_ip_attr[0].Value
+
+        return wait_for_ip
 
     @staticmethod
     def _was_connected_during_setup(connect_results, deployed_app_name):
@@ -457,7 +517,7 @@ class DefaultSetupLogic(object):
             logger.error("Error refreshing IP on deployed app {0} in sandbox {1}. Error: {2}"
                          .format(deployed_app_name, reservation_id, str(exc)))
             api.SetResourceLiveStatus(deployed_app_name, "Error", "Obtaining IP has failed")
-            return False, "Error refreshing IP deployed app {0}. Error: {1}".format(deployed_app_name, exc.message)
+            return False, "Error refreshing IP deployed app {0}. Error: {1}".format(deployed_app_name, str(exc))
 
         return True, ""
 

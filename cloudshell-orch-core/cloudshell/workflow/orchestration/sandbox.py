@@ -2,9 +2,8 @@ import sys
 from multiprocessing.pool import ThreadPool
 import traceback
 
-from cloudshell.api.cloudshell_api import CloudShellAPISession
-from cloudshell.core.logger.qs_logger import get_qs_logger
 from cloudshell.helpers.scripts import cloudshell_scripts_helpers as api_helpers
+from cloudshell.logging.qs_logger import get_qs_logger
 
 from cloudshell.workflow.orchestration.apps_configuration import AppsConfiguration
 from cloudshell.workflow.orchestration.components import Components
@@ -44,7 +43,7 @@ class Sandbox(object):
         self.apps_configuration = AppsConfiguration(sandbox=self)
 
     def get_user_param(self, param_name):
-        api_helpers.get_user_param(param_name)
+        return api_helpers.get_user_param(param_name)
 
     @profileit(scriptName='Setup')
     def execute_setup(self):
@@ -105,7 +104,11 @@ class Sandbox(object):
         except Exception as exc:
             self.logger.info("except Exception as exc")
             execution_failed = 1
-            error = exc.message
+            if not hasattr(exc, 'message'): #python 3
+                error = str(exc)
+                self.logger.info("type of exc is {}".format(str(type(exc))))
+            else: 
+                error = exc.message
             self._exception = exc
             if not error or not isinstance(error, str):
                 try:
@@ -114,7 +117,7 @@ class Sandbox(object):
                     pass
 
             if self.suppress_exceptions:
-                print error
+                print (error)
             self.logger.exception("Error was thrown during orchestration execution: ")
 
         return execution_failed
@@ -156,7 +159,7 @@ class Sandbox(object):
                                                                     message='<font color="red">{0}</font>'.format(msg))
                 sys.exit(-1)
             msg = 'Error of type "{0}" occurred during "{1}" stage, with message "{2}". '.format(
-                type(self._exception).__name__, stage_name, self._exception.message)
+                type(self._exception).__name__, stage_name, str(self._exception))
             raise WorkFlowException(msg)
 
     def _executes_stage_sequentially(self, workflow_objects, stage_name):
@@ -174,10 +177,10 @@ class Sandbox(object):
         try:
             result = self.automation_api.SaveSandbox(self.id, save_sandbox_name, save_sandbox_description, self.reservationLifecycleDetails.currentUserName)
         except Exception as e:
-            self.logger.error(e.message)
+            self.logger.error(str(e))
             self.automation_api.WriteMessageToReservationOutput(reservationId=self.id,
-                                                                message='<font color="red">{0}</font>'.format(e.message))
-            sys.exit(e.message)
+                                                                message='<font color="red">{0}</font>'.format(str(e)))
+            sys.exit(str(e))
         return result
 
     def execute_save(self):
