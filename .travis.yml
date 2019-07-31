@@ -7,7 +7,7 @@ before_install:
     - pip install -r cloudshell-orch-core/test_requirements.txt
 
 install:
-    - pip install -r cloudshell-orch-core/requirements.txt -i https://testpypi.python.org/pypi
+    - pip install -r cloudshell-orch-core/requirements.txt -i https://test.pypi.org/simple
 
 script:
     - pushd cloudshell-orch-core
