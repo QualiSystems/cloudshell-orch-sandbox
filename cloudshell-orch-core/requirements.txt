@@ -1,2 +1,2 @@
-cloudshell-automation-api>=2020.2.0.178583
+cloudshell-automation-api>=2020.2.0.178583,<2020.3.0.0
 cloudshell-logging>=1.0.0,<1.1.0
