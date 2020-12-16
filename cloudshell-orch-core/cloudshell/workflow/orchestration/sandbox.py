@@ -28,13 +28,13 @@ class Sandbox(object):
         self.requirement_inputs = helpers.get_resource_requirement_inputs()
         self.id = self.reservationContextDetails.id
 
-        reservation_description = self.automation_api.GetReservationDetails(reservationId=self.id, disableCache=True).ReservationDescription
+        self.reservation_description = self.automation_api.GetReservationDetails(reservationId=self.id, disableCache=True).ReservationDescription
 
-        self.name = reservation_description.Name
+        self.name = self.reservation_description.Name
 
-        self.components = Components(reservation_description.Resources,
-                                     reservation_description.Services,
-                                     reservation_description.Apps)
+        self.components = Components(self.reservation_description.Resources,
+                                     self.reservation_description.Services,
+                                     self.reservation_description.Apps)
 
         self.logger = get_qs_logger(log_file_prefix='CloudShell Sandbox Orchestration',
                                     log_group=self.id,
