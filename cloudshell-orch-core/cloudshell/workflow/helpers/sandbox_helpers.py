@@ -144,7 +144,7 @@ class ResourceInputs:
             = resource_input_data
 
     def __iter__(self):
-        return self._dictionary.iteritems()
+        return self._dictionary.items()
 
     def iteritems(self):
         return self.__iter__()
