@@ -468,11 +468,19 @@ class DefaultSetupLogic(object):
                 if v.deployed_app.Name == resource.Name:
                     app = v
                     break
-
+                if v.deployed_app.Name == deployed_app_name:
+                    app = v
+                    break
+            
             # name could be either original app request name, or renamed after deploy; below expression captures that
-            app = components.apps.get(resource.AppDetails.AppName)
-            deployment_attributes = DefaultSetupLogic._get_deployment_attributes(app)
-
+            if not app:
+                app = components.apps.get(resource.AppDetails.AppName)
+            if app.app_request.app_resource:
+                deployment_attributes = DefaultSetupLogic._get_deployment_attributes(app)
+            else:
+                logger.info('App has already been deployed - deployment settings defaulting to auto power on and wait for ip')
+                deployment_attributes = [AttributeNameValue("Auto Power On","True"), 
+                                         AttributeNameValue("Wait for IP","True")]
             attribute_key = "Auto Power On"
             power_on_attribute = DefaultSetupLogic._get_attribute_from_deployed_app_gen_agnostic(attribute_key,
                                                                                                  deployment_attributes)
