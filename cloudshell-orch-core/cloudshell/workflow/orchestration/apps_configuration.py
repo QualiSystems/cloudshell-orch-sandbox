@@ -1,4 +1,4 @@
-from cloudshell.api.cloudshell_api import AppConfiguration
+from cloudshell.api.cloudshell_api import AppConfigurationData, ConfigurationManagementData
 
 from cloudshell.workflow.orchestration.app import App
 from cloudshell.workflow.orchestration.setup.default_setup_logic import DefaultSetupLogic
@@ -9,9 +9,10 @@ class AppsConfiguration(object):
         self.sandbox = sandbox
         """:type : Sandbox"""
 
-    def set_config_param(self, app, key, value):
+    def set_config_param(self, app, script_alias, key, value):
         """
         :param App app:
+        :param script_alias:
         :param str key:
         :param str value:
         :return:
@@ -19,14 +20,19 @@ class AppsConfiguration(object):
         if isinstance(app, App):
             # If deployed in this execution
             if app.app_request.app_resource is not None:
-                self.sandbox.components.apps[app.app_request.app_resource.Name].app_request.add_app_config_param(key,
-                                                                                                                 value)
+                self.sandbox.components.apps[app.app_request.app_resource.Name].app_request.add_app_config_param(
+                    script_alias,
+                    key,
+                    value)
                 self.sandbox.logger.info(
                     "App config param with key: '{0}' and value: '{1}' was added to app-resource '{2}'"
                         .format(key, value, app.app_request.app_resource.Name))
 
             else:
-                self.sandbox.components.apps[app.deployed_app.Name].app_request.add_app_config_param(key, value)
+                self.sandbox.components.apps[app.deployed_app.Name].app_request.add_app_config_param(
+                    script_alias,
+                    key,
+                    value)
                 self.sandbox.logger.info(
                     "App config param with key: '{0}' and value: '{1}' was added to app-resource '{2}'"
                         .format(key, value, app.deployed_app.Name))
@@ -49,16 +55,22 @@ class AppsConfiguration(object):
         apps_configuration = []
 
         for app in apps:
-            if len(app.app_request.appConfiguration) > 0:
-                apps_configuration.append(AppConfiguration(app.deployed_app.Name,
-                                                           app.app_request.appConfiguration))
+            if len(app.app_request.scripts) > 0:
+                scripts_configuration = []
+                for script in app.app_request.scripts.values():
+                    scripts_configuration.append(ConfigurationManagementData(
+                                                   ScriptAlias=script.scriptAlias,
+                                                   ConfigParams=script.scriptConfiguration
+                                               ))
+
+                apps_configuration.append(AppConfigurationData(app.deployed_app.Name, scripts_configuration))
                 self.sandbox.logger.debug(
                     "App '{0}' was added to appConfiguration using app request information".format(
                         app.deployed_app.Name))
 
 
             else:
-                apps_configuration.append(AppConfiguration(app.deployed_app.Name, None))
+                apps_configuration.append(AppConfigurationData(app.deployed_app.Name, None))
                 self.sandbox.logger.debug(
                     "App '{0}' was added to appConfiguration without configuration parameters".format(
                         app.deployed_app.Name))
@@ -70,4 +82,4 @@ class AppsConfiguration(object):
         DefaultSetupLogic.configure_apps(api=self.sandbox.automation_api,
                                          reservation_id=self.sandbox.id,
                                          logger=self.sandbox.logger,
-                                         appConfigurations=apps_configuration)
+                                         appConfigurationsData=apps_configuration)
