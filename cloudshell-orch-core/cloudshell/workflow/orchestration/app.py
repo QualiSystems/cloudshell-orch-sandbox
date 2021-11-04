@@ -17,14 +17,14 @@ class AppResourceRequestInfo(object):
 
 
 class ScriptRequestInfo(object):
-    def __init__(self, scriptAlias):
-        self.scriptAlias = scriptAlias
+    def __init__(self, script_alias):
+        self.script_alias = script_alias
         """:type : string"""
-        self.scriptConfiguration = []
+        self.script_configuration = []
         """:type : list[ConfigParam]"""
 
     def add_script_config_param(self, key, value):
-        self.scriptConfiguration.append(ConfigParam(key, value))
+        self.script_configuration.append(ConfigParam(key, value))
 
 
 class App(object):
