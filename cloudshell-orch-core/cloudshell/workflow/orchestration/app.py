@@ -10,15 +10,15 @@ class AppResourceRequestInfo(object):
         self.scripts = {}
         """:type : Dictionary[str,ScriptRequestInfo]"""
 
-    def add_app_config_param(self, script_alias, key, value):
-        if script_alias not in self.scripts:
-            self.scripts[script_alias] = ScriptRequestInfo(script_alias)
-        self.scripts[script_alias].add_script_config_param(key, value)
+    def add_app_config_param(self, alias, key, value):
+        if alias not in self.scripts:
+            self.scripts[alias] = ScriptRequestInfo(alias)
+        self.scripts[alias].add_script_config_param(key, value)
 
 
 class ScriptRequestInfo(object):
-    def __init__(self, script_alias):
-        self.script_alias = script_alias
+    def __init__(self, alias):
+        self.alias = alias
         """:type : string"""
         self.script_configuration = []
         """:type : list[ConfigParam]"""

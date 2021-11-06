@@ -9,10 +9,10 @@ class AppsConfiguration(object):
         self.sandbox = sandbox
         """:type : Sandbox"""
 
-    def set_config_param(self, app, script_alias, key, value):
+    def set_config_param(self, app, alias, key, value):
         """
         :param App app:
-        :param str script_alias:
+        :param str alias:
         :param str key:
         :param str value:
         :return:
@@ -21,21 +21,17 @@ class AppsConfiguration(object):
             # If deployed in this execution
             if app.app_request.app_resource is not None:
                 self.sandbox.components.apps[app.app_request.app_resource.Name].app_request.add_app_config_param(
-                    script_alias,
-                    key,
-                    value)
+                    alias, key, value)
                 self.sandbox.logger.info(
-                    "App config param with key: '{0}' and value: '{1}' was added to app-resource '{2}' at script_alias '{3}'"
-                        .format(key, value, app.app_request.app_resource.Name, script_alias))
+                    "App config param with key: '{0}' and value: '{1}' was added to app-resource '{2}' at alias '{3}'"
+                        .format(key, value, app.app_request.app_resource.Name, alias))
 
             else:
-                self.sandbox.components.apps[app.deployed_app.Name].app_request.add_app_config_param(
-                    script_alias,
-                    key,
-                    value)
+                self.sandbox.components.apps[app.deployed_app.Name].app_request.add_app_config_param(alias, key,
+                                                                                                     value)
                 self.sandbox.logger.info(
-                    "App config param with key: '{0}' and value: '{1}' was added to app-resource '{2}' at script_alias '{3}'"
-                        .format(key, value, app.deployed_app.Name, script_alias))
+                    "App config param with key: '{0}' and value: '{1}' was added to app-resource '{2}' at alias '{3}'"
+                        .format(key, value, app.deployed_app.Name, alias))
 
         else:
             self.sandbox.logger.error("set_config_param: app parameter is not from the correct type")
@@ -55,20 +51,19 @@ class AppsConfiguration(object):
         apps_configuration = []
 
         for app in apps:
-            if len(app.app_request.scripts) > 0:
-                scripts_configuration = []
-                for script in app.app_request.scripts.values():
-                    scripts_configuration.append(ConfigurationManagementData(
-                                                   ScriptAlias=script.script_alias,
-                                                   ConfigParams=script.script_configuration
-                                               ))
+            scripts_configuration = []
+            for script in app.app_request.scripts.values():
+                scripts_configuration.append(ConfigurationManagementData(
+                                               ScriptAlias=script.alias,
+                                               ConfigParams=script.script_configuration
+                                           ))
 
-                apps_configuration.append(AppConfigurationData(app.deployed_app.Name, scripts_configuration))
+            apps_configuration.append(AppConfigurationData(app.deployed_app.Name, scripts_configuration))
+
+            if len(app.app_request.scripts) > 0:
                 self.sandbox.logger.debug(
                     "App '{0}' was added to appConfiguration using app request information".format(
                         app.deployed_app.Name))
-
-
             else:
                 apps_configuration.append(AppConfigurationData(app.deployed_app.Name, []))
                 self.sandbox.logger.debug(
