@@ -396,7 +396,7 @@ class DefaultSetupLogic(object):
         """
         logger.info('App configuration started ...')
         try:
-            configuration_result = api.ConfigureAppsV2(sandboxId=reservation_id, printOutput=True,
+            configuration_result = api.ConfigureAppsV2(reservationId=reservation_id, printOutput=True,
                                                        appConfigurationsData=appConfigurationsData)
 
             if not configuration_result.ResultItems:
