@@ -54,7 +54,7 @@ class AppsConfiguration(object):
             scripts_configuration = []
             for script in app.app_request.scripts.values():
                 scripts_configuration.append(ConfigurationManagementData(
-                                               ScriptAlias=script.alias,
+                                               Alias=script.alias,
                                                ConfigParams=script.script_configuration
                                            ))
 
