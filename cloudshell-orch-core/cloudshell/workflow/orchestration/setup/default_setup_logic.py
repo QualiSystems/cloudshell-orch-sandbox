@@ -179,11 +179,11 @@ class DefaultSetupLogic(object):
         for route_endpoint in routes:
             if route_endpoint.Target and route_endpoint.Source:
                 if route_endpoint.RouteType == 'bi':
-                    bi_endpoints.append(route_endpoint.Target)
                     bi_endpoints.append(route_endpoint.Source)
+                    bi_endpoints.append(route_endpoint.Target)
                 elif route_endpoint.RouteType == 'uni':
-                    uni_endpoints.append(route_endpoint.Target)
                     uni_endpoints.append(route_endpoint.Source)
+                    uni_endpoints.append(route_endpoint.Target)
 
         if not bi_endpoints and not uni_endpoints:
             logger.info("No routes to connect for sandbox {0}".format(reservation_id))
@@ -385,9 +385,9 @@ class DefaultSetupLogic(object):
             raise
 
     @staticmethod
-    def configure_apps(api, reservation_id, logger, appConfigurations=[]):
+    def configure_apps(api, reservation_id, logger, appConfigurationsData=[]):
         """
-        :param appConfigurations:
+        :param appConfigurationsData:
         :param CloudShellAPISession api:
         :param str reservation_id:
         :param logging.Logger logger:
@@ -395,8 +395,8 @@ class DefaultSetupLogic(object):
         """
         logger.info('App configuration started ...')
         try:
-            configuration_result = api.ConfigureApps(reservationId=reservation_id, printOutput=True,
-                                                     appConfigurations=appConfigurations)
+            configuration_result = api.ConfigureAppsV2(reservationId=reservation_id, printOutput=True,
+                                                       appConfigurationsData=appConfigurationsData)
 
             if not configuration_result.ResultItems:
                 api.WriteMessageToReservationOutput(reservationId=reservation_id, message='No apps to configure')
@@ -467,11 +467,19 @@ class DefaultSetupLogic(object):
                 if v.deployed_app.Name == resource.Name:
                     app = v
                     break
-
+                if v.deployed_app.Name == deployed_app_name:
+                    app = v
+                    break
+            
             # name could be either original app request name, or renamed after deploy; below expression captures that
-            app = components.apps.get(resource.AppDetails.AppName)
-            deployment_attributes = DefaultSetupLogic._get_deployment_attributes(app)
-
+            if not app:
+                app = components.apps.get(resource.AppDetails.AppName)
+            if app.app_request.app_resource:
+                deployment_attributes = DefaultSetupLogic._get_deployment_attributes(app)
+            else:
+                logger.info('App has already been deployed - deployment settings defaulting to auto power on and wait for ip')
+                deployment_attributes = [AttributeNameValue("Auto Power On","True"), 
+                                         AttributeNameValue("Wait for IP","True")]
             attribute_key = "Auto Power On"
             power_on_attribute = DefaultSetupLogic._get_attribute_from_deployed_app_gen_agnostic(attribute_key,
                                                                                                  deployment_attributes)
