@@ -5,6 +5,7 @@ from cloudshell.api.cloudshell_api import *
 from cloudshell.api.common_cloudshell_api import CloudShellAPIError
 
 from cloudshell.workflow.helpers.resource_helpers import *
+from cloudshell.workflow.orchestration.app import App as WorkflowApp
 
 
 class DefaultSetupLogic(object):
@@ -105,7 +106,13 @@ class DefaultSetupLogic(object):
 
     @staticmethod
     def _get_deployment_attributes(app):
-        deployment_path = app.app_request.app_resource.DeploymentPaths[0]
+        """
+        grab the DEFAULT deployment attributes
+        :param WorkflowApp app:
+        :return:
+        """
+        deployment_path = [deployment_path for deployment_path in app.app_request.app_resource.DeploymentPaths
+                           if deployment_path.IsDefault][0]
         deployment_attributes = deployment_path.DeploymentService.Attributes
         return deployment_attributes
 
