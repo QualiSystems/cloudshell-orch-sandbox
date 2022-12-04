@@ -1,4 +1,5 @@
 import inspect
+import sys
 
 
 class WorkflowObject(object):
@@ -131,7 +132,11 @@ class Workflow(object):
         self._before_teardown.append(WorkflowObject(function=function, components=components))
 
     def _validate_function(self, func):
-        args = inspect.getargspec(func).args
+        # PY3 type hints support for workflow functions
+        if sys.version_info >= (3, 0):
+            args = inspect.getfullargspec(func).args
+        else:
+            args = inspect.getargspec(func).args
         self.sandbox.logger.info(
             'Validating custom function "{0}": {1}. '.format(func.__name__, args))
         if len(args) < 2:
