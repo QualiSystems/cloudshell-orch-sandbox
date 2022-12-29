@@ -1,6 +1,6 @@
 import os
 import json
-
+import sys
 
 def get_reservation_context_details_dict():
     """
@@ -138,17 +138,19 @@ class ResourceInputs:
         return self._dictionary[resource_name]
 
     def __setitem__(self, resource_name, resource_input_data):
-        if resource_name not in self._dictionary.keys():
+        if resource_name not in list(self._dictionary.keys()):
             self._dictionary[resource_name] = {}
         self._dictionary[resource_name][resource_input_data.param_name] \
             = resource_input_data
 
-    def __iter__(self):
-        return self._dictionary.iteritems()
-
     def iteritems(self):
         return self.__iter__()
 
+    def __iter__(self):
+        if sys.version_info[0] < 3:
+            return self._dictionary.iteritems()
+        else:
+            return self._dictionary.items()
 
 class ReservationLifecycleContext:
     def __init__(self, reservation_id, saved_sandbox_name, saved_sandbox_description, currentUserName):
