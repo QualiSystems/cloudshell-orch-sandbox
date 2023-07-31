@@ -1,3 +1,4 @@
 setuptools>=40.0,<45.0
 cloudshell-automation-api>=2023.2.0.0,<2023.3.0.0
 cloudshell-logging>=1.0.0,<1.1.0
+urllib3>=1.26.5 # not directly required, pinned by Snyk to avoid a vulnerability
