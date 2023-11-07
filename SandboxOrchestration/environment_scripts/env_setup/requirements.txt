@@ -1,3 +1,1 @@
-setuptools>=40.0,<45.0
-cloudshell-automation-api>=2023.3.0.0,<2023.4.0.0
-cloudshell-logging>=1.0.0,<1.1.0
+cloudshell-orch-core>=4.4.0.0,<4.5.0.0
