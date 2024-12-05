@@ -81,4 +81,5 @@ def get_resource_details_from_cache_or_server(api, resource_name, resource_detai
         resource_details = resource_details_cache[resource_name]
     else:
         resource_details = api.GetResourceDetails(resource_name)
+        resource_details_cache[resource_name] = resource_details
     return resource_details
