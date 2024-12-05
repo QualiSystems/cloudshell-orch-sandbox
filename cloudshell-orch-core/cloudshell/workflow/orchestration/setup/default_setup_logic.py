@@ -110,15 +110,14 @@ class DefaultSetupLogic(object):
         return deployment_attributes
 
     @staticmethod
-    def deploy_apps_in_reservation(api, reservation_details, reservation_id, logger):
+    def deploy_apps_in_reservation(api, apps, reservation_id, logger):
         """
         :param CloudShellAPISession api:
-        :param GetReservationDescriptionResponseInfo reservation_details:
+        :param list(ReservationAppResource) apps:
         :param str reservation_id:
         :param logging.Logger logger:
         :return:
         """
-        apps = reservation_details.ReservationDescription.Apps
         if not apps or (len(apps) == 1 and not apps[0].Name):
             logger.info("No apps found in sandbox {0}".format(reservation_id))
             api.WriteMessageToReservationOutput(reservationId=reservation_id,
@@ -222,8 +221,8 @@ class DefaultSetupLogic(object):
             api.WriteMessageToReservationOutput(
                 reservationId=reservation_id,
                 message='No resources to power on')
-            DefaultSetupLogic.validate_all_apps_deployed(deploy_results=deploy_results,
-                                                         logger=logger)
+            DefaultSetupLogic.validate_apps_deployed(deploy_results=deploy_results,
+                                                     logger=logger)
             return
 
         pool = ThreadPool(len(resources))
@@ -246,8 +245,8 @@ class DefaultSetupLogic(object):
             if not res[0]:
                 raise Exception("Sandbox is Active with Errors - " + res[1])
 
-        DefaultSetupLogic.validate_all_apps_deployed(deploy_results=deploy_results,
-                                                     logger=logger)
+        DefaultSetupLogic.validate_apps_deployed(deploy_results=deploy_results,
+                                                 logger=logger)
 
     @staticmethod
     def refresh_vm_details(api, reservation_details, connect_results, resource_details_cache, logger, components):
@@ -427,7 +426,7 @@ class DefaultSetupLogic(object):
             raise
 
     @staticmethod
-    def validate_all_apps_deployed(deploy_results, logger):
+    def validate_apps_deployed(deploy_results, logger):
         logger.info("validating apps deployment results")
         if deploy_results is not None:
             for deploy_res in deploy_results.ResultItems:

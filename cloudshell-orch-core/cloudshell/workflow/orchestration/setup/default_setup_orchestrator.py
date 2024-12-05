@@ -29,19 +29,23 @@ class DefaultSetupWorkflow(object):
     def default_provisioning(self, sandbox, components):
         """
         :param Sandbox sandbox:
+        :param list(ReservationAppResource) components:
         :return:
         """
         api = sandbox.automation_api
 
         sandbox.logger.info("Executing default provisioning")
 
-        reservation_details = api.GetReservationDetails(reservationId=sandbox.id, disableCache=True)
+        if components is None:
+            components = api.GetReservationDetails(reservationId=sandbox.id,
+                                             disableCache=True).ReservationDescription.Apps
+
         self._deploy_result = DefaultSetupLogic.deploy_apps_in_reservation(api=api,
-                                                                           reservation_details=reservation_details,
+                                                                           apps=components,
                                                                            reservation_id=sandbox.id,
                                                                            logger=sandbox.logger)
 
-        DefaultSetupLogic.validate_all_apps_deployed(deploy_results=self._deploy_result,
+        DefaultSetupLogic.validate_apps_deployed(deploy_results=self._deploy_result,
                                                      logger=sandbox.logger)
 
         sandbox.components.refresh_components(sandbox=sandbox)
